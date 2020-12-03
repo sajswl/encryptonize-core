@@ -1,0 +1,93 @@
+# Copyright 2020 CYBERCRYPT
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+version: "3.8"
+
+x-service-variables: &service-variables
+  KEK: "0000000000000000000000000000000000000000000000000000000000000000"
+  ASK: "0000000000000000000000000000000000000000000000000000000000000001"
+  ENCRYPTION_SERVICE_INSECURE: "1"
+  AUTH_STORAGE_URL: "postgresql://root@cockroachdb-1:26257/auth"
+  OBJECT_STORAGE_URL: "http://minio:9000"
+  OBJECT_STORAGE_ID: &storage_id "storageid"
+  OBJECT_STORAGE_KEY: &storage_key "storagekey"
+  # This is just a dummy certificate
+  OBJECT_STORAGE_CERT: |
+    -----BEGIN CERTIFICATE-----
+    MIIBpjCCAVigAwIBAgIUQ3byU/Dxv0eA11bPDYVC4xD36dwwBQYDK2VwMGUxCzAJBgNVBAYTAkRLMQowCAYDVQQIDAEuMQowCAYDVQQHDAEuMQwwCgYDVQQKDANmb28xGjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMRQwEgYDVQQDDAtmb28uYmFyLmNvbTAeFw0yMDExMTgxNjM5MDVaFw0yMTExMTgxNjM5MDVaMGUxCzAJBgNVBAYTAkRLMQowCAYDVQQIDAEuMQowCAYDVQQHDAEuMQwwCgYDVQQKDANmb28xGjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMRQwEgYDVQQDDAtmb28uYmFyLmNvbTAqMAUGAytlcAMhAEeBiCvHWsxIRPH6tSqmalACa4ckUhXGLoqFUSLef5jyoxowGDAWBgNVHREEDzANggtmb28uYmFyLmNvbTAFBgMrZXADQQAdA1YAoyBCqsFlePrYO6AP1eUgYfCKEjRUttIeSltIv+M+AEzZIU8+JB3nH684qyi8y7XwWuZVC64639WbLxoL
+    -----END CERTIFICATE-----
+
+services:
+  # Encryption service
+  encryption-service:
+    build:
+      context: .
+      dockerfile: ./encryption-service.dockerfile
+    environment:
+      <<: *service-variables
+    ports:
+      - 9000:9000
+    depends_on:
+      - cockroachdb-1
+      - cockroachdb-2
+      - cockroachdb-3
+      - minio
+
+  # CockroachDB
+  cockroachdb-1:
+    image: cockroachdb/cockroach:v20.2.0
+    volumes:
+      - /cockroach/cockroach-data
+    command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
+    ports:
+      - 26257:26257
+      - 7001:8080
+
+  cockroachdb-2:
+    image: cockroachdb/cockroach:v20.2.0
+    volumes:
+      - /cockroach/cockroach-data
+    command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
+
+  cockroachdb-3:
+    image: cockroachdb/cockroach:v20.2.0
+    volumes:
+      - /cockroach/cockroach-data
+    command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
+
+  # Object storage
+  minio:
+    image: minio/minio:RELEASE.2020-11-13T20-10-18Z
+    volumes:
+      - /data
+    ports:
+      - 7000:9000
+    environment:
+      MINIO_ACCESS_KEY: *storage_id
+      MINIO_SECRET_KEY: *storage_key
+      MINIO_DEFAULT_BUCKETS: objects
+    command: server /data
+
+  minio-init:
+    image: minio/mc:latest
+    environment:
+      MINIO_ACCESS_KEY: *storage_id
+      MINIO_SECRET_KEY: *storage_key
+    entrypoint: |
+      /bin/sh -c "
+      /usr/bin/mc config host add --api s3v4 storage http://minio:9000 $${MINIO_ACCESS_KEY} $${MINIO_SECRET_KEY};
+      /usr/bin/mc mb storage/objects/;
+      /usr/bin/mc policy set public storage/objects;
+      "
+    depends_on:
+      - minio

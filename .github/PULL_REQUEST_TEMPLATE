@@ -1,0 +1,52 @@
+### Description
+- (Context the reviewer might need to know)
+- (What changes does this PR introduce)
+- (How were these changes implemented)
+
+### Parent issue
+Issue #xxx (all changes should be linked to an issue)
+
+### Related pull requests
+PR #xxx
+
+### Comments for the reviewers
+- (What part of the diff is a good starting point)
+- (How to test these changes)
+- (Areas where extra attention/feedback is appreciated)
+
+### Type(s) of change
+- [ ] Added user feature
+- [ ] Added technical feature
+- [ ] Added tests
+- [ ] Refactor
+- [ ] Bugfix
+- [ ] Updated documentation
+- [ ] Infrastructure changes (Terraform, GCP, K8s, other)
+- [ ] CI/CD workflow changes
+
+If you tick many of these, consider making several smaller pull requests.
+
+### General Checklist
+- [ ] I have added unit tests that prove my changes should work.
+- [ ] I have successfully run tests locally.
+- [ ] I have added proper doc comments to newly introduced functions.
+- [ ] I have updated documentation (internal and external) to reflect my changes.
+- [ ] I have pulled in the latest changes from master.
+- [ ] I have run `gofmt -l -w .` on the project.
+- [ ] I have successfully run `golangci-lint` locally.
+- [ ] I have spent some time looking over the full diff before creating this PR.
+- [ ] I have added the license to new source code files
+
+If you cannot tick an item, please describe why.
+
+### Additional Checklist for features
+(delete this section for enabler or maintenance stories)
+- [ ] I have added integration tests that prove my changes work with dependent systems.
+- [ ] I have added end-to-end tests that prove my changes satisfy an acceptance criteria of a feature.
+- [ ] I have modified any user facing documentation detailing the change in the feature set.
+
+If you cannot tick an item, please describe why.
+
+### Technical debt
+(If there is known technical debt added at the end of this change, please create a new (technical) issue and link it here - otherwise delete this section)
+Issue #xxx

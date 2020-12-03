@@ -1,0 +1,146 @@
+# Copyright 2020 CYBERCRYPT
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: rook-ceph
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ingress-certificate
+  namespace: rook-ceph
+spec:
+  secretName: ingress-certificate
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    encoding: PKCS1
+    size: 521
+  usages:
+  - server auth
+  - client auth
+  dnsNames:
+  # Set the hostname for the object store below
+  - ${OBJECT_STORAGE_HOSTNAME}
+  issuerRef:
+    name: selfsigned-issuer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-config
+  namespace: rook-ceph
+data:
+  config : |
+    events {}
+
+    http {
+      server {
+        listen 8000 ssl;
+        listen [::]:8000 ssl;
+
+        # modern ssl configuration according to https://wiki.mozilla.org/Security/Server_Side_TLS
+        ssl_certificate /etc/ssl/certs/tls.crt;
+        ssl_certificate_key /etc/ssl/private/tls.key;
+        ssl_session_timeout 1d;
+        ssl_session_cache shared:SSL:10m;  # about 40000 sessions
+        ssl_session_tickets off;
+        ssl_protocols TLSv1.3;
+        ssl_prefer_server_ciphers off;
+
+        location /nginx-health {
+          return 200 "healthy\n";
+        }
+        location / {
+          proxy_set_header Host '${OBJECT_STORAGE_HOSTNAME}';
+          proxy_pass http://rook-ceph-rgw-encryptonize-store.rook-ceph.svc.cluster.local:80;
+        }
+        client_max_body_size 5M;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ceph-ingress
+  namespace: rook-ceph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ceph-ingress
+  template:
+    metadata:
+      labels:
+        app: ceph-ingress
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: ingress-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: ingress-certificate
+              mountPath: /etc/ssl/certs/tls.crt
+              subPath: tls.crt
+              readOnly: true
+            - name: ingress-certificate
+              mountPath: /etc/ssl/private/tls.key
+              subPath: tls.key
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /nginx-health
+              port: 8000
+              scheme: HTTPS
+          livenessProbe:
+            httpGet:
+              path: /nginx-health
+              port: 8000
+              scheme: HTTPS
+      volumes:
+        - name: ingress-config
+          configMap:
+            name: ingress-config
+            items:
+              - key: config
+                path: nginx.conf
+        - name: ingress-certificate
+          secret:
+            secretName: ingress-certificate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ceph-ingress
+  namespace: rook-ceph
+spec:
+  type: LoadBalancer
+  selector:
+    app: ceph-ingress
+  ports:
+    - name: http443
+      protocol: TCP
+      port: 443
+      targetPort: 8000

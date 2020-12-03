@@ -1,0 +1,70 @@
+name: Encryption service build
+
+on: push
+
+defaults:
+  run:
+    shell: bash
+    working-directory: encryption-service
+
+jobs:
+  esb-build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+
+    - name: Lint
+      run: make lint
+
+    - name: Build
+      run: make build
+
+  esb-unit-test:
+    needs: esb-build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+
+    - name: Test
+      run: make unit-tests
+
+  esb-end-to-end:
+    needs: esb-build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      uses: ./.github/actions/install-dependencies
+
+    - name: Start docker containers
+      run: make docker-up
+
+    - name: Run end-to-end tests
+      run: make e2e-tests
+
+    - name: Log on failure
+      if: ${{ failure() }}
+      run: docker-compose logs
+
+    - name: Stop docker containers
+      run: make docker-down
