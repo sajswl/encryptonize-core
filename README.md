@@ -24,8 +24,6 @@ authorization.
 
 ## Achitecture overview
 
-<img src="documentation/imgs/encryptonize-arch.png" alt="Encryptonize&reg;" width="100%"/>
-
 At the core, Enryptonize&reg; consists of an Encryption Service (ES). In future releases of
 Enryptonize&reg; a Key Service will be added to automatically handle distribution of key material to
 Encryption Services. In the current iteration, key material is distributed manually by the deployer.
