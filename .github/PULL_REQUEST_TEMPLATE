@@ -33,8 +33,9 @@ PR #xxx
 - [ ] I have pulled in the latest changes from master.
 - [ ] I have run `make lint`.
 - [ ] I have successfully run `make docker-up; make tests`.
+- [ ] I have updated relevant workflows and deployment tools.
 - [ ] I have updated/added relevant documentation (readme, doc comments, etc).
-- [ ] I have added the license to new source code files
+- [ ] I have added the license to new source code files.
 - [ ] I have spent some time looking over the full diff before creating this PR.
 
 ### Technical Debt
