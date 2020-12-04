@@ -3,18 +3,18 @@
 - (What changes does this PR introduce)
 - (How were these changes implemented)
 
-### Parent issue
+### Parent Issue
 Issue #xxx (all changes should be linked to an issue)
 
-### Related pull requests
+### Related Pull Requests
 PR #xxx
 
-### Comments for the reviewers
+### Comments for the Reviewers
 - (What part of the diff is a good starting point)
 - (How to test these changes)
 - (Areas where extra attention/feedback is appreciated)
 
-### Type(s) of change
+### Type(s) of Change (Split the PR if you check many)
 - [ ] Added user feature
 - [ ] Added technical feature
 - [ ] Added tests
@@ -23,8 +23,6 @@ PR #xxx
 - [ ] Updated documentation
 - [ ] Infrastructure changes (Terraform, GCP, K8s, other)
 - [ ] CI/CD workflow changes
-
-If you tick many of these, consider making several smaller pull requests.
 
 ### Testing Checklist
 - [ ] I have added/updated unit tests for functional changes.
@@ -39,7 +37,7 @@ If you tick many of these, consider making several smaller pull requests.
 - [ ] I have added the license to new source code files
 - [ ] I have spent some time looking over the full diff before creating this PR.
 
-### Technical debt
+### Technical Debt
 (If there is known technical debt added at the end of this change, please create a new (technical)
 issue and link it here - otherwise delete this section)
 Issue #xxx
