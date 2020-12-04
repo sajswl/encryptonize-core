@@ -26,20 +26,18 @@ PR #xxx
 
 If you tick many of these, consider making several smaller pull requests.
 
+### Testing Checklist
+- [ ] I have added/updated unit tests for functional changes.
+- [ ] I have added/updated integration tests for changes that affect dependent systems.
+- [ ] I have added/updated end-to-end tests for feature changes.
+
 ### General Checklist
 - [ ] I have pulled in the latest changes from master.
-- [ ] I have added unit tests for functional changes.
 - [ ] I have run `make lint`.
 - [ ] I have successfully run `make docker-up; make tests`.
 - [ ] I have updated/added relevant documentation (readme, doc comments, etc).
 - [ ] I have added the license to new source code files
 - [ ] I have spent some time looking over the full diff before creating this PR.
-
-### Additional Checklist for features
-(delete this section for enabler or maintenance stories)
-- [ ] I have added integration tests that prove my changes work with dependent systems.
-- [ ] I have added end-to-end tests that prove my changes satisfy an acceptance criteria of a feature.
-- [ ] I have modified any user facing documentation detailing the change in the feature set.
 
 ### Technical debt
 (If there is known technical debt added at the end of this change, please create a new (technical)
