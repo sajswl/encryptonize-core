@@ -27,17 +27,13 @@ PR #xxx
 If you tick many of these, consider making several smaller pull requests.
 
 ### General Checklist
-- [ ] I have added unit tests that prove my changes should work.
-- [ ] I have successfully run tests locally.
-- [ ] I have added proper doc comments to newly introduced functions.
-- [ ] I have updated documentation (internal and external) to reflect my changes.
 - [ ] I have pulled in the latest changes from master.
-- [ ] I have run `gofmt -l -w .` on the project.
-- [ ] I have successfully run `golangci-lint` locally.
-- [ ] I have spent some time looking over the full diff before creating this PR.
+- [ ] I have added unit tests for functional changes.
+- [ ] I have run `make lint`.
+- [ ] I have successfully run `make docker-up; make tests`.
+- [ ] I have updated/added relevant documentation (readme, doc comments, etc).
 - [ ] I have added the license to new source code files
-
-If you cannot tick an item, please describe why.
+- [ ] I have spent some time looking over the full diff before creating this PR.
 
 ### Additional Checklist for features
 (delete this section for enabler or maintenance stories)
@@ -45,8 +41,7 @@ If you cannot tick an item, please describe why.
 - [ ] I have added end-to-end tests that prove my changes satisfy an acceptance criteria of a feature.
 - [ ] I have modified any user facing documentation detailing the change in the feature set.
 
-If you cannot tick an item, please describe why.
-
 ### Technical debt
-(If there is known technical debt added at the end of this change, please create a new (technical) issue and link it here - otherwise delete this section)
+(If there is known technical debt added at the end of this change, please create a new (technical)
+issue and link it here - otherwise delete this section)
 Issue #xxx
