@@ -28,6 +28,7 @@ coverage = coverage-unit.html coverage-e2e.html coverage-all.html
 ##### Build targets #####
 .PHONY: build
 build: $(protobufs)  ## Build the Encryption Service binary
+	CGO_ENABLED=0
 	go build -v .
 
 $(protobufs): $(protosource)
