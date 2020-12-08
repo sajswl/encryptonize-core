@@ -34,6 +34,7 @@ COPY . /encryption-service
 
 # Build binary
 ARG COMMIT
+ENV CGO_ENABLED=0
 RUN go build -v -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT'" -o /go/bin/es main.go
 
 # Adding the grpc_health_probe
@@ -43,7 +44,7 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \
 
 ##############################
 ### Runtime Image
-FROM gcr.io/distroless/base
+FROM scratch
 
 ARG COMMIT
 LABEL git-commit=${COMMIT}

@@ -20,6 +20,9 @@ set -euo pipefail
 #   ./tests/run-all-tests.sh
 
 
+# Static compilation
+export CGO_ENABLED=0
+
 # Start storage servers
 docker-compose up --detach cockroachdb-1 cockroachdb-2 cockroachdb-3 minio minio-init
 
