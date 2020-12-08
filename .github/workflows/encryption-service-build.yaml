@@ -10,17 +10,15 @@ defaults:
 jobs:
   esb-build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      credentials:
+        username: USERNAME
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.15
-
-    - name: Install dependencies
-      uses: ./.github/actions/install-dependencies
 
     - name: Lint
       run: make lint
@@ -31,17 +29,15 @@ jobs:
   esb-unit-test:
     needs: esb-build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      credentials:
+        username: USERNAME
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.15
-
-    - name: Install dependencies
-      uses: ./.github/actions/install-dependencies
 
     - name: Test
       run: make unit-tests
@@ -49,18 +45,26 @@ jobs:
   esb-end-to-end:
     needs: esb-build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      credentials:
+        username: USERNAME
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
-
-    - name: Install dependencies
-      uses: ./.github/actions/install-dependencies
 
     - name: Start docker containers
       run: make docker-up
 
     - name: Run end-to-end tests
-      run: make e2e-tests
+      # Small hack to get docker-compose next to docker to work. We cannot attach to the host
+      # network due to the way the workflow container is started, so we fetch the ip of the docker0
+      # interface instead. See https://stackoverflow.com/a/31328031 for more information.
+      run: |
+        export E2E_TEST_URL=$(ip route show | awk '/default/ {print $3}'):9000
+        make e2e-tests
 
     - name: Log on failure
       if: ${{ failure() }}
