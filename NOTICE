@@ -19,10 +19,10 @@ This project bundles the following dependencies under the BSD-3 license.
 See documentation/license/overview.md for more details.
 - github.com/golang/crypto
 - github.com/golang/protobuf
-- github.com/google/uuid
 
 This project bundles the following dependencies under the MIT license.
 See documentation/license/overview.md for more details.
+- github.com/gofrs/uuid
 - github.com/jackc/pgtype
 - github.com/jackc/pgx
 - github.com/sirupsen/logrus

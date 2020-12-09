@@ -4,21 +4,21 @@ This document contains an overview of all licenses issued to our open source dep
 | Dependency                                   | License                                     | Source                                                                             |
 | -------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------- |
 | cloud.google.com/go                          | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/google/go-cloud/master/LICENSE                   |
+| github.com/aws/aws-sdk-go                    | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/aws/aws-sdk-go/master/LICENSE.txt                |
+| github.com/fluent/fluent-bit                 | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/fluent/fluent-bit/master/LICENSE                 |
+| github.com/google/tink                       | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/google/tink/master/LICENSE                       |
+| github.com/grpc-ecosystem/go-grpc-middleware | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/grpc-ecosystem/go-grpc-middleware/master/LICENSE |
+| github.com/grpc/grpc-go                      | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/grpc/grpc-go/master/LICENSE                      |
+| github.com/spf13/cobra                       | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/spf13/cobra/master/LICENSE.txt                   |
+| google.golang.org/genproto                   | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/googleapis/go-genproto/master/LICENSE            |
+| github.com/golang/crypto                     | BSD 3-Clause                                | https://raw.githubusercontent.com/golang/crypto/master/LICENSE                     |
 | github.com/golang/protobuf                   | BSD 3-Clause                                | https://raw.githubusercontent.com/golang/protobuf/master/LICENSE                   |
 | github.com/gofrs/uuid                        | MIT License                                 | https://raw.githubusercontent.com/gofrs/uuid/master/LICENSE                        |
-| github.com/sirupsen/logrus                   | MIT License                                 | https://raw.githubusercontent.com/sirupsen/logrus/master/LICENSE                   |
-| google.golang.org/genproto                   | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/googleapis/go-genproto/master/LICENSE            |
-| github.com/google/tink                       | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/google/tink/master/LICENSE                       |
-| github.com/elastic/cloud-on-k8s              | Elastic License Agreement                   | https://raw.githubusercontent.com/elastic/cloud-on-k8s/master/LICENSE.txt          |
-| github.com/sony/gobreaker                    | MIT License                                 | https://raw.githubusercontent.com/sony/gobreaker/master/LICENSE                    |
-| github.com/aws/aws-sdk-go                    | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/aws/aws-sdk-go/master/LICENSE.txt                |
-| github.com/grpc-ecosystem/go-grpc-middleware | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/grpc-ecosystem/go-grpc-middleware/master/LICENSE |
 | github.com/jackc/pgtype                      | MIT License                                 | https://raw.githubusercontent.com/jackc/pgtype/master/LICENSE                      |
 | github.com/jackc/pgx                         | MIT License                                 | https://raw.githubusercontent.com/jackc/pgx/master/LICENSE                         |
-| github.com/spf13/cobra                       | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/spf13/cobra/master/LICENSE.txt                   |
-| github.com/fluent/fluent-bit                 | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/fluent/fluent-bit/master/LICENSE                 |
-| github.com/golang/crypto                     | BSD 3-Clause                                | https://raw.githubusercontent.com/golang/crypto/master/LICENSE                     |
-| github.com/grpc/grpc-go                      | Apache License, Version 2.0, January 2004   | https://raw.githubusercontent.com/grpc/grpc-go/master/LICENSE                      |
+| github.com/sirupsen/logrus                   | MIT License                                 | https://raw.githubusercontent.com/sirupsen/logrus/master/LICENSE                   |
+| github.com/sony/gobreaker                    | MIT License                                 | https://raw.githubusercontent.com/sony/gobreaker/master/LICENSE                    |
+| github.com/elastic/cloud-on-k8s              | Elastic License Agreement                   | https://raw.githubusercontent.com/elastic/cloud-on-k8s/master/LICENSE.txt          |
 
 # Licenses
 
