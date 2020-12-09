@@ -27,6 +27,9 @@
 
 set -euo pipefail
 
+# Static compilation
+export CGO_ENABLED=0
+
 export ENCRYPTION_SERVICE_INSECURE=1
 
 echo '[*] running end-to-end tests'
