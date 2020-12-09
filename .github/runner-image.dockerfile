@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Dependencies
 RUN apt-get update && \
-  apt-get install -y gcc wget curl git make python iproute2 && \
+  apt-get install -y wget curl git make python iproute2 && \
   rm -rf /var/lib/apt/lists/*
 
 # go
@@ -34,6 +34,7 @@ RUN curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-c
 RUN curl https://sdk.cloud.google.com > install.sh && \
   bash install.sh --disable-prompts && \
   rm -rf /root/google-cloud-sdk/.install
+RUN gcloud config set container/use_application_default_credentials true
 ENV PATH=$PATH:/root/google-cloud-sdk/bin
 
 # kubectl
@@ -44,3 +45,4 @@ chmod +x /usr/local/bin/kubectl
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.32.2
 RUN go get github.com/wadey/gocovmerge && \
   rm -rf /root/.cache/*
+RUN go get github.com/grpc-ecosystem/grpc-health-probe
