@@ -1,7 +1,3 @@
----
-date: 'November 25, 2020'
-version: 1.4
----
 # License
 Copyright 2020 CYBERCRYPT
 
@@ -89,7 +85,7 @@ docker exec <CONTAINER ID> ./es create-admin
 ```
 
 #### Kubernetes example
-If using kubernets with kubectl run:
+If using kubernetes with kubectl run:
 ```
 kubectl exec <encryptonize pod name> -n encryptonize -- /es create-admin
 ```
@@ -107,7 +103,7 @@ values for `userKind` are either `ADMIN` or `USER`.
 Once a user has been created, a new `userID` and `accessToken` will be returned from the call.
 
 Users can only be created by an admin user. For code examples on how to do this see
-`applications/ECCS`.
+[`/applications/ECCS`](/applications/ECCS).
 
 # Storage
 To distinguish between encrypted and unencrypted data, some terminology is necessary. An **object**
@@ -146,5 +142,3 @@ To add a user to the permission list of an object, you need to call the `AddPerm
 
 ## Remove permissions from an object
 To remove a user's permission from an object, you need to call the `RemovePermission` endpoint.
-
-Note that a user cannot remove themselves from the access list, but they can remove the access of another user.
