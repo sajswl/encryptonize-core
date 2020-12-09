@@ -241,6 +241,96 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 	}
 }
 
+// Tests that missing scopes results in unauthenticated response
+func TestAuthMiddlewareMissingScopes(t *testing.T) {
+	app := App{}
+
+	// Test wrong format AT
+	// User credentials
+	UID := uuid.Must(uuid.NewV4()).String()
+	AT := "bearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
+	var md = metadata.Pairs(
+		"authorization", AT,
+		"userID", UID)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
+	_, err := app.AuthenticateUser(ctx)
+	if err == nil {
+		t.Errorf("Invalid Auth Passed\n")
+	}
+	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
+		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
+	}
+}
+
+// Tests that accesstoken of wrong type gets rejected
+func TestAuthMiddlewareInvalidScopes(t *testing.T) {
+	app := App{}
+
+	// Test wrong format AT
+	// User credentials
+	UID := uuid.Must(uuid.NewV4()).String()
+	AT := "bearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
+	userScope := authn.ScopeType(0xff)
+	var md = metadata.Pairs(
+		"authorization", AT,
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
+	_, err := app.AuthenticateUser(ctx)
+	if err == nil {
+		t.Errorf("Invalid Auth Passed\n")
+	}
+	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
+		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
+	}
+}
+
+// Tests that accesstoken thats not hex gets rejected
+func TestAuthMiddlewareInvalidModifiedScopes(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	accessToken, _ := crypt.Random(32)
+	AT := "bearer " + hex.EncodeToString(accessToken)
+	ASK, _ := crypt.Random(32)
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
+
+	var md = metadata.Pairs(
+		"authorization", AT,
+		"userID", userID.String(),
+		"userScopes", strconv.FormatUint(uint64(userScope|authn.ScopeUserManagement), 10))
+
+	authnStorageMock := authstorage.NewMemoryAuthStore()
+
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	if err != nil {
+		t.Fatalf("NewMessageAuthenticator errored %v", err)
+	}
+
+	// create new user
+	authenticator := &authn.Authenticator{
+		MessageAuthenticator: m,
+		AuthStore:            authnStorageMock,
+	}
+
+	err = authenticator.CreateOrUpdateUser(context.Background(), userID, accessToken, userScope)
+	if err != nil {
+		t.Fatalf("CreateOrUpdateUser errored %v", err)
+	}
+
+	app := App{
+		MessageAuthenticator: m,
+	}
+
+	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
+	ctx = metadata.NewIncomingContext(ctx, md)
+	_, err = app.AuthenticateUser(ctx)
+	if err == nil {
+		t.Fatalf("Auth should have errored")
+	}
+}
+
 // Tests that if authn.LoginUser fails, then so will the authmiddleware
 func TestAuthMiddlewareLoginFail(t *testing.T) {
 	// User credentials

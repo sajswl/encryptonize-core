@@ -105,6 +105,10 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid scopes")
 	}
 	userScopes = authn.ScopeType(userScopesInt)
+	if userScopes.IsValid() != nil {
+		log.Errorf("AuthenticateUser: Invalid scopes value")
+		return nil, status.Errorf(codes.InvalidArgument, "invalid scopes")
+	}
 
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {

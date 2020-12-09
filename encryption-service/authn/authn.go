@@ -35,14 +35,6 @@ type AuthenticatorInterface interface {
 	LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) (bool, error)
 }
 
-// UserKindType represents the different types of users of the Authenticator
-type UserKindType uint64
-
-const (
-	UserKind UserKindType = iota
-	AdminKind
-)
-
 // ScopeType represents the different scopes a use could be granted
 type ScopeType uint64
 
