@@ -1,6 +1,6 @@
-# Deploying Encryptonize
+# Deploying Encryptonize&reg;
 
-Deploying Encryptonize consists of four main steps:
+Deploying Encryptonize&reg; consists of four main steps:
 1. [Deploying a CockroachDB cluster](#cockroachdb-deployment)
 2. [Deploying a Rook-Ceph cluster](#rook-ceph-deployment)
 3. [Deploying the Encryption Service](#encryption-service-deployment)
