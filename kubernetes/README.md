@@ -70,10 +70,10 @@ As such minimal changes are needed to set up Encryptonize with one or more other
 Independent of your choice of cloud provider you will need to set up [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 You will also need to allocate four hostnames with your DNS provider:
-* A hostname for the Encryption Service, e.g. `encryptonize.my-hostname.com`.
-* A hostname for the Rook-Ceph object store, e.g. `object.my-hostname.com`.
-* A hostname for the CockroachDB database, e.g. `db.my-hostname.com`.
-* (Optional) A hostname for Elasticsearch, e.g. `elasticsearch.my-hostname.com`.
+* A hostname for the Encryption Service, e.g. `encryptonize.example.com`.
+* A hostname for the Rook-Ceph object store, e.g. `object.example.com`.
+* A hostname for the CockroachDB database, e.g. `db.example.com`.
+* (Optional) A hostname for Elasticsearch, e.g. `elasticsearch.example.com`.
 
 ### Edit Kubernetes Files
 You will need to edit a few settings in the provided Kubernetes files. The changes are described
@@ -201,7 +201,7 @@ spec:
 
 ## CockroachDB Deployment
 
-You need a kubernetes cluster in order to deploy CockroachDB. If you don't have one, we provide a quickstart guide to set one up:
+You need a Kubernetes cluster in order to deploy CockroachDB. If you don't have one, we provide a quickstart guide to set one up:
 
 1. [AWS cluster quickstart](aws_default_cluster_setup.md)
 2. [Azure cluster quickstart](azure_default_cluster_setup.md)
@@ -249,7 +249,7 @@ watch kubectl -n cockroachdb get job cluster-init-secure
 ```
 
 ## Rook-Ceph Deployment
-You need a kubernetes cluster in order to deploy Ceph. If you don't have one,
+You need a Kubernetes cluster in order to deploy Ceph. If you don't have one,
 we provide a quickstart guide to set one up:
 
 1. [AWS cluster quickstart](aws_default_cluster_setup.md)
@@ -377,7 +377,7 @@ To read more about image pull secrets, see
 
 
 ### Set up the cluster
-You need a kubernetes cluster in order to deploy Ceph. If you don't have one,
+You need a Kubernetes cluster in order to deploy Ceph. If you don't have one,
 we provide a quickstart guide to set one up:
 
 1. [AWS cluster quickstart](aws_default_cluster_setup.md)
