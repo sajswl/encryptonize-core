@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/gofrs/uuid"
@@ -37,10 +38,12 @@ func TestAuthMiddlewareGoodPath(t *testing.T) {
 	accessToken, _ := crypt.Random(32)
 	AT := "bearer " + hex.EncodeToString(accessToken)
 	ASK, _ := crypt.Random(32)
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", userID.String())
+		"userID", userID.String(),
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	authnStorageMock := authstorage.NewMemoryAuthStore()
 
@@ -54,7 +57,8 @@ func TestAuthMiddlewareGoodPath(t *testing.T) {
 		MessageAuthenticator: m,
 		AuthStore:            authnStorageMock,
 	}
-	err = authenticator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.UserKind)
+
+	err = authenticator.CreateOrUpdateUser(context.Background(), userID, accessToken, userScope)
 	if err != nil {
 		t.Fatalf("CreateOrUpdateUser errored %v", err)
 	}
@@ -78,10 +82,12 @@ func TestAuthMiddlewareWrongAT(t *testing.T) {
 	AT := "bearer " + hex.EncodeToString(accessToken)
 	accessToken, _ = crypt.Random(32)
 	ASK, _ := crypt.Random(32)
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", userID.String())
+		"userID", userID.String(),
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	authnStorageMock := authstorage.NewMemoryAuthStore()
 
@@ -95,7 +101,8 @@ func TestAuthMiddlewareWrongAT(t *testing.T) {
 		MessageAuthenticator: m,
 		AuthStore:            authnStorageMock,
 	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.UserKind)
+
+	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, userScope)
 	if err != nil {
 		t.Fatalf("CreateOrUpdateUser errored %v", err)
 	}
@@ -117,9 +124,11 @@ func TestAuthMiddlewareNonExistingUser(t *testing.T) {
 	// User credentials
 	UID := "bc21fe7e-fd3b-41ee-83df-000000000000"
 	AT := "bearer 4141414141414141414141414141414141414141414141414141414141414141"
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", UID)
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	authnStorageMock := &authstorage.AuthStoreMock{
 		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
@@ -142,11 +151,12 @@ func TestAuthMiddlewareNonExistingUser(t *testing.T) {
 func TestAuthMiddlewareInvalidUUID(t *testing.T) {
 	UID := "NotEvenClose to being valid"
 	AT := "bearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
-
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	// User credentials
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", UID)
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	app := App{}
 
@@ -168,8 +178,10 @@ func TestAuthMiddlewareMissingAT(t *testing.T) {
 	// Test wrong format AT
 	// User credentials
 	UID := uuid.Must(uuid.NewV4()).String()
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	var md = metadata.Pairs(
-		"userID", UID)
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
 	_, err := app.AuthenticateUser(ctx)
@@ -189,9 +201,11 @@ func TestAuthMiddlewareInvalidAT(t *testing.T) {
 	// User credentials
 	UID := uuid.Must(uuid.NewV4()).String()
 	AT := "notBearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", UID)
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
 	_, err := app.AuthenticateUser(ctx)
@@ -211,9 +225,11 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 	// User credentials
 	UID := uuid.Must(uuid.NewV4()).String()
 	AT := "bearer thisIsANonHexaDecimalSentenceThatsAtLeastSixtyFourCharactersLong"
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", UID)
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
 	_, err := app.AuthenticateUser(ctx)
@@ -230,9 +246,11 @@ func TestAuthMiddlewareLoginFail(t *testing.T) {
 	// User credentials
 	UID := uuid.Must(uuid.NewV4()).String()
 	AT := "bearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", UID)
+		"userID", UID,
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	authnStorageMock := &authstorage.AuthStoreMock{
 		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
@@ -260,10 +278,12 @@ func TestAuthMiddlewareWrongUserTypeUserToAdmin(t *testing.T) {
 	accessToken, _ := crypt.Random(32)
 	AT := "bearer " + hex.EncodeToString(accessToken)
 	ASK, _ := crypt.Random(32)
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", userID.String())
+		"userID", userID.String(),
+		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	authnStorageMock := authstorage.NewMemoryAuthStore()
 
@@ -277,7 +297,7 @@ func TestAuthMiddlewareWrongUserTypeUserToAdmin(t *testing.T) {
 		MessageAuthenticator: m,
 		AuthStore:            authnStorageMock,
 	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.UserKind)
+	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, userScope)
 	if err != nil {
 		t.Fatalf("CreateOrUpdateUser errored %v", err)
 	}
@@ -301,10 +321,12 @@ func TestAuthMiddlewareWrongUserTypeAdminToUser(t *testing.T) {
 	accessToken, _ := crypt.Random(32)
 	AT := "bearer " + hex.EncodeToString(accessToken)
 	ASK, _ := crypt.Random(32)
+	adminScope := authn.ScopeUserManagement
 
 	var md = metadata.Pairs(
 		"authorization", AT,
-		"userID", userID.String())
+		"userID", userID.String(),
+		"userScopes", strconv.FormatUint(uint64(adminScope), 10))
 
 	authnStorageMock := authstorage.NewMemoryAuthStore()
 
@@ -318,7 +340,7 @@ func TestAuthMiddlewareWrongUserTypeAdminToUser(t *testing.T) {
 		MessageAuthenticator: m,
 		AuthStore:            authnStorageMock,
 	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.AdminKind)
+	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, adminScope)
 	if err != nil {
 		t.Fatalf("CreateOrUpdateUser errored %v", err)
 	}

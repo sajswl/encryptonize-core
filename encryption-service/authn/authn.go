@@ -31,8 +31,8 @@ type Authenticator struct {
 }
 
 type AuthenticatorInterface interface {
-	CreateOrUpdateUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userKind UserKindType) error
-	LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userKind UserKindType) (bool, error)
+	CreateOrUpdateUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) error
+	LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) (bool, error)
 }
 
 // UserKindType represents the different types of users of the Authenticator
@@ -43,18 +43,28 @@ const (
 	AdminKind
 )
 
-// IsValid checks if a UserKind is valid since go doesn't support type safe enums
-func (ut UserKindType) IsValid() error {
-	switch ut {
-	case UserKind, AdminKind:
+// ScopeType represents the different scopes a use could be granted
+type ScopeType uint64
+
+const (
+	ScopeRead ScopeType = 1 << iota
+	ScopeCreate
+	ScopeIndex
+	ScopeObjectPermissions
+	ScopeUserManagement
+	ScopeEnd
+)
+
+func (us ScopeType) IsValid() error {
+	if us < ScopeEnd {
 		return nil
 	}
-	return errors.New("invalid user type")
+	return errors.New("invalid combination of scopes")
 }
 
-// formatMessage formats a message of userID + accessToken + userKind for signing
-// Message: userID (UUID) - 16 bytes | accessToken - 32 bytes | userKind - 8 bytes little endian encoded
-func formatMessage(userID uuid.UUID, accessToken []byte, userKind UserKindType) ([]byte, error) {
+// formatMessage formats a message of userID + accessToken + userScope for signing
+// Message: userID (UUID) - 16 bytes | accessToken - 32 bytes | userScope - 8 bytes little endian encoded
+func formatMessage(userID uuid.UUID, accessToken []byte, userScope ScopeType) ([]byte, error) {
 	if userID.Version() != 4 || userID.Variant() != uuid.VariantRFC4122 {
 		return nil, errors.New("invalid user ID UUID version or variant")
 	}
@@ -63,50 +73,50 @@ func formatMessage(userID uuid.UUID, accessToken []byte, userKind UserKindType) 
 		return nil, errors.New("invalid access token length")
 	}
 
-	err := userKind.IsValid()
-	if err != nil {
-		return nil, err
+	if userScope >= ScopeEnd {
+		return nil, errors.New("invalid scopes")
 	}
+
 	msg := make([]byte, len(userID)+len(accessToken)+8)
 	copy(msg, userID.Bytes())
 	copy(msg[len(userID):], accessToken)
-	binary.LittleEndian.PutUint64(msg[len(userID)+len(accessToken):], uint64(userKind))
+	binary.LittleEndian.PutUint64(msg[len(userID)+len(accessToken):], uint64(userScope))
 
 	return msg, nil
 }
 
-// tag creates a tag of userID + accessToken + userKind
-func (a *Authenticator) tag(userID uuid.UUID, accessToken []byte, userKind UserKindType) ([]byte, error) {
-	msg, err := formatMessage(userID, accessToken, userKind)
+// tag creates a tag of userID + accessToken + userScope
+func (a *Authenticator) tag(userID uuid.UUID, accessToken []byte, userScope ScopeType) ([]byte, error) {
+	msg, err := formatMessage(userID, accessToken, userScope)
 	if err != nil {
 		return nil, err
 	}
 	return a.MessageAuthenticator.Tag(crypt.UsersDomain, msg)
 }
 
-// verify verifies a tag of usersID + accessToken + userKind
-func (a *Authenticator) verify(userID uuid.UUID, accessToken []byte, userKind UserKindType, tag []byte) (bool, error) {
-	msg, err := formatMessage(userID, accessToken, userKind)
+// verify verifies a tag of usersID + accessToken + userScope
+func (a *Authenticator) verify(userID uuid.UUID, accessToken []byte, userScope ScopeType, tag []byte) (bool, error) {
+	msg, err := formatMessage(userID, accessToken, userScope)
 	if err != nil {
 		return false, err
 	}
 	return a.MessageAuthenticator.Verify(crypt.UsersDomain, msg, tag)
 }
 
-// CreateOrUpdateUser creates (or updates) a user: userID + accessToken + userKind for the tx (Auth Storage)
-func (a *Authenticator) CreateOrUpdateUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userKind UserKindType) error {
-	tag, err := a.tag(userID, accessToken, userKind)
+// CreateOrUpdateUser creates (or updates) a user: userID + accessToken + userScope for the tx (Auth Storage)
+func (a *Authenticator) CreateOrUpdateUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) error {
+	tag, err := a.tag(userID, accessToken, userScope)
 	if err != nil {
 		return err
 	}
 	return a.AuthStore.UpsertUser(ctx, userID, tag)
 }
 
-// LoginUser checks if an user: userID + accesstoken + userKind exists for the tx (Auth Storage)
-func (a *Authenticator) LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userKind UserKindType) (bool, error) {
+// LoginUser checks if an user: userID + accesstoken + userScope exists for the tx (Auth Storage)
+func (a *Authenticator) LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) (bool, error) {
 	storedTag, err := a.AuthStore.GetUserTag(ctx, userID)
 	if err != nil {
 		return false, err
 	}
-	return a.verify(userID, accessToken, userKind, storedTag)
+	return a.verify(userID, accessToken, userScope, storedTag)
 }

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"encryption-service/app"
+	"encryption-service/authn"
 )
 
 var endpoint = "127.0.0.1:9000"
@@ -26,6 +27,8 @@ var uid string
 var uat string
 var uidAdmin = "00000000-0000-4000-8000-000000000002"
 var uatAdmin = "0000000000000000000000000000000000000000000000000000000000000002"
+var scopesAdmin = authn.ScopeUserManagement
+var scopesUser = authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 var https = false
 
 /**************************/
@@ -52,7 +55,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Create user for tests
-	client, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	client, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	if err != nil {
 		log.Fatalf("Couldn't create client: %v", err)
 	}

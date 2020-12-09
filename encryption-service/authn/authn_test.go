@@ -30,19 +30,19 @@ var (
 	ASK, _         = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
 	userID         = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
 	accessToken, _ = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000002")
-	userKind       = AdminKind
+	userScope      = ScopeUserManagement
 
 	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK)
 	authenticator           = &Authenticator{
 		MessageAuthenticator: messageAuthenticator,
 	}
 
-	expectedMessage, _ = hex.DecodeString("00000000000040008000000000000002" + "0000000000000000000000000000000000000000000000000000000000000002" + "0100000000000000")
+	expectedMessage, _ = hex.DecodeString("00000000000040008000000000000002" + "0000000000000000000000000000000000000000000000000000000000000002" + "1000000000000000")
 	expectedTag, _     = messageAuthenticator.Tag(crypt.UsersDomain, expectedMessage)
 )
 
 func TestFormat(t *testing.T) {
-	got, err := formatMessage(userID, accessToken, userKind)
+	got, err := formatMessage(userID, accessToken, userScope)
 	if err != nil {
 		t.Fatalf("formatMessage errored: %v", err)
 	}
@@ -57,16 +57,16 @@ func TestFormat(t *testing.T) {
 func TestFormatBadAccessToken(t *testing.T) {
 	accessToken := []byte("wrong length")
 
-	got, err := formatMessage(userID, accessToken, userKind)
+	got, err := formatMessage(userID, accessToken, userScope)
 	if (err == nil && err.Error() != "Invalid accessToken length") || got != nil {
 		t.Errorf("formatMessage should have errored")
 	}
 }
 
-func TestFormatBadUserKind(t *testing.T) {
-	userKind := UserKindType(0xff)
+func TestFormatBaduserScope(t *testing.T) {
+	userScope := ScopeType(0xff)
 
-	got, err := formatMessage(userID, accessToken, userKind)
+	got, err := formatMessage(userID, accessToken, userScope)
 	if (err == nil && err.Error() != "Invalid user type") || got != nil {
 		t.Errorf("formatMessage should have errored")
 	}
@@ -75,14 +75,14 @@ func TestFormatBadUserKind(t *testing.T) {
 func TestFormatBadUserID(t *testing.T) {
 	userID := uuid.Nil
 
-	got, err := formatMessage(userID, accessToken, userKind)
+	got, err := formatMessage(userID, accessToken, userScope)
 	if (err == nil && err.Error() != "Invalid userID UUID") || got != nil {
 		t.Errorf("formatMessage should have errored")
 	}
 }
 
 func TestTag(t *testing.T) {
-	got, err := authenticator.tag(userID, accessToken, userKind)
+	got, err := authenticator.tag(userID, accessToken, userScope)
 	if err != nil {
 		t.Fatalf("tag errored: %v", err)
 	}
@@ -95,14 +95,14 @@ func TestTag(t *testing.T) {
 func TestSignBadFormatMessage(t *testing.T) {
 	userID := uuid.Nil
 
-	got, err := authenticator.tag(userID, accessToken, userKind)
+	got, err := authenticator.tag(userID, accessToken, userScope)
 	if (err == nil && err.Error() != "Invalid userID UUID") || got != nil {
 		t.Errorf("sign should have errored")
 	}
 }
 
 func TestVerify(t *testing.T) {
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	valid, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestVerify(t *testing.T) {
 func TestVerifyBadFormatMessage(t *testing.T) {
 	userID := uuid.Nil
 
-	got, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	got, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if (err == nil && err.Error() != "Invalid userID UUID") || got != false {
 		t.Errorf("verify should have errored")
 	}
@@ -124,7 +124,7 @@ func TestVerifyBadFormatMessage(t *testing.T) {
 func TestVerifyModifiedUserID(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	valid, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestVerifyModifiedUserID(t *testing.T) {
 func TestVerifyModifiedAccessToken(t *testing.T) {
 	accessToken := []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB")
 
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	valid, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -147,10 +147,10 @@ func TestVerifyModifiedAccessToken(t *testing.T) {
 	}
 }
 
-func TestVerifyModifiedUserKind(t *testing.T) {
-	userKind := UserKind
+func TestVerifyModifieduserScope(t *testing.T) {
+	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	valid, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestVerifyModifiedUserKind(t *testing.T) {
 func TestVerifyModifiedTag(t *testing.T) {
 	expectedTag := append(expectedTag, 0)
 
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	valid, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestVerifyModifiedASK(t *testing.T) {
 		MessageAuthenticator: ma,
 	}
 
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
+	valid, err := authenticator.verify(userID, accessToken, userScope, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestLoginUser(t *testing.T) {
 	authenticator.AuthStore = DBMock
 	ctx := context.Background()
 
-	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userKind)
+	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userScope)
 	if err != nil || !authenticated {
 		t.Fatalf("User not authenticated: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestLoginUserWrongTag(t *testing.T) {
 	authenticator.AuthStore = DBMock
 	ctx := context.Background()
 
-	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userKind)
+	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userScope)
 	if authenticated {
 		t.Fatalf("User unlawfully authenticated: %v, %v", err, authenticated)
 	}
@@ -232,7 +232,7 @@ func TestLoginUserFailedTagVerification(t *testing.T) {
 	authenticator.AuthStore = DBMock
 	ctx := context.Background()
 
-	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userKind)
+	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userScope)
 	if authenticated {
 		t.Fatalf("User unlawfully authenticated: %v, %v", err, authenticated)
 	}
@@ -249,7 +249,7 @@ func TestCreateOrUpdateUser(t *testing.T) {
 	authenticator.AuthStore = DBMock
 	ctx := context.Background()
 
-	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userKind)
+	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userScope)
 	if err != nil {
 		t.Fatalf("Failed to create/update user: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestCreateOrUpdateUserFail(t *testing.T) {
 	authenticator.AuthStore = DBMock
 	ctx := context.Background()
 
-	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userKind)
+	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userScope)
 	expectedError := "upsert failed"
 	if err.Error() != expectedError {
 		t.Fatalf("Didn't get expected error, got: %v expected %v", err, expectedError)

@@ -187,7 +187,7 @@ func (app *App) CreateAdminCommand() {
 		}
 	}()
 
-	userID, accessToken, err := app.createUserWrapper(ctx, authStorage, authn.AdminKind)
+	userID, accessToken, err := app.createUserWrapper(ctx, authStorage, authn.ScopeUserManagement)
 	if err != nil {
 		log.Fatalf("Create user failed: %v", err)
 	}

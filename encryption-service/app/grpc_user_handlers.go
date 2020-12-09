@@ -33,12 +33,12 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 	// Set userKind
 	// authn.UserKind = 0x0
 	// authn.AdminKind = 0x1
-	var usertype authn.UserKindType
+	var usertype authn.ScopeType
 	switch uk := request.UserKind; uk {
 	case CreateUserRequest_USER:
-		usertype = authn.UserKind
+		usertype = authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	case CreateUserRequest_ADMIN:
-		usertype = authn.AdminKind
+		usertype = authn.ScopeUserManagement
 	default:
 		log.Errorf("CreateUser: Invalid user kind %v", request.UserKind)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid user type")
@@ -58,7 +58,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 }
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (app *App) createUserWrapper(ctx context.Context, authStorage authstorage.AuthStoreInterface, usertype authn.UserKindType) (*uuid.UUID, []byte, error) {
+func (app *App) createUserWrapper(ctx context.Context, authStorage authstorage.AuthStoreInterface, userscope authn.ScopeType) (*uuid.UUID, []byte, error) {
 	userID, err := uuid.NewV4()
 	if err != nil {
 		return nil, nil, err
@@ -74,7 +74,7 @@ func (app *App) createUserWrapper(ctx context.Context, authStorage authstorage.A
 		AuthStore:            authStorage,
 	}
 
-	err = authenticator.CreateOrUpdateUser(ctx, userID, accessToken, usertype)
+	err = authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userscope)
 	if err != nil {
 		return nil, nil, err
 	}

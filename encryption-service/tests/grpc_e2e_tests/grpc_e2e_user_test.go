@@ -21,7 +21,7 @@ import (
 
 // Tests that we can create and use a user
 func TestCreateUser(t *testing.T) {
-	client, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	client, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -38,7 +38,7 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("Couldn't parse UAT: %v", err)
 	}
 
-	client2, err := NewClient(endpoint, uid2, uat2, https)
+	client2, err := NewClient(endpoint, uid2, uat2, scopesUser, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(client2, t)
 
@@ -52,7 +52,7 @@ func TestCreateUser(t *testing.T) {
 	// Test that created Admin can do stuff
 	uidAdmin2 := createAdminResponse.UserID
 	uatAdmin2 := createAdminResponse.AccessToken
-	clientAdmin2, err := NewClient(endpoint, uidAdmin2, uatAdmin2, https)
+	clientAdmin2, err := NewClient(endpoint, uidAdmin2, uatAdmin2, scopesAdmin, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(clientAdmin2, t)
 
@@ -64,7 +64,7 @@ func TestCreateUser(t *testing.T) {
 
 // Test that wrong UID upon user creation results in an error
 func TestCreateUserWrongCredsUID(t *testing.T) {
-	client, err := NewClient(endpoint, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", uatAdmin, https)
+	client, err := NewClient(endpoint, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -76,7 +76,7 @@ func TestCreateUserWrongCredsUID(t *testing.T) {
 
 // Test that wrongly formatted UID upon user creation results in an error
 func TestCreateUserWrongFormatUID(t *testing.T) {
-	client, err := NewClient(endpoint, "this_UID_is_not_a_valid_UUID", uatAdmin, https)
+	client, err := NewClient(endpoint, "this_UID_is_not_a_valid_UUID", uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -88,7 +88,7 @@ func TestCreateUserWrongFormatUID(t *testing.T) {
 
 // Test that wrong UAT upon user creation results in an error
 func TestCreateUserWrongCredsUAT(t *testing.T) {
-	client, err := NewClient(endpoint, uidAdmin, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", https)
+	client, err := NewClient(endpoint, uidAdmin, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -100,7 +100,7 @@ func TestCreateUserWrongCredsUAT(t *testing.T) {
 
 // Test that wrongly formatted UAT upon user creation results in an error
 func TestCreateUserWrongFormatUAT(t *testing.T) {
-	client, err := NewClient(endpoint, uidAdmin, "this_is_not_valid_hex_or_a_valid_token", https)
+	client, err := NewClient(endpoint, uidAdmin, "this_is_not_valid_hex_or_a_valid_token", scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -112,7 +112,7 @@ func TestCreateUserWrongFormatUAT(t *testing.T) {
 
 // Test that users aren't able to access admin endpoints and vice versa
 func TestCreateUserWrongCredsType(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -123,7 +123,7 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	t.Logf("%v", createUserResponse)
 
 	// Test that admins can't access user endpoints
-	clientAdmin, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	clientAdmin, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(clientAdmin, t)
 

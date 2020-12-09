@@ -22,7 +22,7 @@ import (
 
 // Test that a user can remove themselves from the object ACL and cannot access the object afterwards
 func TestRetrieveSameUserWithoutPermissions(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -42,7 +42,7 @@ func TestRetrieveSameUserWithoutPermissions(t *testing.T) {
 // Test that a stored object can be retrieved by another user with permissions
 func TestShareObjectWithUser(t *testing.T) {
 	// Create another user to share the object with
-	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(adminClient, t)
 
@@ -55,7 +55,7 @@ func TestShareObjectWithUser(t *testing.T) {
 	failOnError("Couldn't parse UAT", err, t)
 
 	// Store an object
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 	plaintext := []byte("foo")
@@ -69,7 +69,7 @@ func TestShareObjectWithUser(t *testing.T) {
 	failOnError("Add permission request failed", err, t)
 
 	// Try to retrieve object with another user
-	client2, err := NewClient(endpoint, uid2, uat2, https)
+	client2, err := NewClient(endpoint, uid2, uat2, scopesUser, https)
 	failOnError("Could not create client for new user", err, t)
 	defer closeClient(client2, t)
 	_, err = client2.Retrieve(oid)
@@ -83,7 +83,7 @@ func TestShareObjectWithUser(t *testing.T) {
 // Test that a stored object cannot be retrieved by another user without permissions
 func TestRetrieveWithoutPermissions(t *testing.T) {
 	// Create another user to share the object with
-	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(adminClient, t)
 
@@ -96,7 +96,7 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 	failOnError("Couldn't parse UAT", err, t)
 
 	// Store an object
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 	plaintext := []byte("foo")
@@ -106,7 +106,7 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 	oid := storeResponse.ObjectId
 
 	// Try to retrieve object with another user
-	client2, err := NewClient(endpoint, uid2, uat2, https)
+	client2, err := NewClient(endpoint, uid2, uat2, scopesUser, https)
 	failOnError("Could not create client for new user", err, t)
 	defer closeClient(client2, t)
 	_, err = client2.Retrieve(oid)
@@ -117,7 +117,7 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 // If user A grants access to user B, then user B should be able to grant access to user C
 func TestPermissionTransitivity(t *testing.T) {
 	// Create admin client for user creation
-	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(adminClient, t)
 
@@ -135,7 +135,7 @@ func TestPermissionTransitivity(t *testing.T) {
 	failOnError("Could not parse access token", err, t)
 
 	// Store an object
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 	plaintext := []byte("foo")
@@ -149,14 +149,14 @@ func TestPermissionTransitivity(t *testing.T) {
 	failOnError("Add permission request failed", err, t)
 
 	// Use user B to grant permissions to user C
-	client2, err := NewClient(endpoint, uid2, uat2, https)
+	client2, err := NewClient(endpoint, uid2, uat2, scopesUser, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(client2, t)
 	_, err = client2.AddPermission(oid, uid3)
 	failOnError("Add permission request failed", err, t)
 
 	// Check that user C has access to object
-	client3, err := NewClient(endpoint, uid3, uat3, https)
+	client3, err := NewClient(endpoint, uid3, uat3, scopesUser, https)
 	failOnError("Could not create client3", err, t)
 	defer closeClient(client3, t)
 	_, err = client3.Retrieve(oid)
@@ -167,7 +167,7 @@ func TestPermissionTransitivity(t *testing.T) {
 // and that add/remove permission inflicts the outcome of get permissions
 func TestGetPermissions(t *testing.T) {
 	// Create admin client for user creation
-	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	adminClient, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(adminClient, t)
 
@@ -177,12 +177,12 @@ func TestGetPermissions(t *testing.T) {
 	failOnError("Create user request failed", err, t)
 	uid2 := createUserResponse.UserID
 	uat2 := createUserResponse.AccessToken
-	client2, err := NewClient(endpoint, uid2, uat2, https)
+	client2, err := NewClient(endpoint, uid2, uat2, scopesUser, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(client2, t)
 
 	// Store an object
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 	plaintext := []byte("foo")
