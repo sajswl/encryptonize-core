@@ -44,7 +44,7 @@ A standalone instance of the Encryption Service can be started by calling
 make run
 ```
 This will expose the gRPC endpoints of Encryption Service on `localhost:9000`. To connect the
-service to existing storage solutions you need to set the environment variables in `scripts/run.sh`.
+service to existing storage solutions you need to set the environment variables in [`scripts/run.sh`](scripts/run.sh).
 
 
 ### Docker Compose
@@ -110,5 +110,5 @@ The Encryption Service uses various environment variables to modify its behavior
 | OBJECT_STORAGE_CERT | Certificate for the object store      |
 
 To modify the various `make` targets, set these environment variables in the relevant scripts in
-`./scripts` (see e.g. `./scripts/run.sh`). To modify the docker-compose setup, set the
-`x-service-variables` in `docker-compose.yml`.
+[`scripts`](scripts) (see e.g. [`scripts/run.sh`](scripts/run.sh). To modify the docker-compose setup, set the
+`x-service-variables` in [`docker-compose.yml`](docker-compose.yml).
