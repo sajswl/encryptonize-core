@@ -16,8 +16,6 @@ package grpce2e
 import (
 	"reflect"
 	"testing"
-
-	"encryption-service/app"
 )
 
 // Test that a user can remove themselves from the object ACL and cannot access the object afterwards
@@ -46,8 +44,7 @@ func TestShareObjectWithUser(t *testing.T) {
 	failOnError("Could not create client", err, t)
 	defer closeClient(adminClient, t)
 
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := adminClient.CreateUser(userType)
+	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	t.Logf("%v", createUserResponse)
 	uid2 := createUserResponse.UserID
@@ -87,8 +84,7 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 	failOnError("Could not create client", err, t)
 	defer closeClient(adminClient, t)
 
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := adminClient.CreateUser(userType)
+	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	t.Logf("%v", createUserResponse)
 	uid2 := createUserResponse.UserID
@@ -122,13 +118,12 @@ func TestPermissionTransitivity(t *testing.T) {
 	defer closeClient(adminClient, t)
 
 	// Create users B and C
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := adminClient.CreateUser(userType)
+	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	uid2 := createUserResponse.UserID
 	uat2 := createUserResponse.AccessToken
 	failOnError("Could not parse access token", err, t)
-	createUserResponse, err = adminClient.CreateUser(userType)
+	createUserResponse, err = adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	uid3 := createUserResponse.UserID
 	uat3 := createUserResponse.AccessToken
@@ -172,8 +167,7 @@ func TestGetPermissions(t *testing.T) {
 	defer closeClient(adminClient, t)
 
 	// Create user 2
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := adminClient.CreateUser(userType)
+	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	uid2 := createUserResponse.UserID
 	uat2 := createUserResponse.AccessToken

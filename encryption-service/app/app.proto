@@ -55,11 +55,14 @@ message RetrieveResponse{
 }
 
 message CreateUserRequest{
-  enum UserKind{
-    ADMIN = 0;
-    USER = 1;
+  enum UserScope{
+    READ = 0;
+    CREATE = 1;
+    INDEX = 2;
+    OBJECTPERMISSIONS = 3;
+    USERMANAGEMENT = 4;
   }
-  UserKind user_kind = 1;
+  repeated UserScope user_scopes = 1;
 }
 
 message CreateUserResponse{

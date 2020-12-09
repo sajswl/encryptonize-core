@@ -141,9 +141,9 @@ func (c *Client) RemovePermission(oid, target string) (*app.RemovePermissionResp
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(usertype app.CreateUserRequest_UserKind) (*app.CreateUserResponse, error) {
+func (c *Client) CreateUser(userscopes []app.CreateUserRequest_UserScope) (*app.CreateUserResponse, error) {
 	createUserRequest := &app.CreateUserRequest{
-		UserKind: usertype,
+		UserScopes: userscopes,
 	}
 
 	createUserResponse, err := c.client.CreateUser(c.ctx, createUserRequest)

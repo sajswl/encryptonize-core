@@ -15,8 +15,6 @@ package grpce2e
 
 import (
 	"testing"
-
-	"encryption-service/app"
 )
 
 // Tests that we can create and use a user
@@ -26,8 +24,7 @@ func TestCreateUser(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test user creation
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := client.CreateUser(userType)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	t.Logf("%v", createUserResponse)
 
@@ -46,8 +43,7 @@ func TestCreateUser(t *testing.T) {
 	failOnError("Store request failed", err, t)
 
 	// Test admin creation
-	userType = app.CreateUserRequest_ADMIN
-	createAdminResponse, err := client.CreateUser(userType)
+	createAdminResponse, err := client.CreateUser(protoAdminScopes)
 	failOnError("Create admin request failed", err, t)
 	// Test that created Admin can do stuff
 	uidAdmin2 := createAdminResponse.UserID
@@ -57,8 +53,7 @@ func TestCreateUser(t *testing.T) {
 	defer closeClient(clientAdmin2, t)
 
 	// TODO: Whenever remove user is implemented, we should use that here
-	userType = app.CreateUserRequest_USER
-	_, err = clientAdmin2.CreateUser(userType)
+	_, err = clientAdmin2.CreateUser(protoUserScopes)
 	failOnError("Could not create client2", err, t)
 }
 
@@ -69,8 +64,7 @@ func TestCreateUserWrongCredsUID(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test user creation with unauthenticated uid
-	userType := app.CreateUserRequest_USER
-	_, err = client.CreateUser(userType)
+	_, err = client.CreateUser(protoUserScopes)
 	failOnSuccess("User could be created with wrong UID", err, t)
 }
 
@@ -81,8 +75,7 @@ func TestCreateUserWrongFormatUID(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test user creation with wrongly formatted
-	userType := app.CreateUserRequest_USER
-	_, err = client.CreateUser(userType)
+	_, err = client.CreateUser(protoUserScopes)
 	failOnSuccess("User could be created with wrongly formatted UID", err, t)
 }
 
@@ -93,8 +86,7 @@ func TestCreateUserWrongCredsUAT(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test user creation
-	userType := app.CreateUserRequest_USER
-	_, err = client.CreateUser(userType)
+	_, err = client.CreateUser(protoUserScopes)
 	failOnSuccess("User could be created with wrong UAT", err, t)
 }
 
@@ -105,8 +97,7 @@ func TestCreateUserWrongFormatUAT(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test user creation
-	userType := app.CreateUserRequest_USER
-	_, err = client.CreateUser(userType)
+	_, err = client.CreateUser(protoUserScopes)
 	failOnSuccess("User could be created with wrongly formatted UAT", err, t)
 }
 
@@ -117,8 +108,7 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test that users can't access admin endpoints
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := client.CreateUser(userType)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnSuccess("User could be created with wrong user type", err, t)
 	t.Logf("%v", createUserResponse)
 

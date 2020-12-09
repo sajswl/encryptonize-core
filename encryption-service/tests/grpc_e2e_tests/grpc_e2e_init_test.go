@@ -29,6 +29,8 @@ var uidAdmin = "00000000-0000-4000-8000-000000000002"
 var uatAdmin = "0000000000000000000000000000000000000000000000000000000000000002"
 var scopesAdmin = authn.ScopeUserManagement
 var scopesUser = authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
+var protoUserScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_READ, app.CreateUserRequest_CREATE, app.CreateUserRequest_INDEX, app.CreateUserRequest_OBJECTPERMISSIONS}
+var protoAdminScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_USERMANAGEMENT}
 var https = false
 
 /**************************/
@@ -60,8 +62,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
 	defer client.Close()
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := client.CreateUser(userType)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	if err != nil {
 		log.Fatalf("Couldn't create test user: %v", err)
 	}

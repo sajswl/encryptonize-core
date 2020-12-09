@@ -33,15 +33,23 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 	// Set userKind
 	// authn.UserKind = 0x0
 	// authn.AdminKind = 0x1
-	var usertype authn.ScopeType
-	switch uk := request.UserKind; uk {
-	case CreateUserRequest_USER:
-		usertype = authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
-	case CreateUserRequest_ADMIN:
-		usertype = authn.ScopeUserManagement
-	default:
-		log.Errorf("CreateUser: Invalid user kind %v", request.UserKind)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user type")
+	usertype := authn.ScopeType(0)
+	for _, us := range request.UserScopes {
+		switch us {
+		case CreateUserRequest_READ:
+			usertype |= authn.ScopeRead
+		case CreateUserRequest_CREATE:
+			usertype |= authn.ScopeCreate
+		case CreateUserRequest_INDEX:
+			usertype |= authn.ScopeIndex
+		case CreateUserRequest_OBJECTPERMISSIONS:
+			usertype |= authn.ScopeObjectPermissions
+		case CreateUserRequest_USERMANAGEMENT:
+			usertype |= authn.ScopeUserManagement
+		default:
+			log.Errorf("CreateUser: Invalid scope %v", us)
+			return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
+		}
 	}
 
 	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
