@@ -1,10 +1,3 @@
----
-- **Title:** 'Version 2 of Encryptionize API'
-- **Author:** cybercrypt
-- **Date:** 'October 30, 2020'
-- **Version:** 2.0
----
-
 # License
 Copyright 2020 CYBERCRYPT
 
