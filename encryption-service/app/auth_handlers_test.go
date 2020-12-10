@@ -362,89 +362,64 @@ func TestAuthMiddlewareLoginFail(t *testing.T) {
 	}
 }
 
-// Tests that if user accesses admin endpoint login fails
-func TestAuthMiddlewareWrongUserTypeUserToAdmin(t *testing.T) {
+func InitTest() (*authstorage.MemoryAuthStore, uuid.UUID, []byte, string, *crypt.MessageAuthenticator, error) {
 	userID := uuid.Must(uuid.NewV4())
 	accessToken, _ := crypt.Random(32)
 	AT := "bearer " + hex.EncodeToString(accessToken)
 	ASK, _ := crypt.Random(32)
-	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
-
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", userID.String(),
-		"userScopes", strconv.FormatUint(uint64(userScope), 10))
 
 	authnStorageMock := authstorage.NewMemoryAuthStore()
 
 	m, err := crypt.NewMessageAuthenticator(ASK)
 	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
+		return nil, uuid.UUID{}, nil, "", nil, err
 	}
 
-	// create new user
-	authentiator := &authn.Authenticator{
-		MessageAuthenticator: m,
-		AuthStore:            authnStorageMock,
-	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, userScope)
-	if err != nil {
-		t.Fatalf("CreateOrUpdateUser errored %v", err)
-	}
-
-	app := App{
-		MessageAuthenticator: m,
-	}
-
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/CreateUser")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("User allowed to call admin endpoint: %v", err)
-	}
+	return authnStorageMock, userID, accessToken, AT, m, nil
 }
 
-// Tests that if admin accesses user endpoint login fails
-func TestAuthMiddlewareWrongUserTypeAdminToUser(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	accessToken, _ := crypt.Random(32)
+func CreateUserForTests(authStore authstorage.AuthStoreInterface, m *crypt.MessageAuthenticator, userID uuid.UUID, accessToken []byte, scopes authn.ScopeType) (metadata.MD, error) {
 	AT := "bearer " + hex.EncodeToString(accessToken)
-	ASK, _ := crypt.Random(32)
-	adminScope := authn.ScopeUserManagement
-
 	var md = metadata.Pairs(
 		"authorization", AT,
 		"userID", userID.String(),
-		"userScopes", strconv.FormatUint(uint64(adminScope), 10))
+		"userScopes", strconv.FormatUint(uint64(scopes), 10))
 
-	authnStorageMock := authstorage.NewMemoryAuthStore()
+	authenticator := &authn.Authenticator{
+		MessageAuthenticator: m,
+		AuthStore:            authStore,
+	}
+	return md, authenticator.CreateOrUpdateUser(context.Background(), userID, accessToken, scopes)
+}
 
-	m, err := crypt.NewMessageAuthenticator(ASK)
+// This test tries to access each endpoint with every but the required scope
+// all tests should fail
+func TestAuthMiddlewareNegativeScopes(t *testing.T) {
+	authnStorageMock, _, _, _, m, err := InitTest()
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
-
-	// create new user
-	authentiator := &authn.Authenticator{
-		MessageAuthenticator: m,
-		AuthStore:            authnStorageMock,
-	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, adminScope)
-	if err != nil {
-		t.Fatalf("CreateOrUpdateUser errored %v", err)
 	}
 
 	app := App{
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Admin allowed to call user endpoint: %v", err)
+	for endpoint, rscope := range methodScopeMap {
+		tscopes := (authn.ScopeEnd - 1) &^ rscope
+		tuid := uuid.Must(uuid.NewV4())
+		taccessToken, _ := crypt.Random(32)
+		md, err := CreateUserForTests(authnStorageMock, m, tuid, taccessToken, tscopes)
+		if err != nil {
+			t.Fatalf("CreateOrUpdateUser errored %v", err)
+		}
+
+		ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
+		ctx = context.WithValue(ctx, methodNameCtxKey, endpoint)
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = app.AuthenticateUser(ctx)
+		if err == nil {
+			t.Errorf("User allowed to call endpoint %v requireing scopes %v using scopes %v", endpoint, rscope, tscopes)
+		}
 	}
 }
 

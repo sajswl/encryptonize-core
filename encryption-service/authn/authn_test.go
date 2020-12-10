@@ -249,9 +249,14 @@ func TestCreateOrUpdateUser(t *testing.T) {
 	authenticator.AuthStore = DBMock
 	ctx := context.Background()
 
-	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userScope)
-	if err != nil {
-		t.Fatalf("Failed to create/update user: %v", err)
+	// try to create a use for every valid combination of scopes
+	// even the empty set
+	for i := uint64(0); i < uint64(ScopeEnd); i++ {
+		uScope := ScopeType(i)
+		err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, uScope)
+		if err != nil {
+			t.Fatalf("Failed to create/update user: %v", err)
+		}
 	}
 }
 
