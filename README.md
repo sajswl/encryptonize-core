@@ -63,7 +63,7 @@ For more details, see the [Encryption Service README](encryption-service/README.
 # Deploying Encryptonize&reg; Core
 
 We supply Kubernetes files for deploying the full Encryptonize&reg; setup in a basic configuration.
-The files can be found in the `kubernetes` folder. For instructions on how to deploy, see that
+The files can be found in the [`kubernetes`](kubernetes) folder. For instructions on how to deploy, see that
 [deployment README](kubernetes/README.md)
 
 
