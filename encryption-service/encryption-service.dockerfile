@@ -34,8 +34,9 @@ COPY . /encryption-service
 
 # Build binary
 ARG COMMIT
+ARG TAG
 ENV CGO_ENABLED=0
-RUN go build -v -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT'" -o /go/bin/es main.go
+RUN go build -v -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT' -X 'encryption-service/app.GitTag=$TAG'" -o /go/bin/es main.go
 
 # Adding the grpc_health_probe
 RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \
@@ -47,7 +48,9 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \
 FROM scratch
 
 ARG COMMIT
+ARG TAG
 LABEL git-commit=${COMMIT}
+LABEL git-tag=${TAG}
 
 COPY --from=build-env /go/bin/es /
 COPY --from=build-env /bin/grpc_health_probe /grpc_health_probe

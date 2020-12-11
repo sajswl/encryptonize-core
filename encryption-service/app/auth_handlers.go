@@ -44,6 +44,7 @@ var methodUserMap = map[string]authn.UserKindType{
 	baseMethodPath + "RemovePermission": authn.UserKind,
 	baseMethodPath + "Store":            authn.UserKind,
 	baseMethodPath + "Retrieve":         authn.UserKind,
+	baseMethodPath + "Version":          authn.UserKind,
 }
 
 // Inject full method name into unary call
