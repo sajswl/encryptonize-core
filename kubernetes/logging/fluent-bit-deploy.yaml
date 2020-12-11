@@ -151,17 +151,17 @@ data:
     [PARSER]
         name        encryption-service
         Format      regex
-        Regex       level=(?<level>[^ ]+) msg=\"(?<message>.*)\" Method=(?<method>[^ ]+) Status=(?<status>[^ ]+) UserID=(?<userId>[^ ]*)
+        Regex       level=(?<level>[^ ]+) msg=\"(?<message>[^\"]*)\" Method=(?<method>[^ ]+) Status=(?<status>[^ ]+) UserID=(?<userId>[^ ]*)
 
     [PARSER]
         name       object-store
         Format     regex
-        Regex      beast: [^ ]+ [^ ]+ [^ ]+ [^ ]+ [^ ]+ \"(?<method>[^ ]+) (?<endpoint>[^ ]+) [^ ]+ (?<status>[^ ]+) [^ ]+ [^ ]+ \"(?<useragent>.*)\"
+        Regex      beast: [^ ]+ [^ ]+ [^ ]+ [^ ]+ [^ ]+ \"(?<method>[^ ]+) (?<endpoint>[^ ]+) [^ ]+ (?<status>[^ ]+) [^ ]+ [^ ]+ \"(?<useragent>[^\"]*)\"
 
     [PARSER]
         name       auth-store
         Format     regex
-        Regex      ^[^ ]+ ^[^ ]+.+\{\"(?<table>[^ ]+)\"\[[0-9]+\]:(?<operation>[^ ]+)\} \".+\".+} [^ ]+ [^ ]+ (?<status>[^ ]+)
+        Regex      ^[^ ]+ [^ ]+[^\{]+\{\"(?<table>[^ ]+)\"\[[0-9]+\]:(?<operation>[^ ]+)\} \"[^\"]+\"[^\}]+\} [^ ]+ [^ ]+ (?<status>[^ ]+)
 ---
 apiVersion: apps/v1
 kind: DaemonSet
