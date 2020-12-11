@@ -31,24 +31,64 @@ data:
 
     [INPUT]
         Name              tail
-        Tag               kube.*
-        Path              /var/log/containers/encryptonize*.log,/var/log/containers/cockroachdb*.log,/var/log/containers/rook-ceph-osd*.log
+        Tag               encryptonize.encryption-service.*
+        Path              /var/log/containers/encryptonize-deployment*.log
         Parser            docker
-        DB                /var/log/flb_kube.db
+        DB                /var/log/encryptonize.db
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   Off
+        Refresh_Interval  10
+
+    [INPUT]
+        Name              tail
+        Tag               encryptonize.auth-store.*
+        Path              /var/log/containers/cockroachdb*.log
+        Parser            docker
+        DB                /var/log/encryptonize.db
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   Off
+        Refresh_Interval  10
+
+    [INPUT]
+        Name              tail
+        Tag               encryptonize.object-store.*
+        Path              /var/log/containers/rook-ceph-rgw*.log
+        Parser            docker
+        DB                /var/log/encryptonize.db
         Mem_Buf_Limit     5MB
         Skip_Long_Lines   Off
         Refresh_Interval  10
 
     [FILTER]
         Name                kubernetes
-        Match               kube.*
+        Match               encryptonize.auth-store.*
         Kube_URL            https://kubernetes.default.svc.cluster.local:443
-        Merge_Log           Off
-        K8S-Logging.Parser  On
+        Kube_Tag_Prefix     encryptonize.auth-store.var.log.containers.
+        Merge_Log           On
+        Merge_Parser        auth-store
+        Keep_Log            Off 
 
+    [FILTER]
+        Name                kubernetes
+        Match               encryptonize.object-store.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Kube_Tag_Prefix     encryptonize.object-store.var.log.containers.
+        Merge_Log           On
+        Merge_Parser        object-store
+        Keep_Log            Off
+
+    [FILTER]
+        Name                kubernetes
+        Match               encryptonize.encryption-service.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Kube_Tag_Prefix     encryptonize.encryption-service.var.log.containers.
+        Merge_Log           On
+        Merge_Parser        encryption-service
+        Keep_Log            Off
+        
     [OUTPUT]
         Name            es
-        Match           *
+        Match           encryptonize.*
         Host            ${FLUENT_ELASTICSEARCH_HOST}
         Port            ${FLUENT_ELASTICSEARCH_PORT}
         HTTP_User       ${FLUENT_ELASTICSEARCH_USER}
@@ -107,6 +147,21 @@ data:
         Regex       ^\<(?<pri>[0-9]+)\>(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$
         Time_Key    time
         Time_Format %b %d %H:%M:%S
+
+    [PARSER]
+        name        encryption-service
+        Format      regex
+        Regex       level=(?<level>[^ ]+) msg=\"(?<message>[^\"]*)\" Method=(?<method>[^ ]+) Status=(?<status>[^ ]+) UserID=(?<userId>[^ ]*)
+
+    [PARSER]
+        name       object-store
+        Format     regex
+        Regex      beast: [^ ]+ [^ ]+ [^ ]+ [^ ]+ [^ ]+ \"(?<method>[^ ]+) (?<endpoint>[^ ]+) [^ ]+ (?<status>[^ ]+) [^ ]+ [^ ]+ \"(?<useragent>[^\"]*)\"
+
+    [PARSER]
+        name       auth-store
+        Format     regex
+        Regex      ^[^ ]+ [^ ]+[^\{]+\{\"(?<table>[^ ]+)\"\[[0-9]+\]:(?<operation>[^ ]+)\} \"[^\"]+\"[^\}]+\} [^ ]+ [^ ]+ (?<status>[^ ]+)
 ---
 apiVersion: apps/v1
 kind: DaemonSet
