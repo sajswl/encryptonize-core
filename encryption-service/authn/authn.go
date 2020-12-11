@@ -38,6 +38,7 @@ type AuthenticatorInterface interface {
 // ScopeType represents the different scopes a user could be granted
 type ScopeType uint64
 
+const ScopeNone ScopeType = 0
 const (
 	ScopeRead ScopeType = 1 << iota
 	ScopeCreate

@@ -26,10 +26,11 @@ specification](../api/api-v2.md).
 1. [Storage](#storage)
     1. [Storing data](#storing-data)
     1. [Retrieving data](#retrieving-data)
-1. [Permissions](#decrypting)
+1. [Permissions](#permissions)
     1. [Get permissions of an object](#get-permissions-of-an-object)
     1. [Add permissions to an object](#add-permissions-to-an-object)
-    1. [Remove permissions from an object](#remove-permissions-from-an-object)
+    1. [Remove permissions from an object](#get-version-information)
+1. [Version](#version)
 1. [Troubleshooting](#troubleshooting)
     1. [Common Errors](#common-errors)
 
@@ -144,3 +145,6 @@ To add a user to the permission list of an object, you need to call the `AddPerm
 
 ## Remove permissions from an object
 To remove a user's permission from an object, you need to call the `RemovePermission` endpoint. To access this endpoint the `OBJECTPERMISSIONS` scope is required.
+
+# Version
+To get version information about the running encryption service, you need to call the `Version` endpoint. Currently, the endpoint returns the git commit hash and an optional git tag.

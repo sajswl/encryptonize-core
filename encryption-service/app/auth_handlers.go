@@ -45,6 +45,7 @@ var methodScopeMap = map[string]authn.ScopeType{
 	baseMethodPath + "RemovePermission": authn.ScopeObjectPermissions,
 	baseMethodPath + "Store":            authn.ScopeCreate,
 	baseMethodPath + "Retrieve":         authn.ScopeRead,
+	baseMethodPath + "Version":          authn.ScopeNone,
 }
 
 // Inject full method name into unary call

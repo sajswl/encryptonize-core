@@ -22,7 +22,7 @@
 set -euo pipefail
 
 # Start the docker containers
-docker-compose build --build-arg COMMIT=$(git rev-list -1 HEAD)
+docker-compose build --build-arg COMMIT="$(git rev-list -1 HEAD)" --build-arg TAG="$(git tag --points-at HEAD)"
 docker-compose up $@
 
 # Initialise the auth storage

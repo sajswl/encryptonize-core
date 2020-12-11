@@ -34,7 +34,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 	// Set userKind
 	// authn.UserKind = 0x0
 	// authn.AdminKind = 0x1
-	usertype := authn.ScopeType(0)
+	usertype := authn.ScopeNone
 	for _, us := range request.UserScopes {
 		switch us {
 		case CreateUserRequest_READ:
