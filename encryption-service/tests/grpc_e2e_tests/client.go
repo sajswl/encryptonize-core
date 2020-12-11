@@ -149,3 +149,14 @@ func (c *Client) CreateUser(usertype app.CreateUserRequest_UserKind) (*app.Creat
 	}
 	return createUserResponse, nil
 }
+
+// Perform a `Version` request.
+func (c *Client) GetVersion() (*app.VersionResponse, error) {
+	versionResponse, err := c.client.Version(c.ctx, &app.VersionRequest{})
+
+	if err != nil {
+		return nil, fmt.Errorf("Get version failed: %v", err)
+	}
+
+	return versionResponse, err
+}

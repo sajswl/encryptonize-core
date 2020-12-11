@@ -17,4 +17,5 @@
 set -euo pipefail
 
 COMMIT=$(git rev-list -1 HEAD)
-docker build --build-arg COMMIT=${COMMIT} -t encryptonize -f encryption-service.dockerfile .
+TAG=$(git tag --points-at HEAD)
+docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t encryptonize -f encryption-service.dockerfile .

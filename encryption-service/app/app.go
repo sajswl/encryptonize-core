@@ -30,6 +30,9 @@ import (
 	"encryption-service/objectstorage"
 )
 
+var GitCommit string
+var GitTag string
+
 type App struct {
 	Config               *Config
 	MessageAuthenticator *crypt.MessageAuthenticator

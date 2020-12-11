@@ -26,6 +26,7 @@ The current service address is `app.Encryptonize`. The Encryptonize API defines 
 * `rpc AddPermission (AddPermissionRequest) returns (ReturnCode)`
 * `rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)`
 * `rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)`
+* `rpc Version (VersionRequest) returns (VersionResponse)`
 
 For detailed information, see below.
 
@@ -140,6 +141,15 @@ access list.
 | object_id | string | The object                            |
 | target    | string | The target UID for permission change  |
 
+## VersionResponse
+The structure returned by a `Version` request. It contains the version information of the currently
+running encryptonize deployment.
+
+| Name      | Type   | Description                           |
+|-----------|--------|---------------------------------------|
+| commit    | string | Git commit hash                       |
+| tag       | string | Git commit tag (if any)               |
+
 # Authorization
 
 To authenticate a user should provide some metadata to the gRPC. The Metadata should consist of the
@@ -214,4 +224,12 @@ cannot reach the auth storage, in which case an error is returned.
 
 ```
 rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)
+```
+
+# Get version of the running service
+
+Gets the commit hash and tag (if exists) of the currently running service.
+
+```
+rpc Version (VersionRequest) returns (VersionResponse)
 ```
