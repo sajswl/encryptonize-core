@@ -511,6 +511,5 @@ settings:
   built-in Docker log parser.
 * Input.Mem_Buf_Limit = 5MB: The ammount of log data Fluentbit can hold at a time. The total
   throughput is therefore a function of this number and Service.Flush.
-* Output.Tls = on: We want encrypted connections.
-* Output.Tls.verify = off: We haven't yet distributed certificates to the Fluentbit agents, so we
-  cannot verify.
+* Filter.Name = es: We use kubernetes filters to enrich the logs with extra fields such as container and pod names. The filter is also configured with custom parsers for the object-store, auth-store and the encryption-service.
+* Filter.Merge_Parser = <parser>: Selects a parser which will be used to parse the contents of the "log" field (which is the stdout of the service). If the parser cannot match the content, it will skip parsing and the "log" field is preserved as is. Otherwise, the "log" field is split up into several fields. 
