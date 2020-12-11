@@ -16,6 +16,7 @@ package app
 import (
 	"context"
 	"encoding/hex"
+	"strconv"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -62,6 +63,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 	return &CreateUserResponse{
 		UserID:      userID.String(),
 		AccessToken: hex.EncodeToString(accessToken),
+		UserScopes:  strconv.FormatUint(uint64(usertype), 10),
 	}, nil
 }
 

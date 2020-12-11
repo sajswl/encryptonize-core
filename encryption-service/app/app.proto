@@ -68,6 +68,7 @@ message CreateUserRequest{
 message CreateUserResponse{
   string userID = 1;
   string accessToken = 2;
+  string userScopes = 3;
 }
 
 message GetPermissionsRequest{

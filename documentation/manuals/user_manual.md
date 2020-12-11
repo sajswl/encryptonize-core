@@ -48,15 +48,17 @@ user identifier. A correct authentication metadata query could look like this:
 {
   "authorization": "bearer 0000000000000000000000000000000000000000000000000000000000000000",
   "userID": "00000000-0000-4000-0000-000000000002",
+  "userScopes": "16"
 }
 ```
 The user ID is a unique identifier (UUID v4). The access token is a 256 bit value represented as a hex string.
 
-Currently the Encryptonize service supports two kinds of tokens:
-
-* Admin token: Grants permission to manage users for the service.
-* User token: Grants permission to store and retrieve data. It also grants permissions to view, add,
-  and remove object permissions.
+The copes govern the access to the different endpoints and can be any combination of:
+- `READ`
+- `CREATE`
+- `INDEX`
+- `OBJECTPERMISSIONS`
+- `USERMANAGEMENT`
 
 # Users
 A **user** is an authorization entity on the encryption server, and is only represented by a user ID.

@@ -100,10 +100,11 @@ which endpoints the user has access to. Possible scopes are `READ`, `CREATE`, `I
 The structure returned by a `CreateUser` request. It contains the User ID and User Access Token of
 the newly created user.
 
-| Name        | Type   | Description                |
-|-------------|--------|----------------------------|
-| userID      | string | The generated user id      |
-| accessToken | string | The generated access token |
+| Name        | Type   | Description                                           |
+|-------------|--------|-------------------------------------------------------|
+| userID      | string | The generated user id                                 |
+| accessToken | string | The generated access token                            |
+| userScopes  | string | A representation of the scopes to be used in requests |
 
 ## GetPermissionRequest
 The structure used as an argument for a `GetPermission` request. It contains the ID of the Object
@@ -151,10 +152,13 @@ correct authentication metadata query could look like this:
 {
   "authorization": "bearer 0000000000000000000000000000000000000000000000000000000000000000",
   "userID": "00000000-0000-4000-0000-000000000002",
+  "userScpoes": "16"
 }
 ```
 The user ID is a UUID (version 4). The access token is a cryptographically randomly generated 256
 bit value represented as a hex string.
+
+The correct value for `userScopes` is obtained during the `createUser` call.
 
 An unauthenticated request to the API returns: `Unauthenticated 16`
 
