@@ -407,8 +407,8 @@ func TestAuthMiddlewareNegativeScopes(t *testing.T) {
 	for endpoint, rscope := range methodScopeMap {
 		if rscope == authn.ScopeNone {
 			// endpoints that only require logged in users are already covered
-			// by tests that check if authenticaton works
-			continue;
+			// by tests that check if authentication works
+			continue
 		}
 		tscopes := (authn.ScopeEnd - 1) &^ rscope
 		tuid := uuid.Must(uuid.NewV4())
