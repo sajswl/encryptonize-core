@@ -35,7 +35,7 @@ type AuthenticatorInterface interface {
 	LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) (bool, error)
 }
 
-// ScopeType represents the different scopes a use could be granted
+// ScopeType represents the different scopes a user could be granted
 type ScopeType uint64
 
 const (

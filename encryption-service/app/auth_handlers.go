@@ -129,10 +129,10 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid method called")
 	}
 
-	// check scopes now to prevent unnecessary database querries this check
+	// check scopes now to prevent unnecessary database queries. This check
 	// supports cases where one endpoint would require multiple scopes
 	// Security Considerations:
-	// 	1. We cannot trust that check until we performed the "login"
+	// 	1. We cannot trust this check until we performed the "login"
 	//  2. an attacker changing the scopes could make the server respond with
 	//     "Unauthorized" to arbitrary requests. Such attacker could also
 	//     drop the request and outright forge the response

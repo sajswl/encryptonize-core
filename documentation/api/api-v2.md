@@ -89,12 +89,12 @@ the request.
 | object           | Object           | The object            |
 
 ## CreateUserRequest
-The structure used as an argument for a `CreateUser` request. It contains a string defining which
-time of user to create. The two types of users are `admin` and `user`.
+The structure used as an argument for a `CreateUser` request. It contains a list of scopes defining
+which endpoints the user has access to. Possible scopes are `READ`, `CREATE`, `INDEX`, `OBJECTPERMISSIONS`, and `USERMANAGEMENT`.
 
-| Name      | Type          | Description                    |
-|-----------|---------------|--------------------------------|
-| user_kind | enum UserKind | The type of user to be created |
+| Name        | Type             | Description                                      |
+|-------------|------------------|--------------------------------------------------|
+| user_scopes | []enum UserScope | An array of scopes the newly created user posses |
 
 ## CreateUserResponse
 The structure returned by a `CreateUser` request. It contains the User ID and User Access Token of
@@ -143,8 +143,9 @@ access list.
 # Authorization
 
 To authenticate a user should provide some metadata to the gRPC. The Metadata should consist of the
-pairs: `authorization` and `userID`. The `authorization` should contain the user access token and be
-in the form `bearer <user access token>`. The `userID` should simply contain the user identifier. A
+pairs: `authorization`, `userID`, and `userScopes`. The `authorization` should contain the user access token and be
+in the form `bearer <user access token>`. The `userID` should simply contain the user identifier. The `userScopes`
+should contain the set of scopes as a bit mask.
 correct authentication metadata query could look like this:
 ```
 {
