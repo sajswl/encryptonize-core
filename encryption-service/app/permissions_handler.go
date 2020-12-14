@@ -70,6 +70,7 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 // The requesting user has to be authorized to access the object.
 func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
 	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
@@ -86,6 +87,13 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	if err != nil {
 		log.Errorf("GetPermissions: Failed to parse target user ID as UUID: %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
+	}
+
+	// Check if user exists (returns error on empty rows)
+	_, err = authStorage.GetUserTag(ctx, target)
+	if err != nil {
+		log.Errorf("AddPermission: Failed to retrieve target user %v: %v", target, err)
+		return nil, status.Errorf(codes.Internal, "invalid target user ID")
 	}
 
 	// Add the permission to the access object
