@@ -93,7 +93,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	if err != nil {
 		log.Errorf("AddPermission: Failed to retrieve target user %v: %v", target, err)
 
-		if err == ErrNoRows{
+		if err == authstorage.ErrNoRows {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 		}
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve target user")
