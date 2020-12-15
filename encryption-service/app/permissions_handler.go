@@ -92,7 +92,11 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	_, err = authStorage.GetUserTag(ctx, target)
 	if err != nil {
 		log.Errorf("AddPermission: Failed to retrieve target user %v: %v", target, err)
-		return nil, status.Errorf(codes.Internal, "invalid target user ID")
+
+		if err == ErrNoRows{
+			return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
+		}
+		return nil, status.Errorf(codes.Internal, "Failed to retrieve target user")
 	}
 
 	// Add the permission to the access object
