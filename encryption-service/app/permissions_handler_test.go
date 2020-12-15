@@ -15,6 +15,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -69,6 +70,9 @@ var authnStorageMock = &authstorage.AuthStoreMock{
 	CommitFunc: func(ctx context.Context) error {
 		return nil
 	},
+	GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+		return []byte("tag"), nil
+	},
 }
 
 func TestGetPermissions(t *testing.T) {
@@ -103,6 +107,27 @@ func TestAddPermission(t *testing.T) {
 	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err != nil {
 		t.Fatalf("Couldn't add user: %v", err)
+	}
+}
+
+// Tests that a permission cannot be added if the target user doesn't exist
+func TestAddPermissionNoTargetUser(t *testing.T) {
+	// Temporarily overwrite GetUserTagFunc to return error (meaning empty rows)
+	oldGetTag := authnStorageMock.GetUserTagFunc
+	authnStorageMock.GetUserTagFunc = func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+		return nil, errors.New("No rows found")
+	}
+
+	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
+	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)
+
+	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
+
+	// Restore the original GetTag function for the other tests
+	authnStorageMock.GetUserTagFunc = oldGetTag
+
+	if err == nil {
+		t.Fatalf("Shouldn't able to add user that does not exist!")
 	}
 }
 

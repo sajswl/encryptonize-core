@@ -239,3 +239,20 @@ func TestGetPermissions(t *testing.T) {
 	_, err = client2.Retrieve(oid)
 	failOnSuccess("Unauthorized user should not be able to access object", err, t)
 }
+
+// Test that permissions cannot be added to a non-existing user
+func TestAddPermissionNoTargetUser(t *testing.T) {
+	nonExistingUser := "00000000-0000-0000-0000-000000000000"
+
+	client, err := NewClient(endpoint, uid, uat, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	storeResponse, err := client.Store([]byte("foo"), []byte("bar"))
+	failOnError("Store operation failed", err, t)
+	oid := storeResponse.ObjectId
+
+	// Try to add permissions for a non-existing user
+	_, err = client.AddPermission(oid, nonExistingUser)
+	failOnSuccess("Shouldn't able to add user that does not exist!", err, t)
+}

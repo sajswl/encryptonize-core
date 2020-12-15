@@ -19,11 +19,14 @@
 
 set -euo pipefail
 
+# Static compilation
+export CGO_ENABLED=0
+
 echo "[*] formatting code"
 gofmt -l -w .
 
 echo "[*] tidying up"
-go mod tidy 
+go mod tidy
 
 echo "[*] running linter"
 golangci-lint run -E gosec,asciicheck,bodyclose,gocyclo,unconvert,gocognit,misspell,golint,whitespace -D unused
