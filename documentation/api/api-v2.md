@@ -200,7 +200,7 @@ rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
 # Add Permission
 
 Adds a User to the access list of the specified `Object`. This call can fail if the caller does not
-have access to the `Object` or if the Encryption Service cannot reach the auth storage. In these
+have access to the `Object`, if the target user does not exist, or if the Encryption Service cannot reach the auth storage. In these
 cases, an error is returned.
 
 ```
