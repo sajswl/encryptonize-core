@@ -70,7 +70,6 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 // The requesting user has to be authorized to access the object.
 func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
 	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
-
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here

@@ -248,7 +248,7 @@ func TestGetPermissions(t *testing.T) {
 }
 
 // Test that permissions cannot be added to a non-existing user
-func TestAddPermissionNoUser(t *testing.T) {
+func TestAddPermissionNoTargetUser(t *testing.T) {
 	nonExistingUser := "00000000-0000-0000-0000-000000000000"
 
 	client, err := NewClient(endpoint, uid, uat, https)
