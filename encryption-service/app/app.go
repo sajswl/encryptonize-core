@@ -25,7 +25,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"encryption-service/authn"
-	"encryption-service/authstorage"
 	"encryption-service/crypt"
 	"encryption-service/objectstorage"
 )
@@ -179,25 +178,14 @@ func CheckInsecure(config *Config) {
 // This function is intended to be used for cli operation
 func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
-	authStorage, err := authstorage.NewDBAuthStore(ctx, app.AuthDBPool)
-	if err != nil {
-		log.Fatalf("Authstorage Begin failed: %v", err)
-	}
-	defer func() {
-		err := authStorage.Rollback(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	adminScope := authn.ScopeUserManagement
-	userID, accessToken, err := app.createUserWrapper(ctx, authStorage, adminScope)
+	userID, accessToken, err := app.createUserWrapper(ctx, adminScope)
 	if err != nil {
 		log.Fatalf("Create user failed: %v", err)
 	}
 
 	log.Info("Created admin user:")
 	log.Infof("    User ID:      %v", userID)
-	log.Infof("    Access Token: %x", accessToken)
-	log.Infof("    User Scopes:  %d", uint64(adminScope))
+	log.Infof("    Access Token: %v", accessToken)
 }

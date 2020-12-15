@@ -15,19 +15,19 @@ package authn
 
 import (
 	"context"
-	"encoding/binary"
+	"encoding/base64"
 	"errors"
+	"strings"
 
 	"github.com/gofrs/uuid"
+	"google.golang.org/protobuf/proto"
 
-	"encryption-service/authstorage"
 	"encryption-service/crypt"
 )
 
 // Authenticator represents a MessageAuthenticator used for creating and logging in users
 type Authenticator struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthStore            authstorage.AuthStoreInterface
 }
 
 type AuthenticatorInterface interface {
@@ -55,61 +55,153 @@ func (us ScopeType) IsValid() error {
 	return errors.New("invalid combination of scopes")
 }
 
-// formatMessage formats a message of userID + accessToken + userScope for signing
-// Message: userID (UUID) - 16 bytes | accessToken - 32 bytes | userScope - 8 bytes little endian encoded
-func formatMessage(userID uuid.UUID, accessToken []byte, userScope ScopeType) ([]byte, error) {
-	if userID.Version() != 4 || userID.Variant() != uuid.VariantRFC4122 {
-		return nil, errors.New("invalid user ID UUID version or variant")
-	}
-
-	if len(accessToken) != 32 {
-		return nil, errors.New("invalid access token length")
-	}
-
-	if userScope >= ScopeEnd {
-		return nil, errors.New("invalid scopes")
-	}
-
-	msg := make([]byte, len(userID)+len(accessToken)+8)
-	copy(msg, userID.Bytes())
-	copy(msg[len(userID):], accessToken)
-	binary.LittleEndian.PutUint64(msg[len(userID)+len(accessToken):], uint64(userScope))
-
-	return msg, nil
+func (us ScopeType) HasScopes(tar ScopeType) bool {
+	return (us & tar) == tar
 }
 
-// tag creates a tag of userID + accessToken + userScope
-func (a *Authenticator) tag(userID uuid.UUID, accessToken []byte, userScope ScopeType) ([]byte, error) {
-	msg, err := formatMessage(userID, accessToken, userScope)
+type AccessToken struct {
+	UserID uuid.UUID
+	// this field is not exported to prevent other parts
+	// of the encryption server to depend on its implementation
+	userScopes ScopeType
+}
+
+func (a *AccessToken) New(userID uuid.UUID, userScopes ScopeType) error {
+	if userID.Version() != 4 || userID.Variant() != uuid.VariantRFC4122 {
+		return errors.New("invalid user ID UUID version or variant")
+	}
+
+	if userScopes >= ScopeEnd {
+		return errors.New("invalid scope")
+	}
+
+	a.UserID = userID
+	a.userScopes = userScopes
+	return nil
+}
+
+func (a *AccessToken) HasScopes(scopes ScopeType) bool {
+	return a.userScopes.HasScopes(scopes)
+}
+
+func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken, nonce []byte) (string, error) {
+	if len(nonce) != 16 {
+		return "", errors.New("Invalid nonce length")
+	}
+
+	if accessToken.userScopes.IsValid() != nil {
+		return "", errors.New("Invalid scopes")
+	}
+
+	if accessToken.UserID.Version() != 4 || accessToken.UserID.Variant() != uuid.VariantRFC4122 {
+		return "", errors.New("Invalid userID UUID")
+	}
+
+	userScope := []AccessTokenClient_UserScope{}
+	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
+		if (accessToken.userScopes & i) == 0 {
+			continue
+		}
+		switch i {
+		case ScopeRead:
+			userScope = append(userScope, AccessTokenClient_READ)
+		case ScopeCreate:
+			userScope = append(userScope, AccessTokenClient_CREATE)
+		case ScopeIndex:
+			userScope = append(userScope, AccessTokenClient_INDEX)
+		case ScopeObjectPermissions:
+			userScope = append(userScope, AccessTokenClient_OBJECTPERMISSIONS)
+		case ScopeUserManagement:
+			userScope = append(userScope, AccessTokenClient_USERMANAGEMENT)
+		default:
+			return "", errors.New("Invalid scopes")
+		}
+	}
+
+	accessTokenClient := &AccessTokenClient{
+		UserId:     accessToken.UserID.Bytes(),
+		UserScopes: userScope,
+	}
+
+	data, err := proto.Marshal(accessTokenClient)
+	if err != nil {
+		return "", err
+	}
+
+	msg := append(nonce, data...)
+	tag, err := a.MessageAuthenticator.Tag(crypt.TokenDomain, msg)
+	if err != nil {
+		return "", err
+	}
+
+	nonceStr := base64.RawURLEncoding.EncodeToString(nonce)
+	dataStr := base64.RawURLEncoding.EncodeToString(data)
+	tagStr := base64.RawURLEncoding.EncodeToString(tag)
+
+	return dataStr + "." + nonceStr + "." + tagStr, nil
+}
+
+func (a *Authenticator) ParseAccessToken(token string) (*AccessToken, error) {
+	tokenParts := strings.Split(token, ".")
+	if len(tokenParts) != 3 {
+		return nil, errors.New("invalid token format")
+	}
+
+	data, err := base64.RawURLEncoding.DecodeString(tokenParts[0])
+	if err != nil {
+		return nil, errors.New("invalid data portion of token")
+	}
+
+	nonce, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	if err != nil {
+		return nil, errors.New("invalid nonce portion of token")
+	}
+
+	tag, err := base64.RawURLEncoding.DecodeString(tokenParts[2])
+	if err != nil {
+		return nil, errors.New("invalid tag portion of token")
+	}
+
+	msg := append(nonce, data...)
+	valid, err := a.MessageAuthenticator.Verify(crypt.TokenDomain, msg, tag)
 	if err != nil {
 		return nil, err
 	}
-	return a.MessageAuthenticator.Tag(crypt.UsersDomain, msg)
-}
 
-// verify verifies a tag of usersID + accessToken + userScope
-func (a *Authenticator) verify(userID uuid.UUID, accessToken []byte, userScope ScopeType, tag []byte) (bool, error) {
-	msg, err := formatMessage(userID, accessToken, userScope)
-	if err != nil {
-		return false, err
+	if !valid {
+		return nil, errors.New("invalid token")
 	}
-	return a.MessageAuthenticator.Verify(crypt.UsersDomain, msg, tag)
-}
 
-// CreateOrUpdateUser creates (or updates) a user: userID + accessToken + userScope for the tx (Auth Storage)
-func (a *Authenticator) CreateOrUpdateUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) error {
-	tag, err := a.tag(userID, accessToken, userScope)
+	accessTokenClient := &AccessTokenClient{}
+	err = proto.Unmarshal(data, accessTokenClient)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return a.AuthStore.UpsertUser(ctx, userID, tag)
-}
 
-// LoginUser checks if an user: userID + accesstoken + userScope exists for the tx (Auth Storage)
-func (a *Authenticator) LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) (bool, error) {
-	storedTag, err := a.AuthStore.GetUserTag(ctx, userID)
+	uuid, err := uuid.FromBytes(accessTokenClient.UserId)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return a.verify(userID, accessToken, userScope, storedTag)
+
+	var userScopes ScopeType
+	for _, scope := range accessTokenClient.UserScopes {
+		switch scope {
+		case AccessTokenClient_READ:
+			userScopes |= ScopeRead
+		case AccessTokenClient_CREATE:
+			userScopes |= ScopeCreate
+		case AccessTokenClient_INDEX:
+			userScopes |= ScopeIndex
+		case AccessTokenClient_OBJECTPERMISSIONS:
+			userScopes |= ScopeObjectPermissions
+		case AccessTokenClient_USERMANAGEMENT:
+			userScopes |= ScopeUserManagement
+		default:
+			return nil, errors.New("Invalid Scopes in Token")
+		}
+	}
+	return &AccessToken{
+		UserID:     uuid,
+		userScopes: userScopes,
+	}, nil
 }

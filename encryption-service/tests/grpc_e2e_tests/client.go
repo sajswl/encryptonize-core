@@ -16,14 +16,12 @@ package grpce2e
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
 	"encryption-service/app"
-	"encryption-service/authn"
 )
 
 // Client for making test gRPC calls to the encryption service
@@ -34,7 +32,7 @@ type Client struct {
 }
 
 // Create a new client.
-func NewClient(endpoint, uid, uat string, us authn.ScopeType, https bool) (*Client, error) {
+func NewClient(endpoint, token string, https bool) (*Client, error) {
 	var dialOption grpc.DialOption
 
 	if https {
@@ -54,11 +52,7 @@ func NewClient(endpoint, uid, uat string, us authn.ScopeType, https bool) (*Clie
 	}
 
 	client := app.NewEncryptonizeClient(connection)
-	authMetadata := metadata.Pairs(
-		"authorization", fmt.Sprintf("bearer %v", uat),
-		"userID", uid,
-		"userScopes", strconv.FormatUint(uint64(us), 10),
-	)
+	authMetadata := metadata.Pairs("authorization", token)
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
 	return &Client{

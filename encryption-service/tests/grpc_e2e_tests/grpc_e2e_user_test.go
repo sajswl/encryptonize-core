@@ -19,7 +19,7 @@ import (
 
 // Tests that we can create and use a user
 func TestCreateUser(t *testing.T) {
-	client, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
+	client, err := NewClient(endpoint, adminAT, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -29,13 +29,12 @@ func TestCreateUser(t *testing.T) {
 	t.Logf("%v", createUserResponse)
 
 	// Test that users can do stuff
-	uid2 := createUserResponse.UserID
 	uat2 := createUserResponse.AccessToken
 	if err != nil {
 		t.Fatalf("Couldn't parse UAT: %v", err)
 	}
 
-	client2, err := NewClient(endpoint, uid2, uat2, scopesUser, https)
+	client2, err := NewClient(endpoint, uat2, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(client2, t)
 
@@ -46,9 +45,8 @@ func TestCreateUser(t *testing.T) {
 	createAdminResponse, err := client.CreateUser(protoAdminScopes)
 	failOnError("Create admin request failed", err, t)
 	// Test that created Admin can do stuff
-	uidAdmin2 := createAdminResponse.UserID
 	uatAdmin2 := createAdminResponse.AccessToken
-	clientAdmin2, err := NewClient(endpoint, uidAdmin2, uatAdmin2, scopesAdmin, https)
+	clientAdmin2, err := NewClient(endpoint, uatAdmin2, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(clientAdmin2, t)
 
@@ -59,7 +57,9 @@ func TestCreateUser(t *testing.T) {
 
 // Test that wrong UID upon user creation results in an error
 func TestCreateUserWrongCredsUID(t *testing.T) {
-	client, err := NewClient(endpoint, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", uatAdmin, scopesAdmin, https)
+	// token was edited here            vvvv
+	badAT := "bearer ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA"
+	client, err := NewClient(endpoint, badAT, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -69,8 +69,8 @@ func TestCreateUserWrongCredsUID(t *testing.T) {
 }
 
 // Test that wrongly formatted UID upon user creation results in an error
-func TestCreateUserWrongFormatUID(t *testing.T) {
-	client, err := NewClient(endpoint, "this_UID_is_not_a_valid_UUID", uatAdmin, scopesAdmin, https)
+func TestCreateUserWrongFormatAT(t *testing.T) {
+	client, err := NewClient(endpoint, "this_UID_is_not_a_valid_AT", https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -79,31 +79,9 @@ func TestCreateUserWrongFormatUID(t *testing.T) {
 	failOnSuccess("User could be created with wrongly formatted UID", err, t)
 }
 
-// Test that wrong UAT upon user creation results in an error
-func TestCreateUserWrongCredsUAT(t *testing.T) {
-	client, err := NewClient(endpoint, uidAdmin, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", scopesAdmin, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
-
-	// Test user creation
-	_, err = client.CreateUser(protoUserScopes)
-	failOnSuccess("User could be created with wrong UAT", err, t)
-}
-
-// Test that wrongly formatted UAT upon user creation results in an error
-func TestCreateUserWrongFormatUAT(t *testing.T) {
-	client, err := NewClient(endpoint, uidAdmin, "this_is_not_valid_hex_or_a_valid_token", scopesAdmin, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
-
-	// Test user creation
-	_, err = client.CreateUser(protoUserScopes)
-	failOnSuccess("User could be created with wrongly formatted UAT", err, t)
-}
-
 // Test that users aren't able to access admin endpoints and vice versa
 func TestCreateUserWrongCredsType(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -113,7 +91,7 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	t.Logf("%v", createUserResponse)
 
 	// Test that admins can't access user endpoints
-	clientAdmin, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
+	clientAdmin, err := NewClient(endpoint, adminAT, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(clientAdmin, t)
 

@@ -15,14 +15,10 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
-	"errors"
-	"strconv"
 
 	"github.com/gofrs/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -81,90 +77,28 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 		return ctx, nil
 	}
 
-	// Extract user id from context and parse it into uuid type
-	userIDString := metautils.ExtractIncoming(ctx).Get("userID")
-	if len(userIDString) == 0 {
-		log.Errorf("AuthenticateUser: Couldn't find user ID in metadata")
-		return nil, status.Errorf(codes.InvalidArgument, "missing user ID")
-	}
-	userID, err := uuid.FromString(userIDString)
-	if err != nil {
-		log.Errorf("AuthenticateUser: Failed to parse user ID as UUID, %v", err)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
-	}
-	// for now, also extract the scopes
-	// they will be moved into the token at a later point in time
-	var userScopes authn.ScopeType
-	userScopesString := metautils.ExtractIncoming(ctx).Get("userScopes")
-	if len(userScopesString) == 0 {
-		log.Errorf("AuthenticateUser: Couldn't find user sopes in metadata")
-		return nil, status.Errorf(codes.InvalidArgument, "missing scopes")
-	}
-	userScopesInt, err := strconv.ParseUint(userScopesString, 10, 64)
-	if err != nil {
-		log.Errorf("AuthenticateUser: Failed to parse scopes as uint64")
-		return nil, status.Errorf(codes.InvalidArgument, "invalid scopes")
-	}
-	userScopes = authn.ScopeType(userScopesInt)
-	if userScopes.IsValid() != nil {
-		log.Errorf("AuthenticateUser: Invalid scopes value")
-		return nil, status.Errorf(codes.InvalidArgument, "invalid scopes")
-	}
-
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
 		log.Errorf("AuthenticateUser: Couldn't find token in metadata, %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
 	}
-	byteToken, err := hex.DecodeString(token)
+
+	authenticator := &authn.Authenticator{
+		MessageAuthenticator: app.MessageAuthenticator,
+	}
+
+	accessToken, err := authenticator.ParseAccessToken(token)
 	if err != nil {
-		log.Errorf("AuthenticateUser: Failed to decode token, %v", err)
+		log.Errorf("AuthenticateUser: Unable to parse Access Token, %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
 	}
 
-	// fetch the required scopes for that endpoint
-	// this is done early to prevent the database being querried over invalid requests
-	requiredScope, ok := methodScopeMap[methodName]
-	if !ok {
-		log.Errorf("AuthenticateUser: Unrecognized endpoint called, %v", methodName)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid method called")
-	}
-
-	// check scopes now to prevent unnecessary database queries. This check
-	// supports cases where one endpoint would require multiple scopes
-	// Security Considerations:
-	// 	1. We cannot trust this check until we performed the "login"
-	//  2. an attacker changing the scopes could make the server respond with
-	//     "Unauthorized" to arbitrary requests. Such attacker could also
-	//     drop the request and outright forge the response
-	if (requiredScope & userScopes) != requiredScope {
-		log.Errorf("AuthenticateUser: User is not authorized to use the endpoint")
+	if !accessToken.HasScopes(methodScopeMap[methodName]) {
+		log.Errorf("AuthenticateUser: Unauthorized access to %v by %v", methodName, accessToken)
 		return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
 	}
 
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
-	authenticator := &authn.Authenticator{
-		MessageAuthenticator: app.MessageAuthenticator,
-		AuthStore:            authStorage,
-	}
-
-	authenticated, err := authenticator.LoginUser(ctx, userID, byteToken, userScopes)
-	if errors.Is(err, authstorage.ErrNoRows) {
-		log.Errorf("AuthenticateUser: User %v not found: %v", userID, err)
-		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
-	}
-	if err != nil {
-		log.Errorf("AuthenticateUser: Couldn't authenticate user %v, encountered error: %v", userID, err)
-		return nil, status.Errorf(codes.Internal, "error encountered while authenticating user")
-	}
-	if !authenticated {
-		log.Errorf("AuthenticateUser: Couldn't authenticate user %v, %v", userID, err)
-		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
-	}
-	// we checked the required scopes earlier and by confirming these through the login
-	// we can retroactively trust that check
-
-	newCtx := context.WithValue(ctx, userIDCtxKey, userID)
+	newCtx := context.WithValue(ctx, userIDCtxKey, accessToken.UserID)
 
 	return newCtx, nil
 }

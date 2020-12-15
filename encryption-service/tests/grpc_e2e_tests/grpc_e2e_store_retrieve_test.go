@@ -25,7 +25,7 @@ import (
 
 // Test the we can store an object and retrieve it later
 func TestStoreAndRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -49,7 +49,7 @@ func TestStoreAndRetrieve(t *testing.T) {
 
 // Test that we can store the same object/data multiple times and still retrieve it
 func TestStoreSameObjectMultipleTimes(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -75,7 +75,7 @@ func TestStoreSameObjectMultipleTimes(t *testing.T) {
 
 // Test retrieving object with invalid oid
 func TestRetrieveBadOid(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -86,7 +86,7 @@ func TestRetrieveBadOid(t *testing.T) {
 
 // Test multiple retrieve operations of the same object
 func TestMultipleStoreRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -114,7 +114,7 @@ func TestMultipleStoreRetrieve(t *testing.T) {
 
 // Test that an older object can be retrieved after storing multiple objects.
 func TestRetrieveOlderObject(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
 
@@ -155,8 +155,8 @@ func TestRetrieveOlderObject(t *testing.T) {
 // Test that storing and retrieving is not possible with wrong credentials.
 func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 	// Create a client with invalid token format and try to store something
-	uatBad := "bad__bad__token!"
-	client, err := NewClient(endpoint, uid, uatBad, scopesUser, https)
+	uatBad := "bearer bad__bad__token!"
+	client, err := NewClient(endpoint, uatBad, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
 
@@ -164,36 +164,18 @@ func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 	failOnSuccess("Should not be able to store anything with wrong uat", err, t)
 
 	// Create a client with valid format but invalid token and try to store something
-	uatBad = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-	client, err = NewClient(endpoint, uid, uatBad, scopesUser, https)
+	// token was edited here   vvvv
+	uatBad = "bearer ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA"
+	client, err = NewClient(endpoint, uatBad, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
 
 	_, err = client.Store([]byte("plaintext"), []byte("associated data"))
 	failOnSuccess("Should not be able to store anything with wrong uat", err, t)
 
-	// Create a client with badly formatted uid and try to store something
-	badUID := "some-bad-uid"
-	client, err = NewClient(endpoint, badUID, uat, scopesUser, https)
-	defer closeClient(client, t)
-	failOnError("Could not create client", err, t)
-
-	_, err = client.Store([]byte("plaintext"), []byte("associated data"))
-	failOnSuccess("Should not be able to store anything with wrong uid", err, t)
-
-	// Create a client with wrong uid and try to store something
-	badUID = "AAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
-	client, err = NewClient(endpoint, badUID, uat, scopesUser, https)
-	defer closeClient(client, t)
-	failOnError("Could not create client", err, t)
-
-	_, err = client.Store([]byte("plaintext"), []byte("associated data"))
-	failOnSuccess("Should not be able to store anything with wrong uid", err, t)
-
 	// Create a client with empty credentials and try to store something
 	uatBad = ""
-	badUID = ""
-	client, err = NewClient(endpoint, badUID, uatBad, scopesUser, https)
+	client, err = NewClient(endpoint, uatBad, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
 
@@ -203,7 +185,7 @@ func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 
 // Test that a user can store and retrieve a bigger object
 func TestStoreRetrieveBigObject(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -221,7 +203,7 @@ func TestStoreRetrieveBigObject(t *testing.T) {
 
 // Tests random sizes to store and retrieve
 func TestStoreRetrieveRandomSizes(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -299,7 +281,7 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 				globErr.append(fmt.Errorf("Couldn't create AD: %v", err))
 				return
 			}
-			client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+			client, err := NewClient(endpoint, uat, https)
 			defer closeClient(client, t)
 			if err != nil { // Bail out early on error
 				globErr.append(fmt.Errorf("Couldn't create client: %v", err))
@@ -332,7 +314,7 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 
 // Test storage and retrieval of objects with no data and no associated data
 func TestStoreRetrieveEmptyObjects(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

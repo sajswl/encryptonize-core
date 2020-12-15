@@ -19,16 +19,13 @@ import (
 	"testing"
 
 	"encryption-service/app"
-	"encryption-service/authn"
 )
 
 var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
 var uidAdmin = "00000000-0000-4000-8000-000000000002"
-var uatAdmin = "0000000000000000000000000000000000000000000000000000000000000002"
-var scopesAdmin = authn.ScopeUserManagement
-var scopesUser = authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
+var adminAT = "bearer ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA"
 var protoUserScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_READ, app.CreateUserRequest_CREATE, app.CreateUserRequest_INDEX, app.CreateUserRequest_OBJECTPERMISSIONS}
 var protoAdminScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_USERMANAGEMENT}
 var https = false
@@ -43,9 +40,9 @@ func TestMain(m *testing.M) {
 	if ok {
 		endpoint = v
 	}
-	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UAT")
+	v, ok = os.LookupEnv("E2E_TEST_ADMIN_AT")
 	if ok {
-		uatAdmin = v
+		adminAT = v
 	}
 	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UID")
 	if ok {
@@ -57,7 +54,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Create user for tests
-	client, err := NewClient(endpoint, uidAdmin, uatAdmin, scopesAdmin, https)
+	client, err := NewClient(endpoint, adminAT, https)
 	if err != nil {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
@@ -67,7 +64,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Couldn't create test user: %v", err)
 	}
 	uat = createUserResponse.AccessToken
-	uid = createUserResponse.UserID
+	uid = createUserResponse.UserId
 
 	os.Exit(m.Run())
 }

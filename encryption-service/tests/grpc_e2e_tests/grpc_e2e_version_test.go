@@ -17,7 +17,7 @@ import "testing"
 
 // Test that the version endpoints works and returns a non-empty git commit hash
 func TestGetVersion(t *testing.T) {
-	client, err := NewClient(endpoint, uid, uat, scopesUser, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
