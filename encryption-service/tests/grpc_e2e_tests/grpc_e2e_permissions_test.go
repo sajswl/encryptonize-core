@@ -259,7 +259,7 @@ func TestAddPermissionNoTargetUser(t *testing.T) {
 	failOnError("Store operation failed", err, t)
 	oid := storeResponse.ObjectId
 
-	// Remove self from object ACL
+	// Try to add permissions for a non-existing user
 	_, err = client.AddPermission(oid, nonExistingUser)
 	failOnSuccess("Shouldn't able to add user that does not exist!", err, t)
 }
