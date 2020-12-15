@@ -244,7 +244,7 @@ func TestGetPermissions(t *testing.T) {
 func TestAddPermissionNoTargetUser(t *testing.T) {
 	nonExistingUser := "00000000-0000-0000-0000-000000000000"
 
-	client, err := NewClient(endpoint, uid, uat, https)
+	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

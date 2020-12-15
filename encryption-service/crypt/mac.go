@@ -32,8 +32,9 @@ type MessageAuthenticator struct {
 type MessageAuthenticatorDomainType uint64
 
 const (
-	TokenDomain MessageAuthenticatorDomainType = iota
+	UsersDomain MessageAuthenticatorDomainType = iota
 	AccessObjectsDomain
+	TokenDomain
 	DomainLimit
 )
 
