@@ -41,20 +41,18 @@ translated to supported languages see this
 [list](https://developers.google.com/protocol-buffers/docs/proto3#scalar).
 
 # Authentication
-All authentication on the Encryptonize service is done via gRPC metadata. The metadata should
-consist of the pairs: `authorization` and `userID`. The `authorization` should contain the user
-access token and be in the form `bearer <user access token>`. The `userID` should contain the
-user identifier. A correct authentication metadata query could look like this:
+All authentication on the Encryptonize service is done via an `authorization` pair in gRPC metadata. It should contain the user access token and be in the form `bearer <user access token>`.
+A correct authentication metadata query could look like this:
 ```
 {
-  "authorization": "bearer 0000000000000000000000000000000000000000000000000000000000000000",
-  "userID": "00000000-0000-4000-0000-000000000002",
-  "userScopes": "16"
+  "authorization": "bearer ChAAAAAAAABAAIAAAAAAAAAC.AAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 }
 ```
-The user ID is a unique identifier (UUID v4). The access token is a 256 bit value represented as a hex string.
+This token together with the users user ID is obtained upon user creation.
+The user ID is a unique identifier (UUID v4).
 
-The copes govern the access to the different endpoints and can be any combination of:
+A user is created with a chosen set of scopes that governs the endpoints this user may access.
+Any combination of the different scopes is valid. The scopes are:
 - `READ`
 - `CREATE`
 - `INDEX`

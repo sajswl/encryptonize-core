@@ -101,11 +101,10 @@ which endpoints the user has access to. Possible scopes are `READ`, `CREATE`, `I
 The structure returned by a `CreateUser` request. It contains the User ID and User Access Token of
 the newly created user.
 
-| Name        | Type   | Description                                           |
-|-------------|--------|-------------------------------------------------------|
-| userID      | string | The generated user id                                 |
-| accessToken | string | The generated access token                            |
-| userScopes  | string | A representation of the scopes to be used in requests |
+| Name        | Type   | Description                |
+|-------------|--------|----------------------------|
+| userID      | string | The generated user id      |
+| accessToken | string | The generated access token |
 
 ## GetPermissionRequest
 The structure used as an argument for a `GetPermission` request. It contains the ID of the Object
@@ -153,22 +152,20 @@ running encryptonize deployment.
 
 # Authorization
 
-To authenticate a user should provide some metadata to the gRPC. The Metadata should consist of the
-pairs: `authorization`, `userID`, and `userScopes`. The `authorization` should contain the user access token and be
-in the form `bearer <user access token>`. The `userID` should simply contain the user identifier. The `userScopes`
-should contain the set of scopes as a bit mask.
-correct authentication metadata query could look like this:
+To authenticate a user should provide an access token via `authorization`. It should be in the form
+`bearer <user access token>`. correct authentication metadata query could look like this:
 ```
 {
-  "authorization": "bearer 0000000000000000000000000000000000000000000000000000000000000000",
-  "userID": "00000000-0000-4000-0000-000000000002",
-  "userScpoes": "16"
+  "authorization": "bearer ChAAAAAAAABAAIAAAAAAAAAC.AAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 }
 ```
-The user ID is a UUID (version 4). The access token is a cryptographically randomly generated 256
-bit value represented as a hex string.
 
-The correct value for `userScopes` is obtained during the `createUser` call.
+The access token consists of three parts separated by a dot. The first part contains a user ID
+and a set of scopes that determine which endpoints a user is allowed to access with that token.
+The second part is a nonce that is a cryptographically randomly generated 128 bit value.
+The last part is a HMAC protecting integrity and authenticity of the token.
+
+This user ID is a UUID (version 4).
 
 An unauthenticated request to the API returns: `Unauthenticated 16`
 
@@ -224,8 +221,8 @@ rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)
 
 # Create a new user
 
-Creates a new user. This call can fail if the caller is not an admin or of the Encryption Service
-cannot reach the auth storage, in which case an error is returned.
+Creates a new user. This call can fail if the caller is lacking the required scope (`UserManagement`)
+or if the Encryption Service cannot reach the auth storage, in which case an error is returned.
 
 ```
 rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)
