@@ -15,7 +15,6 @@ package app
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -23,37 +22,21 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/authstorage"
-	"encryption-service/authz"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	_, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+	if err != nil {
+		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+		return nil, err
+	}
+	
 	// Parse objectID from request
 	oid, err := uuid.FromString(request.ObjectId)
 	if err != nil {
 		log.Errorf("GetPermissions: Failed to parse object ID as UUID: %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
-	}
-	data, tag, err := authStorage.GetAccessObject(ctx, oid)
-	if errors.Is(err, authstorage.ErrNoRows) {
-		log.Errorf("GetPermissions: No access object for ID %v found: %v", oid, err)
-		return nil, status.Errorf(codes.InvalidArgument, "unknown object ID")
-	}
-	if err != nil {
-		log.Errorf("GetPermissions: Couldn't fetch access object for ID %v: %v", oid, err)
-		return nil, status.Errorf(codes.Internal, "error encountered while getting permissions")
-	}
-	//Define authorizer struct
-	authorizer := &authz.Authorizer{
-		MessageAuthenticator: app.MessageAuthenticator,
-		Store:                authStorage,
-	}
-
-	accessObject, err := authorizer.ParseAccessObject(oid, data, tag)
-	if err != nil {
-		log.Errorf("GetPermissions: Couldn't parse access object for ID %v: %v", oid, err)
-		return nil, status.Errorf(codes.Internal, "error encountered while getting permissions")
 	}
 
 	// Grab user ids
@@ -78,13 +61,13 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 
 	oid, err := uuid.FromString(request.ObjectId)
 	if err != nil {
-		log.Errorf("GetPermissions: Failed to parse object ID as UUID: %v", err)
+		log.Errorf("AddPermission: Failed to parse object ID as UUID: %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 	}
 
 	target, err := uuid.FromString(request.Target)
 	if err != nil {
-		log.Errorf("GetPermissions: Failed to parse target user ID as UUID: %v", err)
+		log.Errorf("AddPermission: Failed to parse target user ID as UUID: %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 	}
 
@@ -127,20 +110,20 @@ func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionR
 
 	oid, err := uuid.FromString(request.ObjectId)
 	if err != nil {
-		log.Errorf("GetPermissions: Failed to parse object ID as UUID: %v", err)
+		log.Errorf("RemovePermission: Failed to parse object ID as UUID: %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 	}
 
 	target, err := uuid.FromString(request.Target)
 	if err != nil {
-		log.Errorf("GetPermissions: Failed to parse target user ID as UUID: %v", err)
+		log.Errorf("RemovePermission: Failed to parse target user ID as UUID: %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 	}
 
 	// Add the permission to the access object
 	err = authorizer.RemovePermission(ctx, accessObject, oid, target)
 	if err != nil {
-		log.Errorf("AddPermission: Failed to remove user %v from access object %v: %v", target, oid, err)
+		log.Errorf("RemovePermission: Failed to remove user %v from access object %v: %v", target, oid, err)
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}
 	err = authStorage.Commit(ctx)

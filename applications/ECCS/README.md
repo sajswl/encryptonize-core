@@ -136,10 +136,10 @@ Keep in mind that to create a user, the credentials supplied via `ECCS_UID` and 
 
 ### Flags
 
-`-u`, `--userkind` - the kind of user to be created
+`-k`, `--userkind` - the kind of user to be created
 
 ### Examples
 Create a new user:
 ```
-./eccs -u <uid> -a <uat> createuser -u user
+./eccs -u <uid> -a <uat> createuser -k user
 ```
