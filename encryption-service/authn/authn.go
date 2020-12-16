@@ -14,7 +14,6 @@
 package authn
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"strings"
@@ -31,8 +30,8 @@ type Authenticator struct {
 }
 
 type AuthenticatorInterface interface {
-	CreateOrUpdateUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) error
-	LoginUser(ctx context.Context, userID uuid.UUID, accessToken []byte, userScope ScopeType) (bool, error)
+	SerializeAccessToken(accessToken *AccessToken, nonce []byte) (string, error)
+	ParseAccessToken(token string) (*AccessToken, error)
 }
 
 // ScopeType represents the different scopes a user could be granted
