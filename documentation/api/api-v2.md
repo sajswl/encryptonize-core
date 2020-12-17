@@ -193,7 +193,7 @@ rpc Retrieve (RetriveRequest) returns (RetriveResponse)
 # Get Permission
 
 Returns a list of users with access to the sepcified `Object`. This call can fail if the Encryption
-Service cannot reach the auth storage, in which case an error is returned.
+Service cannot reach the auth storage, in which case an error is returned. The user has to be authenticated and authorized in order to get the object permissions.
 
 ```
 rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
