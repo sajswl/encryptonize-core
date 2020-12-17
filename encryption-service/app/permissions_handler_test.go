@@ -100,6 +100,29 @@ func TestGetPermissionsMissingOID(t *testing.T) {
 	}
 }
 
+func TestGetPermissionUnauthorized(t *testing.T) {
+	authnStorageMock := &authstorage.AuthStoreMock{
+		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
+			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
+			return data, tag, err
+		},
+		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+			return nil
+		},
+	}
+
+	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
+	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)
+
+	_, err = app.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
+	if err == nil {
+		t.Fatalf("User should not be authorized")
+	}
+	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
+	}
+}
+
 func TestAddPermission(t *testing.T) {
 	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
 	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)

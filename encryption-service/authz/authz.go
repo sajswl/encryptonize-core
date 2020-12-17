@@ -113,7 +113,6 @@ func (a *Authorizer) Authorize(ctx context.Context, objectID, userID uuid.UUID) 
 
 // AddPermission adds a userID to the allowed users of the objectID and updates the Auth Storage
 func (a *Authorizer) AddPermission(ctx context.Context, accessObject *AccessObject, objectID, targetUserID uuid.UUID) error {
-	// TODO: check exists?
 	accessObject.AddUser(targetUserID)
 
 	return a.updatePermissions(ctx, objectID, accessObject)

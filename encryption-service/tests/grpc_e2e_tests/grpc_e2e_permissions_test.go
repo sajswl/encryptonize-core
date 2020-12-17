@@ -191,17 +191,9 @@ func TestGetPermissions(t *testing.T) {
 	failOnError("Store operation failed", err, t)
 	oid := storeResponse.ObjectId
 
-	//Check that user 2 can get permissions from object, without permissions
-	getPermissionsResponse2, err := client2.GetPermissions(oid)
-	failOnError("Could not get permissions", err, t)
-	ok := find(getPermissionsResponse2.UserIds, uid)
-	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse2.UserIds)
-	}
-	ok = find(getPermissionsResponse2.UserIds, uid2)
-	if ok {
-		t.Fatalf("Found %v in %v", uid, getPermissionsResponse2.UserIds)
-	}
+	//Check that user 2 cannot get permissions from object, without permissions
+	_, err = client2.GetPermissions(oid)
+	failOnSuccess("Unauthorized user should not be able to access object permissions", err, t)
 
 	// Grant permissions to user 2
 	_, err = client.AddPermission(oid, uid2)
@@ -209,11 +201,11 @@ func TestGetPermissions(t *testing.T) {
 
 	getPermissionsResponse1, err := client.GetPermissions(oid)
 	failOnError("Could not get permissions", err, t)
-	getPermissionsResponse2, err = client2.GetPermissions(oid)
+	getPermissionsResponse2, err := client2.GetPermissions(oid)
 	failOnError("Could not get permissions", err, t)
 
 	// Check that permissions response contains the right uids
-	ok = find(getPermissionsResponse1.UserIds, uid)
+	ok := find(getPermissionsResponse1.UserIds, uid)
 	if !ok {
 		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
 	}
