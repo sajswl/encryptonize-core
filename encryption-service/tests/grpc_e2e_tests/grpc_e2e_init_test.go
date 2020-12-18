@@ -25,7 +25,9 @@ var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
 var uidAdmin = "00000000-0000-4000-8000-000000000002"
-var uatAdmin = "0000000000000000000000000000000000000000000000000000000000000002"
+var adminAT = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
+var protoUserScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_READ, app.CreateUserRequest_CREATE, app.CreateUserRequest_INDEX, app.CreateUserRequest_OBJECTPERMISSIONS}
+var protoAdminScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_USERMANAGEMENT}
 var https = false
 
 /**************************/
@@ -40,7 +42,7 @@ func TestMain(m *testing.M) {
 	}
 	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UAT")
 	if ok {
-		uatAdmin = v
+		adminAT = v
 	}
 	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UID")
 	if ok {
@@ -52,18 +54,17 @@ func TestMain(m *testing.M) {
 	}
 
 	// Create user for tests
-	client, err := NewClient(endpoint, uidAdmin, uatAdmin, https)
+	client, err := NewClient(endpoint, adminAT, https)
 	if err != nil {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
 	defer client.Close()
-	userType := app.CreateUserRequest_USER
-	createUserResponse, err := client.CreateUser(userType)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	if err != nil {
 		log.Fatalf("Couldn't create test user: %v", err)
 	}
 	uat = createUserResponse.AccessToken
-	uid = createUserResponse.UserID
+	uid = createUserResponse.UserId
 
 	os.Exit(m.Run())
 }

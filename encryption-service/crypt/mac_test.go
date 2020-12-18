@@ -159,7 +159,7 @@ func TestVerifyModifiedDomain(t *testing.T) {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	valid, err := s.Verify(UsersDomain, msg, expectedTag)
+	valid, err := s.Verify(TokenDomain, msg, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}

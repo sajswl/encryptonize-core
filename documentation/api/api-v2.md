@@ -30,6 +30,48 @@ The current service address is `app.Encryptonize`. The Encryptonize API defines 
 
 For detailed information, see below.
 
+# Authorization
+
+To authenticate a user should provide an access token via `authorization`. It should be in the form
+`bearer <user access token>`. correct authentication metadata query could look like this:
+```
+{
+  "authorization": "bearer ChAAAAAAAABAAIAAAAAAAAAC.AAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+}
+```
+
+The access token consists of three parts separated by a dot. Each part is individually base64url encoded.
+The first part is a serialized protobuf message containing the user ID and set of scopes. The second part
+is a nonce to make the token unique even if the user ID and set of scopes is identical to another token.
+The third part is an HMAC for integrity protection. The HMAC is created as `HMAC(nonce||message)`.
+
+This user ID is a UUID (version 4).
+
+A user is created with a chosen set of scopes that governs the endpoints this user may access.
+Any combination of the different scopes is valid. The scopes are:
+- `READ`
+- `CREATE`
+- `INDEX`
+- `OBJECTPERMISSIONS`
+- `USERMANAGEMENT`
+
+To access the endpoints the following permissions are necessary:
+
+| Name             | Scope             |
+|------------------|-------------------|
+| Store            | CREATE            |
+| Retrieve         | READ              |
+| GetPermission    | INDEC             |
+| AddPermission    | OBJECTPERMISSIONS |
+| RemovePermission | OBJECTPERMISSIONS |
+| CreateUser       | USERMANAGEMENT    |
+| Version          |                   |
+
+
+An unauthenticated request to the API returns: `Unauthenticated 16`
+
+An unauthorized request to the API returns: `PermissionDenied 7`
+
 # Error Handling
 The Encryption Service uses [grpc/codes](https://godoc.org/google.golang.org/grpc/codes) and
 [grpc/status](https://godoc.org/google.golang.org/grpc/status) for error messages. The main error
@@ -60,7 +102,7 @@ The Encryptonize API defines several derived types, mainly in the form of struct
 requests and corresponding responses.
 
 ## StoreRequest
-The structure used as an argument for a `Store` request. It contains a single `Object`.
+The structure used as an argument for a `Store` request. It contains a single `Object`. Requires the scope `CREATE`
 
 | Name   | Type   | Description |
 |--------|--------|-------------|
@@ -90,12 +132,12 @@ the request.
 | object           | Object           | The object            |
 
 ## CreateUserRequest
-The structure used as an argument for a `CreateUser` request. It contains a string defining which
-time of user to create. The two types of users are `admin` and `user`.
+The structure used as an argument for a `CreateUser` request. It contains a list of scopes defining
+which endpoints the user has access to. Possible scopes are `READ`, `CREATE`, `INDEX`, `OBJECTPERMISSIONS`, and `USERMANAGEMENT`.
 
-| Name      | Type          | Description                    |
-|-----------|---------------|--------------------------------|
-| user_kind | enum UserKind | The type of user to be created |
+| Name        | Type             | Description                                      |
+|-------------|------------------|--------------------------------------------------|
+| user_scopes | []enum UserScope | An array of scopes the newly created user posses |
 
 ## CreateUserResponse
 The structure returned by a `CreateUser` request. It contains the User ID and User Access Token of
@@ -150,25 +192,6 @@ running encryptonize deployment.
 | commit    | string | Git commit hash                       |
 | tag       | string | Git commit tag (if any)               |
 
-# Authorization
-
-To authenticate a user should provide some metadata to the gRPC. The Metadata should consist of the
-pairs: `authorization` and `userID`. The `authorization` should contain the user access token and be
-in the form `bearer <user access token>`. The `userID` should simply contain the user identifier. A
-correct authentication metadata query could look like this:
-```
-{
-  "authorization": "bearer 0000000000000000000000000000000000000000000000000000000000000000",
-  "userID": "00000000-0000-4000-0000-000000000002",
-}
-```
-The user ID is a UUID (version 4). The access token is a cryptographically randomly generated 256
-bit value represented as a hex string.
-
-An unauthenticated request to the API returns: `Unauthenticated 16`
-
-An unauthorized request to the API returns: `PermissionDenied 7`
-
 # Store
 
 Takes an `Object` and Stores it in encrypted form. This call can fail if the Encryption Service
@@ -219,8 +242,8 @@ rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)
 
 # Create a new user
 
-Creates a new user. This call can fail if the caller is not an admin or of the Encryption Service
-cannot reach the auth storage, in which case an error is returned.
+Creates a new user. This call can fail if the caller is lacking the required scope (`UserManagement`)
+or if the Encryption Service cannot reach the auth storage, in which case an error is returned.
 
 ```
 rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)

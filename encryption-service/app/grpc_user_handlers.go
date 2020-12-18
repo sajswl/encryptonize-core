@@ -15,7 +15,6 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -24,65 +23,78 @@ import (
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
-	"encryption-service/crypt"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	// Set userKind
-	// authn.UserKind = 0x0
-	// authn.AdminKind = 0x1
-	var usertype authn.UserKindType
-	switch uk := request.UserKind; uk {
-	case CreateUserRequest_USER:
-		usertype = authn.UserKind
-	case CreateUserRequest_ADMIN:
-		usertype = authn.AdminKind
-	default:
-		log.Errorf("CreateUser: Invalid user kind %v", request.UserKind)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user type")
+	usertype := authn.ScopeNone
+	for _, us := range request.UserScopes {
+		switch us {
+		case CreateUserRequest_READ:
+			usertype |= authn.ScopeRead
+		case CreateUserRequest_CREATE:
+			usertype |= authn.ScopeCreate
+		case CreateUserRequest_INDEX:
+			usertype |= authn.ScopeIndex
+		case CreateUserRequest_OBJECTPERMISSIONS:
+			usertype |= authn.ScopeObjectPermissions
+		case CreateUserRequest_USERMANAGEMENT:
+			usertype |= authn.ScopeUserManagement
+		default:
+			log.Errorf("CreateUser: Invalid scope %v", us)
+			return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
+		}
 	}
 
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
-	userID, accessToken, err := app.createUserWrapper(ctx, authStorage, usertype)
+	userID, token, err := app.createUserWrapper(ctx, usertype)
 	if err != nil {
 		log.Errorf("CreateUser: Couldn't create new user: %v", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
 	}
 
 	return &CreateUserResponse{
-		UserID:      userID.String(),
-		AccessToken: hex.EncodeToString(accessToken),
+		UserId:      userID.String(),
+		AccessToken: token,
 	}, nil
 }
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (app *App) createUserWrapper(ctx context.Context, authStorage authstorage.AuthStoreInterface, usertype authn.UserKindType) (*uuid.UUID, []byte, error) {
+func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType) (*uuid.UUID, string, error) {
+	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+
 	userID, err := uuid.NewV4()
 	if err != nil {
-		return nil, nil, err
-	}
-
-	accessToken, err := crypt.Random(32)
-	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
 	authenticator := &authn.Authenticator{
 		MessageAuthenticator: app.MessageAuthenticator,
-		AuthStore:            authStorage,
 	}
 
-	err = authenticator.CreateOrUpdateUser(ctx, userID, accessToken, usertype)
+	accessToken := &authn.AccessToken{}
+	err = accessToken.New(userID, userscope)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
+	}
+
+	token, err := authenticator.SerializeAccessToken(accessToken)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// insert user for compatibility with the check in permissions_handler
+	// we only need to know if a user exists there, thus it is only important
+	// that a row exists
+	err = authStorage.UpsertUser(ctx, userID, []byte{})
+	if err != nil {
+		return nil, "", err
 	}
 
 	err = authStorage.Commit(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
-	return &userID, accessToken, nil
+	return &userID, token, nil
 }

@@ -11,21 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package grpce2e
+syntax = "proto3";
 
-import "testing"
+package authz;
+option go_package = ".;authn";
 
-// Test that the version endpoints works and returns a non-empty git commit hash
-func TestGetVersion(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
-
-	versionResponse, err := client.GetVersion()
-	failOnError("Getting version failed", err, t)
-
-	// Fail on no commit
-	if versionResponse.Commit == "" {
-		t.Fatal("Git commit is empty")
-	}
+message AccessTokenClient{
+  enum UserScope{
+    READ = 0;
+    CREATE = 1;
+    INDEX = 2;
+    OBJECTPERMISSIONS = 3;
+    USERMANAGEMENT = 4;
+  }
+  bytes user_id = 1;
+  repeated UserScope user_scopes = 2;
 }

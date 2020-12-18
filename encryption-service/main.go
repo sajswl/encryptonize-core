@@ -159,6 +159,7 @@ func main() {
 		log.Info("Timeout exceeded, forcing shutdown")
 		grpcServer.Stop()
 	case <-c:
+		// TODO should we not check if this is an repeated ctrl-c, or the channel closing?
 		timeToForceShutdown.Stop()
 	}
 

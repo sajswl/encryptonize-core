@@ -14,259 +14,173 @@
 package authn
 
 import (
-	"context"
-	"crypto/hmac"
+	"encoding/base64"
 	"encoding/hex"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/authstorage"
 	"encryption-service/crypt"
 )
 
 var (
-	ASK, _         = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
-	userID         = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
-	accessToken, _ = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000002")
-	userKind       = AdminKind
+	ASK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
+	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
+	nonce, _  = hex.DecodeString("00000000000000000000000000000002")
+	userScope = ScopeUserManagement
+	AT        = &AccessToken{
+		UserID:     userID,
+		userScopes: userScope,
+	}
 
 	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK)
 	authenticator           = &Authenticator{
 		MessageAuthenticator: messageAuthenticator,
 	}
 
-	expectedMessage, _ = hex.DecodeString("00000000000040008000000000000002" + "0000000000000000000000000000000000000000000000000000000000000002" + "0100000000000000")
-	expectedTag, _     = messageAuthenticator.Tag(crypt.UsersDomain, expectedMessage)
+	expectedSerialized = "ChAAAAAAAABAAIAAAAAAAAACEgEE"
+	expectedMessage, _ = base64.RawURLEncoding.DecodeString(expectedSerialized)
+	expectedTag, _     = messageAuthenticator.Tag(crypt.TokenDomain, append(nonce, expectedMessage...))
+	expectedToken      = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg." + base64.RawURLEncoding.EncodeToString(expectedTag)
 )
 
-func TestFormat(t *testing.T) {
-	got, err := formatMessage(userID, accessToken, userKind)
+func failOnError(message string, err error, t *testing.T) {
 	if err != nil {
-		t.Fatalf("formatMessage errored: %v", err)
+		t.Fatalf(message+": %v", err)
 	}
-
-	if !hmac.Equal(expectedMessage, got) {
-		t.Errorf("Message doesn't match:\n%x\n%x", expectedMessage, got)
-	}
-
-	t.Logf("dev user tag: %x", expectedTag)
 }
 
-func TestFormatBadAccessToken(t *testing.T) {
-	accessToken := []byte("wrong length")
+func failOnSuccess(message string, err error, t *testing.T) {
+	if err == nil {
+		t.Fatalf("Test expected to fail: %v", message)
+	}
+}
 
-	got, err := formatMessage(userID, accessToken, userKind)
-	if (err == nil && err.Error() != "Invalid accessToken length") || got != nil {
+func TestSerialize(t *testing.T) {
+	token, err := authenticator.SerializeAccessToken(AT)
+	if err != nil {
+		t.Fatalf("SerializeAccessToken errored: %v", err)
+	}
+
+	serialized := strings.Split(token, ".")[0]
+
+	if serialized != expectedSerialized {
+		t.Errorf("Message doesn't match:\n%v\n%v", expectedToken, token)
+	}
+
+	t.Logf("dev admin token: %v", expectedToken)
+}
+
+func TestSerializeParseIdentity(t *testing.T) {
+	token, err := authenticator.SerializeAccessToken(AT)
+	if err != nil {
+		t.Fatalf("SerializeAccessToken errored: %v", err)
+	}
+
+	AT2, err := authenticator.ParseAccessToken(token)
+	failOnError("Parsing serialized access token failed", err, t)
+	if AT2.UserID != AT.UserID || AT2.userScopes != AT.userScopes {
+		t.Errorf("Serialize parse identity violated")
+	}
+}
+
+func TestSerializeBaduserScope(t *testing.T) {
+	BadScopeAT := &AccessToken{
+		UserID:     userID,
+		userScopes: ScopeType(0xff),
+	}
+
+	token, err := authenticator.SerializeAccessToken(BadScopeAT)
+	if (err == nil && err.Error() != "Invalid scopes") || token != "" {
 		t.Errorf("formatMessage should have errored")
 	}
 }
 
-func TestFormatBadUserKind(t *testing.T) {
-	userKind := UserKindType(0xff)
+func TestSerializeBadUserID(t *testing.T) {
+	BadUUIDAT := &AccessToken{
+		UserID:     uuid.Nil,
+		userScopes: userScope,
+	}
 
-	got, err := formatMessage(userID, accessToken, userKind)
-	if (err == nil && err.Error() != "Invalid user type") || got != nil {
+	token, err := authenticator.SerializeAccessToken(BadUUIDAT)
+	if (err == nil && err.Error() != "Invalid userID UUID") || token != "" {
 		t.Errorf("formatMessage should have errored")
 	}
 }
 
-func TestFormatBadUserID(t *testing.T) {
-	userID := uuid.Nil
+func TestParseAccessToken(t *testing.T) {
+	AT, err := authenticator.ParseAccessToken(expectedToken)
+	failOnError("ParseAccessToken did fail", err, t)
 
-	got, err := formatMessage(userID, accessToken, userKind)
-	if (err == nil && err.Error() != "Invalid userID UUID") || got != nil {
-		t.Errorf("formatMessage should have errored")
+	if AT.UserID != userID || AT.userScopes != userScope {
+		t.Errorf("Parsed Access Token contained different data!")
 	}
 }
 
-func TestTag(t *testing.T) {
-	got, err := authenticator.tag(userID, accessToken, userKind)
-	if err != nil {
-		t.Fatalf("tag errored: %v", err)
-	}
-
-	if !hmac.Equal(expectedTag, got) {
-		t.Errorf("tag doesn't match:\n%x\n%x", expectedTag, got)
-	}
-}
-
-func TestSignBadFormatMessage(t *testing.T) {
-	userID := uuid.Nil
-
-	got, err := authenticator.tag(userID, accessToken, userKind)
-	if (err == nil && err.Error() != "Invalid userID UUID") || got != nil {
-		t.Errorf("sign should have errored")
-	}
-}
-
-func TestVerify(t *testing.T) {
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if err != nil {
-		t.Fatalf("Verify errored: %v", err)
-	}
-
-	if !valid {
-		t.Errorf("Verify should have returned valid")
-	}
-}
-
-func TestVerifyBadFormatMessage(t *testing.T) {
-	userID := uuid.Nil
-
-	got, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if (err == nil && err.Error() != "Invalid userID UUID") || got != false {
-		t.Errorf("verify should have errored")
-	}
-}
-
-func TestVerifyModifiedUserID(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if err != nil {
-		t.Fatalf("Verify errored: %v", err)
-	}
-
-	if valid {
-		t.Errorf("Verify should have returned invalid")
-	}
-}
-
-func TestVerifyModifiedAccessToken(t *testing.T) {
-	accessToken := []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB")
-
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if err != nil {
-		t.Fatalf("Verify errored: %v", err)
-	}
-
-	if valid {
-		t.Errorf("Verify should have returned invalid")
-	}
-}
-
-func TestVerifyModifiedUserKind(t *testing.T) {
-	userKind := UserKind
-
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if err != nil {
-		t.Fatalf("Verify errored: %v", err)
-	}
-
-	if valid {
-		t.Errorf("Verify should have returned invalid")
-	}
-}
-
-func TestVerifyModifiedTag(t *testing.T) {
-	expectedTag := append(expectedTag, 0)
-
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if err != nil {
-		t.Fatalf("Verify errored: %v", err)
-	}
-
-	if valid {
-		t.Errorf("Verify should have returned invalid")
-	}
-}
+// the checks for the modified parts of the token is currently handled
+// in auth_handlers_test (TestAuthMiddlewareSwappedTokenParts)
 
 func TestVerifyModifiedASK(t *testing.T) {
 	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored: %v", err)
-	}
+	failOnError("NewMessageAuthenticator errored", err, t)
 
 	authenticator := &Authenticator{
 		MessageAuthenticator: ma,
 	}
 
-	valid, err := authenticator.verify(userID, accessToken, userKind, expectedTag)
-	if err != nil {
-		t.Fatalf("Verify errored: %v", err)
-	}
-
-	if valid {
-		t.Errorf("Verify should have returned invalid")
+	_, err = authenticator.ParseAccessToken(expectedToken)
+	failOnSuccess("ParseAccessToken should have failed with modified ASK", err, t)
+	if err.Error() != "invalid token" {
+		t.Errorf("ParseAccessToken failed with different error. Expected \"invalid token\" but go %v", err)
 	}
 }
 
-func TestLoginUser(t *testing.T) {
-	DBMock := &authstorage.AuthStoreMock{
-		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) { return expectedTag, nil },
-	}
-	authenticator.AuthStore = DBMock
-	ctx := context.Background()
-
-	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userKind)
-	if err != nil || !authenticated {
-		t.Fatalf("User not authenticated: %v", err)
-	}
-}
-
-func TestLoginUserWrongTag(t *testing.T) {
-	badTag, err := hex.DecodeString("deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
-	if err != nil {
-		t.Fatalf("Couldn't decode tag: %v", err)
-	}
-	DBMock := &authstorage.AuthStoreMock{
-		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) { return badTag, nil },
-	}
-	authenticator.AuthStore = DBMock
-	ctx := context.Background()
-
-	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userKind)
-	if authenticated {
-		t.Fatalf("User unlawfully authenticated: %v, %v", err, authenticated)
+func TestSerializeAccessTokenAnyScopes(t *testing.T) {
+	// try to create a use for every valid combination of scopes
+	// even the empty set
+	for i := uint64(0); i < uint64(ScopeEnd); i++ {
+		uScope := ScopeType(i)
+		tAT := &AccessToken{
+			UserID:     userID,
+			userScopes: uScope,
+		}
+		_, err := authenticator.SerializeAccessToken(tAT)
+		if err != nil {
+			t.Fatalf("Failed to create/update user with scopes %v: %v", uScope, err)
+		}
 	}
 }
 
-func TestLoginUserFailedTagVerification(t *testing.T) {
-	DBMock := &authstorage.AuthStoreMock{
-		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-			return expectedTag, errors.New("failed verify")
-		},
-	}
-	authenticator.AuthStore = DBMock
-	ctx := context.Background()
+func TestAccessTokenNew(t *testing.T) {
+	// try to create a use for every valid combination of scopes
+	// even the empty set
+	for i := uint64(0); i < uint64(ScopeEnd); i++ {
+		uScope := ScopeType(i)
+		at := &AccessToken{}
 
-	authenticated, err := authenticator.LoginUser(ctx, userID, accessToken, userKind)
-	if authenticated {
-		t.Fatalf("User unlawfully authenticated: %v, %v", err, authenticated)
-	}
-	expectedError := "failed verify"
-	if err.Error() != expectedError {
-		t.Fatalf("Didn't get expected error, got: %v expected %v", err, expectedError)
+		err := at.New(userID, uScope)
+		if err != nil {
+			t.Fatalf("AccessToken.New errored for scope %v: %v", uScope, err)
+		}
+
+		if at.UserID != userID || at.userScopes != uScope {
+			t.Fatalf("AccessToken.New result differed from input")
+		}
 	}
 }
 
-func TestCreateOrUpdateUser(t *testing.T) {
-	DBMock := &authstorage.AuthStoreMock{
-		UpsertUserFunc: func(ctx context.Context, userID uuid.UUID, tag []byte) error { return nil },
-	}
-	authenticator.AuthStore = DBMock
-	ctx := context.Background()
-
-	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userKind)
-	if err != nil {
-		t.Fatalf("Failed to create/update user: %v", err)
-	}
+func TestAccessTokenNewInvalidUUID(t *testing.T) {
+	at := &AccessToken{}
+	badUUID := uuid.Nil
+	err := at.New(badUUID, userScope)
+	failOnSuccess("AccessToken.New should have failed for invalid UUID", err, t)
 }
 
-func TestCreateOrUpdateUserFail(t *testing.T) {
-	DBMock := &authstorage.AuthStoreMock{
-		UpsertUserFunc: func(ctx context.Context, userID uuid.UUID, tag []byte) error {
-			return errors.New("upsert failed")
-		},
-	}
-	authenticator.AuthStore = DBMock
-	ctx := context.Background()
+func TestAccessTokenNewInvalidScopes(t *testing.T) {
+	at := &AccessToken{}
+	badScopes := ScopeType(0xff)
 
-	err := authenticator.CreateOrUpdateUser(ctx, userID, accessToken, userKind)
-	expectedError := "upsert failed"
-	if err.Error() != expectedError {
-		t.Fatalf("Didn't get expected error, got: %v expected %v", err, expectedError)
-	}
+	err := at.New(userID, badScopes)
+	failOnSuccess("AccessToken.New should have failed for invalid UUID", err, t)
 }

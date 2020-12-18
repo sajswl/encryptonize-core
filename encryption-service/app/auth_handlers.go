@@ -15,13 +15,10 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
-	"errors"
 
 	"github.com/gofrs/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,14 +34,14 @@ const baseMethodPath string = "/app.Encryptonize/"
 const healthEndpointCheck string = "/grpc.health.v1.Health/Check"
 const healthEndpointWatch string = "/grpc.health.v1.Health/Watch"
 
-var methodUserMap = map[string]authn.UserKindType{
-	baseMethodPath + "CreateUser":       authn.AdminKind,
-	baseMethodPath + "GetPermissions":   authn.UserKind,
-	baseMethodPath + "AddPermission":    authn.UserKind,
-	baseMethodPath + "RemovePermission": authn.UserKind,
-	baseMethodPath + "Store":            authn.UserKind,
-	baseMethodPath + "Retrieve":         authn.UserKind,
-	baseMethodPath + "Version":          authn.UserKind,
+var methodScopeMap = map[string]authn.ScopeType{
+	baseMethodPath + "CreateUser":       authn.ScopeUserManagement,
+	baseMethodPath + "GetPermissions":   authn.ScopeIndex,
+	baseMethodPath + "AddPermission":    authn.ScopeObjectPermissions,
+	baseMethodPath + "RemovePermission": authn.ScopeObjectPermissions,
+	baseMethodPath + "Store":            authn.ScopeCreate,
+	baseMethodPath + "Retrieve":         authn.ScopeRead,
+	baseMethodPath + "Version":          authn.ScopeNone,
 }
 
 // Inject full method name into unary call
@@ -67,10 +64,11 @@ func StreamMethodNameMiddleware() grpc.StreamServerInterceptor {
 	}
 }
 
-// Authenticates user against auth storage
-// This function assumes that user credentials are stored in context metadata
-// Only if the user is found in the auth storage and the user and tag match will the user be authenticated
-// Otherwise this function will fail
+// Authenticates user using an Access Token
+// the Access Token contains uid, scopes, and a random value
+// this token has to be integrity protected (e.g. by an HMAC)
+// this method fails if the integrity check failed or the token
+// lacks the required scope
 func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName := ctx.Value(methodNameCtxKey).(string)
@@ -80,57 +78,28 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 		return ctx, nil
 	}
 
-	// Extract user id from context and parse it into uuid type
-	userIDString := metautils.ExtractIncoming(ctx).Get("userID")
-	if len(userIDString) == 0 {
-		log.Errorf("AuthenticateUser: Couldn't find user ID in metadata")
-		return nil, status.Errorf(codes.InvalidArgument, "missing user ID")
-	}
-	userID, err := uuid.FromString(userIDString)
-	if err != nil {
-		log.Errorf("AuthenticateUser: Failed to parse user ID as UUID, %v", err)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
-	}
-
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
 		log.Errorf("AuthenticateUser: Couldn't find token in metadata, %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
 	}
-	byteToken, err := hex.DecodeString(token)
+
+	authenticator := &authn.Authenticator{
+		MessageAuthenticator: app.MessageAuthenticator,
+	}
+
+	accessToken, err := authenticator.ParseAccessToken(token)
 	if err != nil {
-		log.Errorf("AuthenticateUser: Failed to decode token, %v", err)
+		log.Errorf("AuthenticateUser: Unable to parse Access Token, %v", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
 	}
 
-	// Set user type according to which endpoint is being called
-	userKindType, ok := methodUserMap[methodName]
-	if !ok {
-		log.Errorf("AuthenticateUser: Unrecognized endpoint called, %v", methodName)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid method called")
+	if !accessToken.HasScopes(methodScopeMap[methodName]) {
+		log.Errorf("AuthenticateUser: Unauthorized access to %v by %v", methodName, accessToken)
+		return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
 	}
 
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
-	authenticator := &authn.Authenticator{
-		MessageAuthenticator: app.MessageAuthenticator,
-		AuthStore:            authStorage,
-	}
-
-	authenticated, err := authenticator.LoginUser(ctx, userID, byteToken, userKindType)
-	if errors.Is(err, authstorage.ErrNoRows) {
-		log.Errorf("AuthenticateUser: User %v not found: %v", userID, err)
-		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
-	}
-	if err != nil {
-		log.Errorf("AuthenticateUser: Couldn't authenticate user %v, encountered error: %v", userID, err)
-		return nil, status.Errorf(codes.Internal, "error encountered while authenticating user")
-	}
-	if !authenticated {
-		log.Errorf("AuthenticateUser: Couldn't authenticate user %v, %v", userID, err)
-		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
-	}
-
-	newCtx := context.WithValue(ctx, userIDCtxKey, userID)
+	newCtx := context.WithValue(ctx, userIDCtxKey, accessToken.UserID)
 
 	return newCtx, nil
 }

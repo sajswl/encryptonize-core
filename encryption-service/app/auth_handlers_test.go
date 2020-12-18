@@ -15,8 +15,7 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/gofrs/uuid"
@@ -30,177 +29,166 @@ import (
 	"encryption-service/crypt"
 )
 
+func failOnError(message string, err error, t *testing.T) {
+	if err != nil {
+		t.Fatalf(message+": %v", err)
+	}
+}
+
+func failOnSuccess(message string, err error, t *testing.T) {
+	if err == nil {
+		t.Fatalf("Test expected to fail: %v", message)
+	}
+}
+
+func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes authn.ScopeType) (string, error) {
+	authenticator := &authn.Authenticator{
+		MessageAuthenticator: m,
+	}
+
+	accessToken := &authn.AccessToken{}
+	err := accessToken.New(userID, scopes)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := authenticator.SerializeAccessToken(accessToken)
+	if err != nil {
+		return "", err
+	}
+
+	token = "bearer " + token
+	return token, nil
+}
+
 // This is a good path test of the authentication middleware
 // It ONLY tests the middleware and assumes that the authn.LoginUser works as intended
 func TestAuthMiddlewareGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	accessToken, _ := crypt.Random(32)
-	AT := "bearer " + hex.EncodeToString(accessToken)
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", userID.String())
-
-	authnStorageMock := authstorage.NewMemoryAuthStore()
-
 	m, err := crypt.NewMessageAuthenticator(ASK)
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
+	failOnError("NewMessageAuthenticator errored", err, t)
 
-	// create new user
-	authenticator := &authn.Authenticator{
-		MessageAuthenticator: m,
-		AuthStore:            authnStorageMock,
-	}
-	err = authenticator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.UserKind)
-	if err != nil {
-		t.Fatalf("CreateOrUpdateUser errored %v", err)
-	}
+	token, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken errored", err, t)
 
+	var md = metadata.Pairs("authorization", token)
 	app := App{
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = app.AuthenticateUser(ctx)
-	if err != nil {
-		t.Errorf("Auth failed: %v", err)
-	}
+	failOnError("Auth failed", err, t)
 }
 
-func TestAuthMiddlewareWrongAT(t *testing.T) {
+func TestAuthMiddlewareNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	accessToken, _ := crypt.Random(32)
-	AT := "bearer " + hex.EncodeToString(accessToken)
-	accessToken, _ = crypt.Random(32)
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", userID.String())
-
-	authnStorageMock := authstorage.NewMemoryAuthStore()
-
 	m, err := crypt.NewMessageAuthenticator(ASK)
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
+	failOnError("NewMessageAuthenticator errored %v", err, t)
 
-	// create new user
-	authentiator := &authn.Authenticator{
-		MessageAuthenticator: m,
-		AuthStore:            authnStorageMock,
-	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.UserKind)
-	if err != nil {
-		t.Fatalf("CreateOrUpdateUser errored %v", err)
-	}
+	goodToken, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+
+	goodTokenParts := strings.Split(goodToken, ".")
 
 	app := App{
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Fatalf("Auth should have errored")
+	// for each position of the split token
+	for i := 0; i < len(goodTokenParts); i++ {
+		tokenParts := []string{}
+		// combine both tokens such that all but the
+		// position 'i' come from the first.
+		for j := 0; j < len(goodTokenParts); j++ {
+			if i != j {
+				tokenParts = append(tokenParts, goodTokenParts[j])
+			} else {
+				tokenParts = append(tokenParts, "-~iamnoturlbase64+/")
+			}
+		}
+		token := strings.Join(tokenParts, ".")
+
+		var md = metadata.Pairs("authorization", token)
+		ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = app.AuthenticateUser(ctx)
+		failOnSuccess("Auth should have errored", err, t)
 	}
 }
 
-func TestAuthMiddlewareNonExistingUser(t *testing.T) {
-	// User credentials
-	UID := "bc21fe7e-fd3b-41ee-83df-000000000000"
-	AT := "bearer 4141414141414141414141414141414141414141414141414141414141414141"
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", UID)
+func TestAuthMiddlewareSwappedTokenParts(t *testing.T) {
+	userIDFirst := uuid.Must(uuid.NewV4())
+	userIDSecond := uuid.Must(uuid.NewV4())
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
 
-	authnStorageMock := &authstorage.AuthStoreMock{
-		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-			return nil, authstorage.ErrNoRows
-		},
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("NewMessageAuthenticator errored %v", err, t)
+
+	tokenFirst, err := CreateUserForTests(m, userIDFirst, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+	tokenSecond, err := CreateUserForTests(m, userIDSecond, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+
+	firstTokenParts := strings.Split(tokenFirst, ".")
+	secondTokenParts := strings.Split(tokenSecond, ".")
+
+	app := App{
+		MessageAuthenticator: m,
 	}
-	app := App{}
 
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err := app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Fatalf("Auth should have errored")
-	}
-}
+	// for each position of the split token
+	for i := 0; i < len(firstTokenParts); i++ {
+		tokenParts := []string{}
+		// combine both tokens such that all but the
+		// position 'i' come from the first.
+		for j := 0; j < len(firstTokenParts); j++ {
+			if i != j {
+				tokenParts = append(tokenParts, firstTokenParts[j])
+			} else {
+				tokenParts = append(tokenParts, secondTokenParts[j])
+			}
+		}
+		token := strings.Join(tokenParts, ".")
 
-// This function tests the authentication middleware
-// It ONLY tests the middleware and assumes that the authn.LoginUser works as intended
-func TestAuthMiddlewareInvalidUUID(t *testing.T) {
-	UID := "NotEvenClose to being valid"
-	AT := "bearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
-
-	// User credentials
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", UID)
-
-	app := App{}
-
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	_, err := app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Invalid Auth Passed\n")
-	}
-	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
-		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
-	}
-}
-
-// Tests that a missing AT results in unauthenticated response
-func TestAuthMiddlewareMissingAT(t *testing.T) {
-	app := App{}
-
-	// Test wrong format AT
-	// User credentials
-	UID := uuid.Must(uuid.NewV4()).String()
-	var md = metadata.Pairs(
-		"userID", UID)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	_, err := app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Invalid Auth Passed\n")
-	}
-	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
-		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
+		var md = metadata.Pairs("authorization", token)
+		ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = app.AuthenticateUser(ctx)
+		failOnSuccess("Auth should have errored", err, t)
 	}
 }
 
 // Tests that accesstoken of wrong type gets rejected
 func TestAuthMiddlewareInvalidAT(t *testing.T) {
-	app := App{}
+	userID := uuid.Must(uuid.NewV4())
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
 
-	// Test wrong format AT
-	// User credentials
-	UID := uuid.Must(uuid.NewV4()).String()
-	AT := "notBearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", UID)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	_, err := app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Invalid Auth Passed\n")
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("NewMessageAuthenticator errored", err, t)
+
+	token, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken errored", err, t)
+
+	token = "notBearer" + token[6:]
+	var md = metadata.Pairs("authorization", token)
+	app := App{
+		MessageAuthenticator: m,
 	}
-	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
-		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
-	}
+
+	ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+	ctx = metadata.NewIncomingContext(ctx, md)
+	_, err = app.AuthenticateUser(ctx)
+	failOnSuccess("Auth should have failed", err, t)
 }
 
 // Tests that accesstoken thats not hex gets rejected
@@ -209,130 +197,48 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 
 	// Test wrong format AT
 	// User credentials
-	UID := uuid.Must(uuid.NewV4()).String()
 	AT := "bearer thisIsANonHexaDecimalSentenceThatsAtLeastSixtyFourCharactersLong"
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", UID)
+	var md = metadata.Pairs("authorization", AT)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
 	_, err := app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Invalid Auth Passed\n")
-	}
+	failOnSuccess("Invalid Auth Passed", err, t)
+
 	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
 		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
 	}
 }
 
-// Tests that if authn.LoginUser fails, then so will the authmiddleware
-func TestAuthMiddlewareLoginFail(t *testing.T) {
-	// User credentials
-	UID := uuid.Must(uuid.NewV4()).String()
-	AT := "bearer ed287c3a1b3f96a7be3f552890171e4785f8f787ff2c6cbebb97148cf6411783"
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", UID)
-
-	authnStorageMock := &authstorage.AuthStoreMock{
-		GetUserTagFunc: func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-			return nil, errors.New("mocked error")
-		},
-	}
-
-	app := App{}
-
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err := app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Invalid Auth Passed\n")
-	}
-	if errStatus, _ := status.FromError(err); codes.Internal != errStatus.Code() {
-		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.Internal, errStatus.Code())
-	}
-}
-
-// Tests that if user accesses admin endpoint login fails
-func TestAuthMiddlewareWrongUserTypeUserToAdmin(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	accessToken, _ := crypt.Random(32)
-	AT := "bearer " + hex.EncodeToString(accessToken)
+// This test tries to access each endpoint with every but the required scope
+// all tests should fail
+func TestAuthMiddlewareNegativeScopes(t *testing.T) {
 	ASK, _ := crypt.Random(32)
-
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", userID.String())
-
-	authnStorageMock := authstorage.NewMemoryAuthStore()
-
 	m, err := crypt.NewMessageAuthenticator(ASK)
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
-
-	// create new user
-	authentiator := &authn.Authenticator{
-		MessageAuthenticator: m,
-		AuthStore:            authnStorageMock,
-	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.UserKind)
-	if err != nil {
-		t.Fatalf("CreateOrUpdateUser errored %v", err)
-	}
+	failOnError("Error creating MessageAuthenticator", err, t)
 
 	app := App{
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/CreateUser")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("User allowed to call admin endpoint: %v", err)
-	}
-}
+	for endpoint, rscope := range methodScopeMap {
+		if rscope == authn.ScopeNone {
+			// endpoints that only require logged in users are already covered
+			// by tests that check if authentication works
+			continue
+		}
+		tscopes := (authn.ScopeEnd - 1) &^ rscope
+		tuid := uuid.Must(uuid.NewV4())
+		token, err := CreateUserForTests(m, tuid, tscopes)
+		failOnError("Error Creating User", err, t)
 
-// Tests that if admin accesses user endpoint login fails
-func TestAuthMiddlewareWrongUserTypeAdminToUser(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	accessToken, _ := crypt.Random(32)
-	AT := "bearer " + hex.EncodeToString(accessToken)
-	ASK, _ := crypt.Random(32)
+		var md = metadata.Pairs("authorization", token)
 
-	var md = metadata.Pairs(
-		"authorization", AT,
-		"userID", userID.String())
-
-	authnStorageMock := authstorage.NewMemoryAuthStore()
-
-	m, err := crypt.NewMessageAuthenticator(ASK)
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
-
-	// create new user
-	authentiator := &authn.Authenticator{
-		MessageAuthenticator: m,
-		AuthStore:            authnStorageMock,
-	}
-	err = authentiator.CreateOrUpdateUser(context.Background(), userID, accessToken, authn.AdminKind)
-	if err != nil {
-		t.Fatalf("CreateOrUpdateUser errored %v", err)
-	}
-
-	app := App{
-		MessageAuthenticator: m,
-	}
-
-	ctx := context.WithValue(context.Background(), authStorageCtxKey, authnStorageMock)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
-	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = app.AuthenticateUser(ctx)
-	if err == nil {
-		t.Errorf("Admin allowed to call user endpoint: %v", err)
+		ctx := context.WithValue(context.Background(), methodNameCtxKey, endpoint)
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = app.AuthenticateUser(ctx)
+		if err == nil {
+			t.Errorf("User allowed to call endpoint %v requireing scopes %v using scopes %v", endpoint, rscope, tscopes)
+		}
 	}
 }
 
@@ -340,9 +246,8 @@ func TestAuthorizeWrapper(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	objectID := uuid.Must(uuid.NewV4())
 	Woek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Couldn't generate WOEK!\n")
-	}
+	failOnError("Couldn't generate WOEK!", err, t)
+
 	accessObject := &authz.AccessObject{
 		UserIds: [][]byte{
 			userID.Bytes(),
@@ -360,10 +265,9 @@ func TestAuthorizeWrapper(t *testing.T) {
 			return nil
 		},
 	}
+
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
+	failOnError("NewMessageAuthenticator errored", err, t)
 
 	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
 	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)
@@ -384,9 +288,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	objectID := uuid.Must(uuid.NewV4())
 	Woek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Couldn't generate WOEK!\n")
-	}
+	failOnError("Couldn't generate WOEK!", err, t)
 
 	unAuthAccessObject := &authz.AccessObject{
 		UserIds: [][]byte{
@@ -407,17 +309,14 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	}
 
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored %v", err)
-	}
+	failOnError("NewMessageAuthenticator errored", err, t)
 
 	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
 	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)
 
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
-	if err == nil {
-		t.Fatalf("User should not be authorized")
-	}
+	failOnSuccess("User should not be authorized", err, t)
+
 	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
 		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
 	}

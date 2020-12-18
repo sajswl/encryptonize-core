@@ -190,12 +190,14 @@ func (app *App) CreateAdminCommand() {
 		}
 	}()
 
-	userID, accessToken, err := app.createUserWrapper(ctx, authStorage, authn.AdminKind)
+	ctx = context.WithValue(ctx, authStorageCtxKey, authStorage)
+	adminScope := authn.ScopeUserManagement
+	userID, accessToken, err := app.createUserWrapper(ctx, adminScope)
 	if err != nil {
 		log.Fatalf("Create user failed: %v", err)
 	}
 
 	log.Info("Created admin user:")
 	log.Infof("    User ID:      %v", userID)
-	log.Infof("    Access Token: %x", accessToken)
+	log.Infof("    Access Token: %v", accessToken)
 }

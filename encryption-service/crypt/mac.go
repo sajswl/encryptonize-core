@@ -34,6 +34,7 @@ type MessageAuthenticatorDomainType uint64
 const (
 	UsersDomain MessageAuthenticatorDomainType = iota
 	AccessObjectsDomain
+	TokenDomain
 	DomainLimit
 )
 

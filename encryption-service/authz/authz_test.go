@@ -74,7 +74,7 @@ func TestParseBadObjectID(t *testing.T) {
 func TestParseBadSignedData(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	data := []byte("parsers hate this string")
-	tag, err := authorizer.MessageAuthenticator.Tag(crypt.UsersDomain, append(userID.Bytes(), data...))
+	tag, err := authorizer.MessageAuthenticator.Tag(crypt.TokenDomain, append(userID.Bytes(), data...))
 	if err != nil {
 		t.Fatalf("tag failed: %v", err)
 	}

@@ -41,23 +41,23 @@ translated to supported languages see this
 [list](https://developers.google.com/protocol-buffers/docs/proto3#scalar).
 
 # Authentication
-All authentication on the Encryptonize service is done via gRPC metadata. The metadata should
-consist of the pairs: `authorization` and `userID`. The `authorization` should contain the user
-access token and be in the form `bearer <user access token>`. The `userID` should contain the
-user identifier. A correct authentication metadata query could look like this:
+All authentication on the Encryptonize service is done via an `authorization` pair in gRPC metadata. It should contain the user access token and be in the form `bearer <user access token>`.
+A correct authentication metadata query could look like this:
 ```
 {
-  "authorization": "bearer 0000000000000000000000000000000000000000000000000000000000000000",
-  "userID": "00000000-0000-4000-0000-000000000002",
+  "authorization": "bearer ChAAAAAAAABAAIAAAAAAAAAC.AAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 }
 ```
-The user ID is a unique identifier (UUID v4). The access token is a 256 bit value represented as a hex string.
+This token together with the users user ID is obtained upon user creation.
+The user ID is a unique identifier (UUID v4).
 
-Currently the Encryptonize service supports two kinds of tokens:
-
-* Admin token: Grants permission to manage users for the service.
-* User token: Grants permission to store and retrieve data. It also grants permissions to view, add,
-  and remove object permissions.
+A user is created with a chosen set of scopes that governs the endpoints this user may access.
+Any combination of the different scopes is valid. The scopes are:
+- `READ`
+- `CREATE`
+- `INDEX`
+- `OBJECTPERMISSIONS`
+- `USERMANAGEMENT`
 
 # Users
 A **user** is an authorization entity on the encryption server, and is only represented by a user ID.
@@ -99,11 +99,11 @@ kubectl get pods -n encryptonize
 ### Generating users through API
 To create a user through the API, you need to call the `CreateUser` endpoint. The `CreateUser`
 endpoint requires a payload of type `CreateUserRequest`. This payload consists of a single attribute
-named `userKind` of type `enum UserKind` and determines which kind of user is created. Accptable
-values for `userKind` are either `ADMIN` or `USER`.
+named `userScopes` of type `[]enum UserScope` and determines which endpoints the user may access. Accptable
+values for `userKind` are any combination of `READ`, `CREATE`, `INDEX`, `OBJECTPERMISSIONS`, and `USERMANAGEMENT`
 Once a user has been created, a new `userID` and `accessToken` will be returned from the call.
 
-Users can only be created by an admin user. For code examples on how to do this see
+Users can only be created by an user with the `USERMANAGEMENT`. For code examples on how to do this see
 [`/applications/ECCS`](/applications/ECCS).
 
 # Storage
@@ -111,10 +111,9 @@ To distinguish between encrypted and unencrypted data, some terminology is neces
 is defined as the plaintext payload sent to the Encryptonize service. A **package** will be
 defined as the encrypted plaintext and associated data.
 
-Note that admin users cannot directly store or retrieve objects from the storage.
-
 ## Storing data
-To store data through the API, you need to call the `Store` endpoint. The request should contain two attributes named `plaintext` and `associatedData`.
+To store data through the API, you need to call the `Store` endpoint. To access this endpoint the user must have the
+`CREATE` scope. The request should contain two attributes named `plaintext` and `associatedData`.
 
 The `plaintext` is the data to be encrypted and stored. The `associatedData` is metadata supplied
 to the plaintext. The `associatedData` will not be encrypted, but it will be cryptographically
@@ -124,8 +123,8 @@ The  `associatedData` can be used for indexing or other purposes.
 The `objectId` will be returned from the operation. This value should be kept safe as it will be used to retrieve the object again from the service.
 
 ## Retrieving data
-To retrieve data through the API, you need to call the `Retrieve` endpoint. The operations takes
-the `objectId` of the object to be retrieved.
+To retrieve data through the API, you need to call the `Retrieve` endpoint. To access this endpoint the user must have
+the `READ` scope. The operations takes the `objectId` of the object to be retrieved.
 If the operation is successful, the object is returned in decrypted format along with any associated data.
 
 # Permissions
@@ -136,13 +135,14 @@ users who are able to access and modify the object.
 In oder to modify the permission list, the user must have access to the object (i.e. be on the permission list of the object).
 
 ## Get permissions of an object
-To get the permission list of an object, you need to call the `GetPermissions` endpoint. The operation will return a list of `userID`s that have access to the object.
+To get the permission list of an object, you need to call the `GetPermissions` endpoint. To access this endpoint the `INDEX` scope is required.
+The operation will return a list of `userID`s that have access to the object.
 
 ## Add permissions to an object
-To add a user to the permission list of an object, you need to call the `AddPermission` endpoint.
+To add a user to the permission list of an object, you need to call the `AddPermission` endpoint. To access this endpoint the `OBJECTPERMISSIONS` scope is required.
 
 ## Remove permissions from an object
-To remove a user's permission from an object, you need to call the `RemovePermission` endpoint.
+To remove a user's permission from an object, you need to call the `RemovePermission` endpoint. To access this endpoint the `OBJECTPERMISSIONS` scope is required.
 
 # Version
 To get version information about the running encryption service, you need to call the `Version` endpoint. Currently, the endpoint returns the git commit hash and an optional git tag.

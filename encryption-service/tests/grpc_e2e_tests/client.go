@@ -32,7 +32,7 @@ type Client struct {
 }
 
 // Create a new client.
-func NewClient(endpoint, uid, uat string, https bool) (*Client, error) {
+func NewClient(endpoint, token string, https bool) (*Client, error) {
 	var dialOption grpc.DialOption
 
 	if https {
@@ -52,10 +52,7 @@ func NewClient(endpoint, uid, uat string, https bool) (*Client, error) {
 	}
 
 	client := app.NewEncryptonizeClient(connection)
-	authMetadata := metadata.Pairs(
-		"authorization", fmt.Sprintf("bearer %v", uat),
-		"userID", uid,
-	)
+	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
 	return &Client{
@@ -138,9 +135,9 @@ func (c *Client) RemovePermission(oid, target string) (*app.RemovePermissionResp
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(usertype app.CreateUserRequest_UserKind) (*app.CreateUserResponse, error) {
+func (c *Client) CreateUser(userscopes []app.CreateUserRequest_UserScope) (*app.CreateUserResponse, error) {
 	createUserRequest := &app.CreateUserRequest{
-		UserKind: usertype,
+		UserScopes: userscopes,
 	}
 
 	createUserResponse, err := c.client.CreateUser(c.ctx, createUserRequest)
