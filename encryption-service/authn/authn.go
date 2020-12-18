@@ -65,6 +65,7 @@ type AccessToken struct {
 	userScopes ScopeType
 }
 
+// creates an access token only if the arguments are valid
 func (a *AccessToken) New(userID uuid.UUID, userScopes ScopeType) error {
 	if userID.Version() != 4 || userID.Variant() != uuid.VariantRFC4122 {
 		return errors.New("invalid user ID UUID version or variant")
@@ -83,6 +84,13 @@ func (a *AccessToken) HasScopes(scopes ScopeType) bool {
 	return a.userScopes.HasScopes(scopes)
 }
 
+// serializes an access token together with a random value. The random
+// value ensures unique user facing token even if the actual access token
+// would be equal. It also checks the validity of the access token as
+// this is last function every token has to go through before the token
+// are presented to an API. If this method only signs valid token we
+// can then assume that any signed token is valid.
+// This may not hold in when an encryption server was compromised
 func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken, nonce []byte) (string, error) {
 	if len(nonce) != 16 {
 		return "", errors.New("Invalid nonce length")
@@ -140,6 +148,9 @@ func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken, nonce []b
 	return dataStr + "." + nonceStr + "." + tagStr, nil
 }
 
+// this function takes a user facing token and parses it into the internal
+// access token format. It assumes that if the mac is valid the token information
+// also is.
 func (a *Authenticator) ParseAccessToken(token string) (*AccessToken, error) {
 	tokenParts := strings.Split(token, ".")
 	if len(tokenParts) != 3 {

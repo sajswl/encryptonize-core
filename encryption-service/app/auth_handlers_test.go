@@ -15,7 +15,6 @@ package app
 
 import (
 	"context"
-	"encoding/hex"
 	"strings"
 	"testing"
 
@@ -170,22 +169,6 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
 		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
 	}
-}
-
-func InitTest() (*authstorage.MemoryAuthStore, uuid.UUID, []byte, string, *crypt.MessageAuthenticator, error) {
-	userID := uuid.Must(uuid.NewV4())
-	accessToken, _ := crypt.Random(32)
-	AT := "bearer " + hex.EncodeToString(accessToken)
-	ASK, _ := crypt.Random(32)
-
-	authnStorageMock := authstorage.NewMemoryAuthStore()
-
-	m, err := crypt.NewMessageAuthenticator(ASK)
-	if err != nil {
-		return nil, uuid.UUID{}, nil, "", nil, err
-	}
-
-	return authnStorageMock, userID, accessToken, AT, m, nil
 }
 
 // This test tries to access each endpoint with every but the required scope

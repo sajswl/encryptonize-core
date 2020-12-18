@@ -64,10 +64,11 @@ func StreamMethodNameMiddleware() grpc.StreamServerInterceptor {
 	}
 }
 
-// Authenticates user against auth storage
-// This function assumes that user credentials are stored in context metadata
-// Only if the user is found in the auth storage and the user and tag match will the user be authenticated
-// Otherwise this function will fail
+// Authenticates user using an Access Token
+// the Access Token contains uid, scopes, and a random value
+// this token has to be integrety protected (e.g. by an hmac)
+// this method fails if the integrety check failed or the token
+// lacks the required scope
 func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName := ctx.Value(methodNameCtxKey).(string)
