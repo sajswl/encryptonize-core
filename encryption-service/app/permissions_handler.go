@@ -31,7 +31,7 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
 	}
-	
+
 	// Parse objectID from request
 	oid, err := uuid.FromString(request.ObjectId)
 	if err != nil {
