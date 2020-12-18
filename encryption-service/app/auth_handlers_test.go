@@ -85,6 +85,45 @@ func TestAuthMiddlewareGoodPath(t *testing.T) {
 	failOnError("Auth failed", err, t)
 }
 
+func TestAuthMiddlewareNonUTF8(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
+
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("NewMessageAuthenticator errored %v", err, t)
+
+	goodToken, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+
+	goodTokenParts := strings.Split(goodToken, ".")
+
+	app := App{
+		MessageAuthenticator: m,
+	}
+
+	// for each position of the split token
+	for i := 0; i < len(goodTokenParts); i++ {
+		tokenParts := []string{}
+		// combine both tokens such that all but the
+		// position 'i' come from the first.
+		for j := 0; j < len(goodTokenParts); j++ {
+			if i != j {
+				tokenParts = append(tokenParts, goodTokenParts[j])
+			} else {
+				tokenParts = append(tokenParts, "-~iamnoturlbase64+/")
+			}
+		}
+		token := strings.Join(tokenParts, ".")
+
+		var md = metadata.Pairs("authorization", token)
+		ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = app.AuthenticateUser(ctx)
+		failOnSuccess("Auth should have errored", err, t)
+	}
+}
+
 func TestAuthMiddlewareSwappedTokenParts(t *testing.T) {
 	userIDFirst := uuid.Must(uuid.NewV4())
 	userIDSecond := uuid.Must(uuid.NewV4())

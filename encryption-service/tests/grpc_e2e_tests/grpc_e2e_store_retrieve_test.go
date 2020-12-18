@@ -155,32 +155,28 @@ func TestRetrieveOlderObject(t *testing.T) {
 // Test that storing and retrieving is not possible with wrong credentials.
 func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 	// Create a client with invalid token format and try to store something
-	uatBad := "bad__bad__token!"
-	client, err := NewClient(endpoint, uatBad, https)
-	defer closeClient(client, t)
-	failOnError("Could not create client", err, t)
 
-	_, err = client.Store([]byte("plaintext"), []byte("associated data"))
-	failOnSuccess("Should not be able to store anything with wrong uat", err, t)
+	badTokens := []string{
+		"bad__bad__token!",
+		"ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
+		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
+		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAA+-~/AAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
+		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-+-~/7tSWsAYgaDHjAEc1sUA",
+		"extra.ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-+-~/7tSWsAYgaDHjAEc1sUA",
+		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAA.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
+		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-",
+		"BAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
+		"",
+	}
 
-	// Create a client with valid format but invalid token and try to store something
-	// token was edited here   vvvv
-	uatBad = "ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA"
-	client, err = NewClient(endpoint, uatBad, https)
-	defer closeClient(client, t)
-	failOnError("Could not create client", err, t)
+	for _, token := range badTokens {
+		client, err := NewClient(endpoint, token, https)
+		defer closeClient(client, t)
+		failOnError("Could not create client", err, t)
 
-	_, err = client.Store([]byte("plaintext"), []byte("associated data"))
-	failOnSuccess("Should not be able to store anything with wrong uat", err, t)
-
-	// Create a client with empty credentials and try to store something
-	uatBad = ""
-	client, err = NewClient(endpoint, uatBad, https)
-	defer closeClient(client, t)
-	failOnError("Could not create client", err, t)
-
-	_, err = client.Store([]byte("plaintext"), []byte("associated data"))
-	failOnSuccess("Should not be able to store anything with empty credentials", err, t)
+		_, err = client.Store([]byte("plaintext"), []byte("associated data"))
+		failOnSuccess("Should not be able to store anything with wrong uat", err, t)
+	}
 }
 
 // Test that a user can store and retrieve a bigger object
