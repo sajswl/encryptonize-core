@@ -155,7 +155,7 @@ func TestRetrieveOlderObject(t *testing.T) {
 // Test that storing and retrieving is not possible with wrong credentials.
 func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 	// Create a client with invalid token format and try to store something
-	uatBad := "bearer bad__bad__token!"
+	uatBad := "bad__bad__token!"
 	client, err := NewClient(endpoint, uatBad, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
@@ -165,7 +165,7 @@ func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 
 	// Create a client with valid format but invalid token and try to store something
 	// token was edited here   vvvv
-	uatBad = "bearer ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA"
+	uatBad = "ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA"
 	client, err = NewClient(endpoint, uatBad, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)

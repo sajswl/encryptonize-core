@@ -52,7 +52,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 	}
 
 	client := app.NewEncryptonizeClient(connection)
-	authMetadata := metadata.Pairs("authorization", token)
+	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
 	return &Client{

@@ -23,7 +23,6 @@ import (
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
-	"encryption-service/crypt"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
@@ -69,11 +68,6 @@ func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType
 		return nil, "", err
 	}
 
-	nonce, err := crypt.Random(16)
-	if err != nil {
-		return nil, "", err
-	}
-
 	authenticator := &authn.Authenticator{
 		MessageAuthenticator: app.MessageAuthenticator,
 	}
@@ -84,12 +78,10 @@ func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType
 		return nil, "", err
 	}
 
-	token, err := authenticator.SerializeAccessToken(accessToken, nonce)
+	token, err := authenticator.SerializeAccessToken(accessToken)
 	if err != nil {
 		return nil, "", err
 	}
-
-	token = "bearer " + token
 
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important

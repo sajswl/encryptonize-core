@@ -33,6 +33,7 @@ ${COCKROACH_EXEC} "/cockroach/cockroach sql --insecure --database auth" < ./data
 
 # Bootstrap admin user
 UserID='00000000-0000-4000-8000-000000000002'
-TAG='d627de4432245bece1089e6bead830e8e79a3d0e66e6b92d30f83a8d2bc29a83'
+# This Tag is needed until the DB rework (Issue #92)
+TAG=''
 ADDUSER="UPSERT INTO users (id, tag) VALUES ('${UserID}', X'${TAG}');"
 ${COCKROACH_EXEC} "echo \"${ADDUSER}\" | /cockroach/cockroach sql --insecure  --database auth"

@@ -66,8 +66,8 @@ func StreamMethodNameMiddleware() grpc.StreamServerInterceptor {
 
 // Authenticates user using an Access Token
 // the Access Token contains uid, scopes, and a random value
-// this token has to be integrety protected (e.g. by an hmac)
-// this method fails if the integrety check failed or the token
+// this token has to be integrity protected (e.g. by an HMAC)
+// this method fails if the integrity check failed or the token
 // lacks the required scope
 func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	// Grab method name

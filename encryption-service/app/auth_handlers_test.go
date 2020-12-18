@@ -42,7 +42,6 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes authn.ScopeType) (string, error) {
-	nonce, _ := crypt.Random(16)
 	authenticator := &authn.Authenticator{
 		MessageAuthenticator: m,
 	}
@@ -53,7 +52,7 @@ func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes 
 		return "", err
 	}
 
-	token, err := authenticator.SerializeAccessToken(accessToken, nonce)
+	token, err := authenticator.SerializeAccessToken(accessToken)
 	if err != nil {
 		return "", err
 	}

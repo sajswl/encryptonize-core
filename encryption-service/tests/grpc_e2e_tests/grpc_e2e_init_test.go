@@ -25,7 +25,7 @@ var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
 var uidAdmin = "00000000-0000-4000-8000-000000000002"
-var adminAT = "bearer ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
+var adminAT = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
 var protoUserScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_READ, app.CreateUserRequest_CREATE, app.CreateUserRequest_INDEX, app.CreateUserRequest_OBJECTPERMISSIONS}
 var protoAdminScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_USERMANAGEMENT}
 var https = false
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	if ok {
 		endpoint = v
 	}
-	v, ok = os.LookupEnv("E2E_TEST_ADMIN_AT")
+	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UAT")
 	if ok {
 		adminAT = v
 	}

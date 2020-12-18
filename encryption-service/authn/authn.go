@@ -24,13 +24,13 @@ import (
 	"encryption-service/crypt"
 )
 
-// Authenticator represents a MessageAuthenticator used for creating and logging in users
+// Authenticator represents a MessageAuthenticator used for signing and checking the access token
 type Authenticator struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
 }
 
 type AuthenticatorInterface interface {
-	SerializeAccessToken(accessToken *AccessToken, nonce []byte) (string, error)
+	SerializeAccessToken(accessToken *AccessToken) (string, error)
 	ParseAccessToken(token string) (*AccessToken, error)
 }
 
@@ -47,21 +47,21 @@ const (
 	ScopeEnd
 )
 
-func (us ScopeType) IsValid() error {
+func (us ScopeType) isValid() error {
 	if us < ScopeEnd {
 		return nil
 	}
 	return errors.New("invalid combination of scopes")
 }
 
-func (us ScopeType) HasScopes(tar ScopeType) bool {
+func (us ScopeType) hasScopes(tar ScopeType) bool {
 	return (us & tar) == tar
 }
 
 type AccessToken struct {
 	UserID uuid.UUID
 	// this field is not exported to prevent other parts
-	// of the encryption server to depend on its implementation
+	// of the encryption service to depend on its implementation
 	userScopes ScopeType
 }
 
@@ -71,8 +71,8 @@ func (a *AccessToken) New(userID uuid.UUID, userScopes ScopeType) error {
 		return errors.New("invalid user ID UUID version or variant")
 	}
 
-	if userScopes >= ScopeEnd {
-		return errors.New("invalid scope")
+	if err := userScopes.isValid(); err != nil {
+		return err
 	}
 
 	a.UserID = userID
@@ -81,7 +81,7 @@ func (a *AccessToken) New(userID uuid.UUID, userScopes ScopeType) error {
 }
 
 func (a *AccessToken) HasScopes(scopes ScopeType) bool {
-	return a.userScopes.HasScopes(scopes)
+	return a.userScopes.hasScopes(scopes)
 }
 
 // serializes an access token together with a random value. The random
@@ -91,12 +91,13 @@ func (a *AccessToken) HasScopes(scopes ScopeType) bool {
 // are presented to an API. If this method only signs valid token we
 // can then assume that any signed token is valid.
 // This may not hold in when an encryption server was compromised
-func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken, nonce []byte) (string, error) {
-	if len(nonce) != 16 {
-		return "", errors.New("Invalid nonce length")
+func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken) (string, error) {
+	nonce, err := crypt.Random(16)
+	if err != nil {
+		return "", err
 	}
 
-	if accessToken.userScopes.IsValid() != nil {
+	if accessToken.userScopes.isValid() != nil {
 		return "", errors.New("Invalid scopes")
 	}
 
@@ -105,8 +106,9 @@ func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken, nonce []b
 	}
 
 	userScope := []AccessTokenClient_UserScope{}
+	// scopes is a bitmap. This checks each bit individually
 	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
-		if (accessToken.userScopes & i) == 0 {
+		if !accessToken.userScopes.hasScopes(i) {
 			continue
 		}
 		switch i {
