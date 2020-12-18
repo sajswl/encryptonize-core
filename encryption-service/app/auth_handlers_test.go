@@ -85,7 +85,7 @@ func TestAuthMiddlewareGoodPath(t *testing.T) {
 	failOnError("Auth failed", err, t)
 }
 
-func TestAuthMiddlewareNonUTF8(t *testing.T) {
+func TestAuthMiddlewareNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := authn.ScopeRead | authn.ScopeCreate | authn.ScopeIndex | authn.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)

@@ -45,12 +45,6 @@ The first part is a serialized protobuf message containing the user ID and set o
 is a nonce to make the token unique even if the user ID and set of scopes is identical to another token.
 The third part is an HMAC for integrity protection. The HMAC is created as `HMAC(nonce||message)`.
 
-
-The first part contains a user ID
-and a set of scopes that determine which endpoints a user is allowed to access with that token.
-The second part is a nonce that is a cryptographically randomly generated 128 bit value.
-The last part is a HMAC protecting integrity and authenticity of the token.
-
 This user ID is a UUID (version 4).
 
 A user is created with a chosen set of scopes that governs the endpoints this user may access.
