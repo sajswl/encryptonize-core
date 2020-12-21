@@ -154,7 +154,6 @@ jobs:
       env:
         BW_CONFIG: staging.toml
         BW_GITTOKEN: ${{ secrets.CYBOT_TOKEN }}
-        BW_GRPCADMINUID: ${{secrets.STAGING_GRPC_ADMIN_UID}}
         BW_GRPCADMINUAT: ${{secrets.STAGING_GRPC_ADMIN_UAT}}
     steps:
     - name: Check out repository
