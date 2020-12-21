@@ -95,6 +95,11 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	failOnError("Could not create client", err, t)
 	defer closeClient(clientAdmin, t)
 
+	// create a fresh user which we can add to the access list
+	crUserResponse, err := clientAdmin.CreateUser(protoUserScopes)
+	failOnError("Could not create second user", err, t)
+	uid2 := crUserResponse.UserId
+
 	// Test store
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
@@ -108,8 +113,8 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	// Test permissions
 	_, err = clientAdmin.GetPermissions(storeResponse.ObjectId)
 	failOnSuccess("Admin could get object permissions", err, t)
-	_, err = clientAdmin.AddPermission(storeResponse.ObjectId, uidAdmin)
+	_, err = clientAdmin.AddPermission(storeResponse.ObjectId, uid2)
 	failOnSuccess("Admin could add object permissions", err, t)
-	_, err = clientAdmin.RemovePermission(storeResponse.ObjectId, uidAdmin)
+	_, err = clientAdmin.RemovePermission(storeResponse.ObjectId, uid2)
 	failOnSuccess("Admin could add object permissions", err, t)
 }
