@@ -24,7 +24,6 @@ import (
 var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
-var uidAdmin = "00000000-0000-4000-8000-000000000002"
 var adminAT = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
 var protoUserScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_READ, app.CreateUserRequest_CREATE, app.CreateUserRequest_INDEX, app.CreateUserRequest_OBJECTPERMISSIONS}
 var protoAdminScopes = []app.CreateUserRequest_UserScope{app.CreateUserRequest_USERMANAGEMENT}
@@ -43,10 +42,6 @@ func TestMain(m *testing.M) {
 	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UAT")
 	if ok {
 		adminAT = v
-	}
-	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UID")
-	if ok {
-		uidAdmin = v
 	}
 	v, ok = os.LookupEnv("E2E_TEST_HTTPS")
 	if ok && v == "true" {
