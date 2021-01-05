@@ -20,9 +20,9 @@ import (
 )
 
 // Creates a new client and calls Retrieve through the client
-func Retrieve(userID, userAT, oid string) error {
+func Retrieve(userAT, oid string) error {
 	// Create client
-	client, err := NewClient(userID, userAT)
+	client, err := NewClient(userAT)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Retrieve failed"), err)
 	}

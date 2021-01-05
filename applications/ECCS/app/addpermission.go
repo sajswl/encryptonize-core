@@ -20,9 +20,9 @@ import (
 )
 
 // Creates a new client and calls AddPermission through the client
-func AddPermission(userID, userAT, oid, target string) error {
+func AddPermission(userAT, oid, target string) error {
 	// Create client
-	client, err := NewClient(userID, userAT)
+	client, err := NewClient(userAT)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("AddPermission failed"), err)
 	}

@@ -31,7 +31,7 @@ func openFile(filename string) []byte {
 }
 
 // Creates a new client and calls Store through the client
-func Store(userID, userAT, filename, associatedData string, stdin bool) error {
+func Store(userAT, filename, associatedData string, stdin bool) error {
 	var plaintext []byte
 	var err error
 
@@ -51,7 +51,7 @@ func Store(userID, userAT, filename, associatedData string, stdin bool) error {
 	}
 
 	// Create client
-	client, err := NewClient(userID, userAT)
+	client, err := NewClient(userAT)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
 	}

@@ -20,9 +20,9 @@ import (
 )
 
 // Creates a new client and calls GetPermissions through the client
-func GetPermissions(userID, userAT, oid string) error {
+func GetPermissions(userAT, oid string) error {
 	// Create client
-	client, err := NewClient(userID, userAT)
+	client, err := NewClient(userAT)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("GetPermissions failed"), err)
 	}

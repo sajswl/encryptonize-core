@@ -20,27 +20,34 @@ import (
 )
 
 // Creates a new client and calls CreateUser through the client
-func CreateUser(userID, userAT, userKindString string) error {
-	var userKind CreateUserRequest_UserKind
-	// Parse user kind from string to custom type
-	// Encryptonize expects user type to be of type CreateUserRequest_UserKind
-	switch userKindString {
-	case "user":
-		userKind = CreateUserRequest_USER
-	case "admin":
-		userKind = CreateUserRequest_ADMIN
-	default:
-		log.Fatalf("%v\n", utils.Fail("Unrecognized user type, only accepts user/admin"))
+func CreateUser(userAT string, read, create, index, objectPermissions, userManagement bool) error {
+	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
+	var scopes = []CreateUserRequest_UserScope{}
+
+	if read {
+		scopes = append(scopes, CreateUserRequest_READ)
+	}
+	if create {
+		scopes = append(scopes, CreateUserRequest_CREATE)
+	}
+	if index {
+		scopes = append(scopes, CreateUserRequest_INDEX)
+	}
+	if objectPermissions {
+		scopes = append(scopes, CreateUserRequest_OBJECTPERMISSIONS)
+	}
+	if userManagement {
+		scopes = append(scopes, CreateUserRequest_USERMANAGEMENT)
 	}
 
 	// Create client
-	client, err := NewClient(userID, userAT)
+	client, err := NewClient(userAT)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
 
 	// Call Encryptonize and create a user
-	out, err := client.CreateUser(userKind)
+	out, err := client.CreateUser(scopes)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
