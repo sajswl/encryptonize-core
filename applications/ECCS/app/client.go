@@ -36,11 +36,9 @@ type Client struct {
 
 // Create a new client. This sample application does not support https.
 // For a secure connection see: https://grpc.io/docs/guides/auth/#with-server-authentication-ssltls
-func NewClient(userID, userAT string) (*Client, error) {
+func NewClient(userAT string) (*Client, error) {
 	// Wrap credentials as gRPC metadata
-	md := metadata.Pairs(
-		"authorization", fmt.Sprintf("bearer %s", userAT), // set authorization header
-		"userID", userID) // set user id
+	md := metadata.Pairs("authorization", fmt.Sprintf("bearer %s", userAT)) // set authorization header
 
 	// Get endpoint from env var
 	endpoint, ok := os.LookupEnv("ECCS_ENDPOINT") // Fetch endpoint, note that the service is running on port 9000
@@ -167,9 +165,9 @@ func (c *Client) RemovePermission(oid, target string) (*RemovePermissionResponse
 }
 
 // Calls the Encryptonize CreateUser endpoint
-func (c *Client) CreateUser(userKind CreateUserRequest_UserKind) (*CreateUserResponse, error) {
+func (c *Client) CreateUser(scopes []CreateUserRequest_UserScope) (*CreateUserResponse, error) {
 	// Define request struct
-	createUserRequest := &CreateUserRequest{UserKind: userKind} // Construct the CreateUser request. This only requires the user type to be created.
+	createUserRequest := &CreateUserRequest{UserScopes: scopes} // Construct the CreateUser request. This only requires the user list of scopes the user is granted.
 
 	// Make the actual gRPC call
 	createUserResponse, err := c.client.CreateUser(c.ctx, createUserRequest)

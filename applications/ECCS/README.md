@@ -26,9 +26,7 @@ If you setup the encryption server to use TLS you will also need to set `ECCS_CR
 
 ## Global Flags
 
-The following flags apply to all commands:
-
-`-u`, `--user` - user ID
+The following flag applies to all commands:
 
 `-a`, `--token` - user access token
 
@@ -49,22 +47,22 @@ The base command for storage is
 ### Examples
 Store file:
 ```
-./eccs -u <uid> -a <uat> store -f ./super_secret_document.pdf
+./eccs -a <uat> store -f ./super_secret_document.pdf
 ```
 Store file with associated data:
 ```
-./eccs -u <uid> -a <uat> store -f ./super_secret_document.pdf -a "index1:someData1,index2:someMoreData"
+./eccs -a <uat> store -f ./super_secret_document.pdf -a "index1:someData1,index2:someMoreData"
 ```
 
 Store from `STDIN`:
 ```
-echo "In case of fire: git commit; git push" | ./eccs -u <uid> -a <uat> store -s
+echo "In case of fire: git commit; git push" | ./eccs -a <uat> store -s
 ```
 
 ## Retrieve
 The base command for retrieve is
 ```
-./eccs -u <uid> -a <uat> retrieve <flags>
+./eccs -a <uat> retrieve <flags>
 ```
 
 ### Flags
@@ -74,13 +72,13 @@ The base command for retrieve is
 ### Examples
 Retrieve file:
 ```
-./eccs -u <uid> -a <uat> retrieve -o 36ccd006-c063-4765-a909-ad398dbfd413
+./eccs -a <uat> retrieve -o 36ccd006-c063-4765-a909-ad398dbfd413
 ```
 
 ## GetPermissions
 The base command to get permissions for an object is
 ```
-./eccs -u <uid> -a <uat> getpermissions <flags>
+./eccs -a <uat> getpermissions <flags>
 ```
 
 ### Flags
@@ -90,13 +88,13 @@ The base command to get permissions for an object is
 ### Examples
 Get permissions list of a file:
 ```
-./eccs -u <uid> -a <uat> getpermissions -o 36ccd006-c063-4765-a909-ad398dbfd413
+./eccs -a <uat> getpermissions -o 36ccd006-c063-4765-a909-ad398dbfd413
 ```
 
 ## AddPermission
 The base command to add a permission to an object is
 ```
-./eccs -u <uid> -a <uat> addpermission <flags>
+./eccs -a <uat> addpermission <flags>
 ```
 
 ### Flags
@@ -107,13 +105,13 @@ The base command to add a permission to an object is
 ### Examples
 Add a permission to a file:
 ```
-./eccs -u <uid> -a <uat> addpermission -o 36ccd006-c063-4765-a909-ad398dbfd413 -t 31c7e8e5-15b8-42da-a4ce-9ac812cb0927
+./eccs -a <uat> addpermission -o 36ccd006-c063-4765-a909-ad398dbfd413 -t 31c7e8e5-15b8-42da-a4ce-9ac812cb0927
 ```
 
 ## RemovePermission
 The base command to remove a permission from an object is
 ```
-./eccs -u <uid> -a <uat> removepermission <flags>
+./eccs -a <uat> removepermission <flags>
 ```
 
 ### Flags
@@ -124,22 +122,26 @@ The base command to remove a permission from an object is
 ### Examples
 Remove a permission to a file:
 ```
-./eccs -u <uid> -a <uat> removepermission -o 36ccd006-c063-4765-a909-ad398dbfd413 -t 31c7e8e5-15b8-42da-a4ce-9ac812cb0927
+./eccs -a <uat> removepermission -o 36ccd006-c063-4765-a909-ad398dbfd413 -t 31c7e8e5-15b8-42da-a4ce-9ac812cb0927
 ```
 
 ## CreateUser
 The base command to create a user on the Encryptonize service is:
 ```
-./eccs -u <uid> -a <uat> createuser <flags>
+./eccs -a <uat> createuser <flags>
 ```
 Keep in mind that to create a user, the credentials supplied via `ECCS_UID` and `ECCS_UAT` must be admin credentials.
 
 ### Flags
 
-`-k`, `--userkind` - the kind of user to be created
+`-r`, `--read` - grants the Read scope
+`-c`, `--create` - grants the Create scope
+`-i`, `--index` - grants the Index scope
+`-p`, `--object_permissions` - grants the ObjectPermissions scope
+`-m`, `--user_management` - grants the UserManagement scope
 
 ### Examples
 Create a new user:
 ```
-./eccs -u <uid> -a <uat> createuser -k user
+./eccs -a <uat> createuser -k user
 ```

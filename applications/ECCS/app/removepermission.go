@@ -20,9 +20,9 @@ import (
 )
 
 // Creates a new client and calls RemovePermission through the client
-func RemovePermission(userID, userAT, oid, target string) error {
+func RemovePermission(userAT, oid, target string) error {
 	// Create client
-	client, err := NewClient(userID, userAT)
+	client, err := NewClient(userAT)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("RemovePermission failed"), err)
 	}
