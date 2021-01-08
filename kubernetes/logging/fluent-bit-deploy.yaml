@@ -191,7 +191,7 @@ spec:
         env:
         - name: FLUENT_ELASTICSEARCH_HOST
           # Set the hostname for Elasticsearch below
-          value: "elasticsearch.federated-eaas.com"
+          value: "${ELASTICSEARCH_HOSTNAME}"
         - name: FLUENT_ELASTICSEARCH_PORT
           value: "9200"
         - name: FLUENT_ELASTICSEARCH_USER
