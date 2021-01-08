@@ -23,6 +23,7 @@ import (
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
+	"encryption-service/contextkeys"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
@@ -61,7 +62,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
 func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType) (*uuid.UUID, string, error) {
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
 
 	userID, err := uuid.NewV4()
 	if err != nil {

@@ -22,6 +22,7 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/authstorage"
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 	"encryption-service/objectstorage"
 )
@@ -65,8 +66,8 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
-	ctx = context.WithValue(ctx, authStorageCtxKey, authStorage)
+	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 
 	storeResponse, err := app.Store(
 		ctx,
@@ -106,8 +107,8 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
-	ctx = context.WithValue(ctx, authStorageCtxKey, authStorage)
+	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 
 	retrieveResponse, err := app.Retrieve(
 		ctx,
@@ -149,8 +150,8 @@ func TestStoreFail(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
-	ctx = context.WithValue(ctx, authStorageCtxKey, authStorage)
+	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 
 	storeResponse, err := app.Store(
 		ctx,
@@ -187,8 +188,8 @@ func TestStoreFailAuth(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
-	ctx = context.WithValue(ctx, authStorageCtxKey, authStorage)
+	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 
 	storeResponse, err := app.Store(
 		ctx,

@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/authstorage"
+	"encryption-service/contextkeys"
 )
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
@@ -30,7 +31,7 @@ import (
 func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
-		methodName := ctx.Value(methodNameCtxKey).(string)
+		methodName := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 		// Don't start DB tranaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
 		if methodName == healthEndpointCheck || methodName == healthEndpointWatch {
@@ -49,7 +50,7 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 			}
 		}()
 
-		newCtx := context.WithValue(ctx, authStorageCtxKey, authStorage)
+		newCtx := context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 		return handler(newCtx, req)
 	}
 }
@@ -73,7 +74,7 @@ func (app *App) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 		}()
 
 		newStream := grpc_middleware.WrapServerStream(stream)
-		newStream.WrappedContext = context.WithValue(ctx, authStorageCtxKey, authStorage)
+		newStream.WrappedContext = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 		return handler(srv, newStream)
 	}
 }

@@ -26,6 +26,7 @@ import (
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 	"encryption-service/objectstorage"
 )
@@ -52,12 +53,6 @@ type Config struct {
 }
 
 type ContextKey int
-
-const (
-	userIDCtxKey ContextKey = iota
-	methodNameCtxKey
-	authStorageCtxKey
-)
 
 const stopSign = `
             uuuuuuuuuuuuuuuuuuuu
@@ -190,7 +185,7 @@ func (app *App) CreateAdminCommand() {
 		}
 	}()
 
-	ctx = context.WithValue(ctx, authStorageCtxKey, authStorage)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
 	adminScope := authn.ScopeUserManagement
 	userID, accessToken, err := app.createUserWrapper(ctx, adminScope)
 	if err != nil {

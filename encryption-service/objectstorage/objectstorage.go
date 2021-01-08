@@ -19,10 +19,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"github.com/gofrs/uuid"
 	"net/http"
 
+	"encryption-service/contextkeys"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -80,20 +83,22 @@ func NewObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (
 
 // Store an object under a given object ID
 func (o *ObjectStore) Store(ctx context.Context, objectID string, object []byte) error {
+	requestID := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
 	_, err := o.client.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: &o.bucket,
 		Key:    &objectID,
 		Body:   bytes.NewReader(object),
-	})
+	}, request.WithSetRequestHeaders(map[string]string{"Request-ID": requestID.String()}))
 	return err
 }
 
 // Retrieve an object with a given object ID
 func (o *ObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
+	requestID := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
 	getObjectOutput, err := o.client.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: &o.bucket,
 		Key:    &objectID,
-	})
+	}, request.WithSetRequestHeaders(map[string]string{"Request-ID": requestID.String()}))
 	if err != nil {
 		return nil, err
 	}

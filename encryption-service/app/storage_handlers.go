@@ -23,6 +23,7 @@ import (
 
 	"encryption-service/authstorage"
 	"encryption-service/authz"
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 )
 
@@ -33,7 +34,7 @@ const CiphertextStoreSuffix = "_data"
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
 func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
-	userID := ctx.Value(userIDCtxKey).(uuid.UUID)
+	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 
 	objectID, err := uuid.NewV4()
 	if err != nil {
@@ -43,7 +44,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: app.MessageAuthenticator,
 		Store:                authStorage,

@@ -27,6 +27,7 @@ import (
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/authz"
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 )
 
@@ -47,7 +48,7 @@ var methodScopeMap = map[string]authn.ScopeType{
 // Inject full method name into unary call
 func UnaryMethodNameMiddleware() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		newctx := context.WithValue(ctx, methodNameCtxKey, info.FullMethod)
+		newctx := context.WithValue(ctx, contextkeys.MethodNameCtxKey, info.FullMethod)
 		return handler(newctx, req)
 	}
 }
@@ -55,7 +56,7 @@ func UnaryMethodNameMiddleware() grpc.UnaryServerInterceptor {
 // Inject full method name into stream call
 func StreamMethodNameMiddleware() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		newCtx := context.WithValue(stream.Context(), methodNameCtxKey, info.FullMethod)
+		newCtx := context.WithValue(stream.Context(), contextkeys.MethodNameCtxKey, info.FullMethod)
 		wrapped := grpc_middleware.WrapServerStream(stream)
 		wrapped.WrappedContext = newCtx
 		err := handler(srv, wrapped)
@@ -71,7 +72,7 @@ func StreamMethodNameMiddleware() grpc.StreamServerInterceptor {
 // lacks the required scope
 func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	// Grab method name
-	methodName := ctx.Value(methodNameCtxKey).(string)
+	methodName := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	// Don't authenticate health checks
 	// IMPORTANT! This check MUST stay at the top of this function
 	if methodName == healthEndpointCheck || methodName == healthEndpointWatch {
@@ -99,7 +100,7 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 		return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
 	}
 
-	newCtx := context.WithValue(ctx, userIDCtxKey, accessToken.UserID)
+	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.UserID)
 
 	return newCtx, nil
 }
@@ -109,12 +110,12 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 // or if a user isn't authorized to edit the accessObject
 func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
 	//Define authorizer struct
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: messageAuthenticator,
 		Store:                authStorage,
 	}
-	userID := ctx.Value(userIDCtxKey).(uuid.UUID)
+	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 
 	// Parse objectID from request
 	objectID, err := uuid.FromString(objectIDString)

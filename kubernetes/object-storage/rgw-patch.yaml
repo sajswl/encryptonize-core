@@ -1,0 +1,21 @@
+spec:
+  template:
+    spec:
+      volumes:
+      - name: shared-opslog
+        emptyDir: {}
+      containers:
+      - name: rgw-opslog
+        image: alpine
+        command:
+        - /bin/ash
+        - -c
+        args:
+        - apk add socat && socat -u UNIX:/tmp/opslog,ignoreeof -
+        volumeMounts:
+        - mountPath: /tmp
+          name: shared-opslog
+      - name: rgw
+        volumeMounts:
+        - mountPath: /tmp
+          name: shared-opslog

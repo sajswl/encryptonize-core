@@ -49,6 +49,7 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 	// TODO: make sure that grpc_recovery doesn't leak any infos
 	grpcServer := grpc.NewServer(
 		grpc_middleware.WithUnaryServerChain(
+			app.RequestIDUnaryInterceptor(),
 			grpc_recovery.UnaryServerInterceptor(),
 			logger.UnaryServerInterceptor(),
 			app.UnaryMethodNameMiddleware(),
@@ -56,6 +57,7 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 			grpc_auth.UnaryServerInterceptor(appStruct.AuthenticateUser),
 		),
 		grpc_middleware.WithStreamServerChain(
+			app.RequestIDStreamingInterceptor(),
 			grpc_recovery.StreamServerInterceptor(),
 			logger.StreamServerInterceptor(),
 			app.StreamMethodNameMiddleware(),

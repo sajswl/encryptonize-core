@@ -271,6 +271,7 @@ kubectl apply -f object-storage/operator.yaml
 kubectl apply -f object-storage/cluster.yaml
 kubectl apply -f object-storage/object.yaml
 kubectl apply -f object-storage/ingress.yaml
+kubectl patch deployment rook-ceph-rgw-encryptonize-store-a -n rook-ceph --patch "$(cat object-storage/rgw-patch.yaml)"
 ```
 
 Wait for everything to finish. You should see three `rook-ceph-osd` pods eventually (takes about 5

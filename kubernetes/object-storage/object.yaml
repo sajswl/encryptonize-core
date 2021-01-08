@@ -1,5 +1,16 @@
 # Minimal setup for a ceph object store. Data is replicated across three disks.
-
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rook-config-override
+  namespace: rook-ceph
+data:
+  config: |
+    [client]
+    rgw_enable_ops_log = true
+    rgw_ops_log_socket_path = /tmp/opslog
+    rgw_log_http_headers = "http_request_id"
+---
 apiVersion: ceph.rook.io/v1
 kind: CephObjectStore
 metadata:

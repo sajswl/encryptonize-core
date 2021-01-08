@@ -16,8 +16,10 @@ package authstorage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"encryption-service/contextkeys"
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgtype"
 	pgtypeuuid "github.com/jackc/pgtype/ext/gofrs-uuid"
@@ -93,7 +95,8 @@ func ConnectDBPool(ctx context.Context, URL string) (*pgxpool.Pool, error) {
 
 // DBAuthStore encapsulates a DB Tx for the authentication storage
 type DBAuthStore struct {
-	tx pgx.Tx
+	tx        pgx.Tx
+	requestID uuid.UUID
 }
 
 // NewDBAuthStore starts a new Transaction (tx) in the pool and instances an DBAuthStore with it
@@ -114,7 +117,8 @@ func NewDBAuthStore(ctx context.Context, pool *pgxpool.Pool) (*DBAuthStore, erro
 	}
 
 	authStorage := &DBAuthStore{
-		tx: tx.(pgx.Tx),
+		tx:        tx.(pgx.Tx),
+		requestID: ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID),
 	}
 	return authStorage, nil
 }
@@ -133,12 +137,17 @@ func (storage *DBAuthStore) Commit(ctx context.Context) error {
 	return storage.tx.Commit(ctx)
 }
 
+// Enriches the query with request id for tracing to the SQL audit log
+func (storage *DBAuthStore) NewQuery(query string) string {
+	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storage.requestID.String(), query)
+}
+
 // Fetches a tag from the database
 // If no user is found it returns the ErrNoRows error
 func (storage *DBAuthStore) GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error) {
 	var storedTag []byte
 
-	row := storage.tx.QueryRow(ctx, "SELECT tag FROM users WHERE id = $1", userID)
+	row := storage.tx.QueryRow(ctx, storage.NewQuery("SELECT tag FROM users WHERE id = $1"), userID)
 	err := row.Scan(&storedTag)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRows
@@ -152,7 +161,7 @@ func (storage *DBAuthStore) GetUserTag(ctx context.Context, userID uuid.UUID) ([
 // Creates a user with a tag, updates the tag if the user exists
 // Returns an error if SQL query fails to execute in authstorage DB
 func (storage *DBAuthStore) UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error {
-	_, err := storage.tx.Exec(ctx, "UPSERT INTO users (id, tag) VALUES ($1, $2)", userID, tag)
+	_, err := storage.tx.Exec(ctx, storage.NewQuery("UPSERT INTO users (id, tag) VALUES ($1, $2)"), userID, tag)
 	return err
 }
 
@@ -160,7 +169,7 @@ func (storage *DBAuthStore) UpsertUser(ctx context.Context, userID uuid.UUID, ta
 func (storage *DBAuthStore) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	var data, tag []byte
 
-	row := storage.tx.QueryRow(ctx, "SELECT data, tag FROM access_objects WHERE id = $1", objectID)
+	row := storage.tx.QueryRow(ctx, storage.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
 	err := row.Scan(&data, &tag)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, ErrNoRows
@@ -174,12 +183,12 @@ func (storage *DBAuthStore) GetAccessObject(ctx context.Context, objectID uuid.U
 
 // InsertAcccessObject inserts an Access Object (Object ID, data, tag)
 func (storage *DBAuthStore) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storage.tx.Exec(ctx, "INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)", objectID, data, tag)
+	_, err := storage.tx.Exec(ctx, storage.NewQuery("INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)"), objectID, data, tag)
 	return err
 }
 
 // UpdateAccessObject updates an Access Object with Object ID and sets data, tag
 func (storage *DBAuthStore) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storage.tx.Exec(ctx, "UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3", data, tag, objectID)
+	_, err := storage.tx.Exec(ctx, storage.NewQuery("UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3"), data, tag, objectID)
 	return err
 }

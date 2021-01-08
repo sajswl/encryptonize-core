@@ -26,6 +26,7 @@ import (
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/authz"
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 )
 
@@ -79,7 +80,7 @@ func TestAuthMiddlewareGoodPath(t *testing.T) {
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = app.AuthenticateUser(ctx)
 	failOnError("Auth failed", err, t)
@@ -117,7 +118,7 @@ func TestAuthMiddlewareNonBase64(t *testing.T) {
 		token := strings.Join(tokenParts, ".")
 
 		var md = metadata.Pairs("authorization", token)
-		ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = app.AuthenticateUser(ctx)
 		failOnSuccess("Auth should have errored", err, t)
@@ -160,7 +161,7 @@ func TestAuthMiddlewareSwappedTokenParts(t *testing.T) {
 		token := strings.Join(tokenParts, ".")
 
 		var md = metadata.Pairs("authorization", token)
-		ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = app.AuthenticateUser(ctx)
 		failOnSuccess("Auth should have errored", err, t)
@@ -185,7 +186,7 @@ func TestAuthMiddlewareInvalidAT(t *testing.T) {
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), methodNameCtxKey, "/app.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = app.AuthenticateUser(ctx)
 	failOnSuccess("Auth should have failed", err, t)
@@ -200,7 +201,7 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 	AT := "bearer thisIsANonHexaDecimalSentenceThatsAtLeastSixtyFourCharactersLong"
 	var md = metadata.Pairs("authorization", AT)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	ctx = context.WithValue(ctx, methodNameCtxKey, "/app.Encryptonize/Store")
+	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 	_, err := app.AuthenticateUser(ctx)
 	failOnSuccess("Invalid Auth Passed", err, t)
 
@@ -233,7 +234,7 @@ func TestAuthMiddlewareNegativeScopes(t *testing.T) {
 
 		var md = metadata.Pairs("authorization", token)
 
-		ctx := context.WithValue(context.Background(), methodNameCtxKey, endpoint)
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, endpoint)
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = app.AuthenticateUser(ctx)
 		if err == nil {
@@ -269,8 +270,8 @@ func TestAuthorizeWrapper(t *testing.T) {
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
-	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)
+	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
 
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
 	if err != nil {
@@ -311,8 +312,8 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	ctx := context.WithValue(context.Background(), userIDCtxKey, userID)
-	ctx = context.WithValue(ctx, authStorageCtxKey, authnStorageMock)
+	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
 
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
 	failOnSuccess("User should not be authorized", err, t)
