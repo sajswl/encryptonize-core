@@ -16,6 +16,7 @@ package logger
 import (
 	"context"
 
+	"encryption-service/contextkeys"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
 	log "github.com/sirupsen/logrus"
@@ -26,11 +27,13 @@ import (
 func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		userID := metautils.ExtractIncoming(ctx).Get("userID")
+		requestID := ctx.Value(contextkeys.RequestIDCtxKey)
 
 		log.WithFields(log.Fields{
-			"UserID": userID,
-			"Method": info.FullMethod,
-			"Status": "request",
+			"UserID":    userID,
+			"Method":    info.FullMethod,
+			"Status":    "request",
+			"RequestID": requestID,
 		}).Info("Request start")
 
 		res, err := handler(ctx, req)
@@ -41,9 +44,10 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		log.WithFields(log.Fields{
-			"UserID": userID,
-			"Method": info.FullMethod,
-			"Status": status,
+			"UserID":    userID,
+			"Method":    info.FullMethod,
+			"Status":    status,
+			"RequestID": requestID,
 		}).Info("Request completed")
 
 		return res, err

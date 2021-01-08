@@ -2,7 +2,7 @@
 
 ![es build](https://github.com/cyber-crypt-com/encryptonize-core/workflows/Encryption%20service%20build/badge.svg)
 ![es deploy](https://github.com/cyber-crypt-com/encryptonize-core/workflows/Encryption%20service%20deploy/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cyber-crypt-com/encryptonize-core)](https://goreportcard.com/report/github.com/cyber-crypt-com/encryptonize-core)
+-[![Go Report Card](https://goreportcard.com/badge/github.com/cyber-crypt-com/encryptonize-core)](https://goreportcard.com/report/github.com/cyber-crypt-com/encryptonize-core)
 
 <img src="documentation/imgs/rook-hex.png" alt="Encryptonize" width="250"/>
 

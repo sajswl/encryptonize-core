@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/authstorage"
+	"encryption-service/contextkeys"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
@@ -52,7 +53,7 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
 func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
@@ -101,7 +102,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
 func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
-	authStorage := ctx.Value(authStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here

@@ -52,13 +52,13 @@ data:
     [INPUT]
         Name              tail
         Tag               encryptonize.object-store.*
-        Path              /var/log/containers/rook-ceph-rgw*.log
+        Path              /var/log/containers/rook-ceph-rgw*opslog*.log
         Parser            docker
         DB                /var/log/encryptonize.db
         Mem_Buf_Limit     5MB
         Skip_Long_Lines   Off
         Refresh_Interval  10
-
+        
     [FILTER]
         Name                kubernetes
         Match               encryptonize.auth-store.*
@@ -74,7 +74,7 @@ data:
         Kube_URL            https://kubernetes.default.svc.cluster.local:443
         Kube_Tag_Prefix     encryptonize.object-store.var.log.containers.
         Merge_Log           On
-        Merge_Parser        object-store
+        Merge_Parser        json
         Keep_Log            Off
 
     [FILTER]
@@ -151,7 +151,7 @@ data:
     [PARSER]
         name        encryption-service
         Format      regex
-        Regex       level=(?<level>[^ ]+) msg=\"(?<message>[^\"]*)\" Method=(?<method>[^ ]+) Status=(?<status>[^ ]+) UserID=(?<userId>[^ ]*)
+        Regex       level=(?<level>[^ ]+) msg=\"(?<message>[^\"]*)\" Method=(?<method>[^ ]+) RequestID=(?<requestId>[^ ]+) Status=(?<status>[^ ]+) UserID=(?<userId>[^ ]*)
 
     [PARSER]
         name       object-store
@@ -161,7 +161,7 @@ data:
     [PARSER]
         name       auth-store
         Format     regex
-        Regex      ^[^ ]+ [^ ]+[^\{]+\{\"(?<table>[^ ]+)\"\[[0-9]+\]:(?<operation>[^ ]+)\} \"[^\"]+\"[^\}]+\} [^ ]+ [^ ]+ (?<status>[^ ]+)
+        Regex      ^[^ ]+ [^ ]+[^\{]+\{(?<operations>[^\}]+)\} \"(WITH request_id AS \(SELECT (?<requestId>[\d]+))?[^\"]+\" \{[^\}]*\} [^ ]+ [^ ]+ (?<status>[^ ]+)
 ---
 apiVersion: apps/v1
 kind: DaemonSet
