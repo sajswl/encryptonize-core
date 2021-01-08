@@ -83,8 +83,13 @@ data:
         Kube_URL            https://kubernetes.default.svc.cluster.local:443
         Kube_Tag_Prefix     encryptonize.encryption-service.var.log.containers.
         Merge_Log           On
-        Merge_Parser        encryption-service
+        Merge_Parser        json
         Keep_Log            Off
+
+    [FILTER]
+        Name                modify
+        Match               encryptonize.object-store.*
+        Rename              uri method
         
     [OUTPUT]
         Name            es
@@ -129,7 +134,7 @@ data:
         Name   json
         Format json
         Time_Key time
-        Time_Format %d/%b/%Y:%H:%M:%S %z
+        Time_Format %Y-%m-%dT%H:%M:%S %z
 
     [PARSER]
         Name        docker
@@ -149,19 +154,9 @@ data:
         Time_Format %b %d %H:%M:%S
 
     [PARSER]
-        name        encryption-service
-        Format      regex
-        Regex       level=(?<level>[^ ]+) msg=\"(?<message>[^\"]*)\" Method=(?<method>[^ ]+) RequestID=(?<requestId>[^ ]+) Status=(?<status>[^ ]+) UserID=(?<userId>[^ ]*)
-
-    [PARSER]
-        name       object-store
-        Format     regex
-        Regex      beast: [^ ]+ [^ ]+ [^ ]+ [^ ]+ [^ ]+ \"(?<method>[^ ]+) (?<endpoint>[^ ]+) [^ ]+ (?<status>[^ ]+) [^ ]+ [^ ]+ \"(?<useragent>[^\"]*)\"
-
-    [PARSER]
         name       auth-store
         Format     regex
-        Regex      ^[^ ]+ [^ ]+[^\{]+\{(?<operations>[^\}]+)\} \"(WITH request_id AS \(SELECT (?<requestId>[\d]+))?[^\"]+\" \{[^\}]*\} [^ ]+ [^ ]+ (?<status>[^ ]+)
+        Regex      ^[^ ]+ [^ ]+[^\{]+\{(?<method>[^\}]+)\} \"(WITH request_id AS \(SELECT (?<requestId>[\d]+))?[^\"]+\" \{[^\}]*\} [^ ]+ [^ ]+ (?<status>[^ ]+)
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -196,7 +191,7 @@ spec:
         env:
         - name: FLUENT_ELASTICSEARCH_HOST
           # Set the hostname for Elasticsearch below
-          value: "${ELASTICSEARCH_HOSTNAME}"
+          value: "elasticsearch.federated-eaas.com"
         - name: FLUENT_ELASTICSEARCH_PORT
           value: "9200"
         - name: FLUENT_ELASTICSEARCH_USER

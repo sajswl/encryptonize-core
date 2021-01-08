@@ -16,8 +16,8 @@ package app
 import (
 	"context"
 
+	log "encryption-service/logger"
 	"github.com/gofrs/uuid"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -38,7 +38,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 
 	objectID, err := uuid.NewV4()
 	if err != nil {
-		log.Errorf("Store: Failed to generate new object ID")
+		log.Error(ctx, "Store: Failed to generate new object ID", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 	objectIDString := objectID.String()
@@ -52,7 +52,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 
 	oek, err := authorizer.CreateObject(ctx, objectID, userID, app.Config.KEK)
 	if err != nil {
-		log.Errorf("Store: Failed to create new access object: %v", err)
+		log.Error(ctx, "Store: Failed to create new access object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
@@ -60,23 +60,23 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	crypter := &crypt.Crypter{}
 	ciphertext, err := crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
 	if err != nil {
-		log.Errorf("Store: Failed to encrypt object: %v", err)
+		log.Error(ctx, "Store: Failed to encrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	if err := app.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
-		log.Errorf("Store: Failed to store associated data: %v", err)
+		log.Error(ctx, "Store: Failed to store associated data", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	if err := app.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
-		log.Errorf("Store: Failed to store object: %v", err)
+		log.Error(ctx, "Store: Failed to store object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	// All done, commit auth changes
 	if err := authStorage.Commit(ctx); err != nil {
-		log.Errorf("Store: Failed to commit auth storage transaction: %v", err)
+		log.Error(ctx, "Store: Failed to commit auth storage transaction", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 	return &StoreResponse{ObjectId: objectIDString}, nil
@@ -95,19 +95,19 @@ func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 
 	oek, err := accessObject.UnwrapWOEK(app.Config.KEK)
 	if err != nil {
-		log.Errorf("Retrieve: Failed to unwrap OEK: %v", err)
+		log.Error(ctx, "Retrieve: Failed to unwrap OEK", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
 	aad, err := app.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
 	if err != nil {
-		log.Errorf("Retrieve: Failed to retrieve associated data: %v", err)
+		log.Error(ctx, "Retrieve: Failed to retrieve associated data", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
 	ciphertext, err := app.ObjectStore.Retrieve(ctx, objectIDString+CiphertextStoreSuffix)
 	if err != nil {
-		log.Errorf("Retrieve: Failed to retrieve object: %v", err)
+		log.Error(ctx, "Retrieve: Failed to retrieve object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
@@ -115,7 +115,7 @@ func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 	crypter := &crypt.Crypter{}
 	plaintext, err := crypter.Decrypt(ciphertext, aad, oek)
 	if err != nil {
-		log.Errorf("Retrieve: Failed to decrypt object: %v", err)
+		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 

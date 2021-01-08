@@ -34,7 +34,6 @@ import (
 	"encryption-service/authstorage"
 	"encryption-service/crypt"
 	"encryption-service/health"
-	"encryption-service/logger"
 	"encryption-service/objectstorage"
 )
 
@@ -51,7 +50,6 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 		grpc_middleware.WithUnaryServerChain(
 			app.RequestIDUnaryInterceptor(),
 			grpc_recovery.UnaryServerInterceptor(),
-			logger.UnaryServerInterceptor(),
 			app.UnaryMethodNameMiddleware(),
 			appStruct.AuthStorageUnaryServerInterceptor(),
 			grpc_auth.UnaryServerInterceptor(appStruct.AuthenticateUser),
@@ -59,7 +57,6 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 		grpc_middleware.WithStreamServerChain(
 			app.RequestIDStreamingInterceptor(),
 			grpc_recovery.StreamServerInterceptor(),
-			logger.StreamServerInterceptor(),
 			app.StreamMethodNameMiddleware(),
 			appStruct.AuthStorageStreamingInterceptor(),
 			grpc_auth.StreamServerInterceptor(appStruct.AuthenticateUser),

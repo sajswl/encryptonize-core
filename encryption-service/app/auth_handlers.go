@@ -15,11 +15,11 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gofrs/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,6 +29,7 @@ import (
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
+	log "encryption-service/logger"
 )
 
 const baseMethodPath string = "/app.Encryptonize/"
@@ -81,7 +82,7 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
-		log.Errorf("AuthenticateUser: Couldn't find token in metadata, %v", err)
+		log.Error(ctx, "AuthenticateUser: Couldn't find token in metadata", err)
 		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
 	}
 
@@ -91,16 +92,17 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 
 	accessToken, err := authenticator.ParseAccessToken(token)
 	if err != nil {
-		log.Errorf("AuthenticateUser: Unable to parse Access Token, %v", err)
+		log.Error(ctx, "AuthenticateUser: Unable to parse Access Token", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
 	}
 
-	if !accessToken.HasScopes(methodScopeMap[methodName]) {
-		log.Errorf("AuthenticateUser: Unauthorized access to %v by %v", methodName, accessToken)
-		return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
-	}
-
 	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.UserID)
+
+	if !accessToken.HasScopes(methodScopeMap[methodName]) {
+		err = status.Errorf(codes.PermissionDenied, "access not authorized")
+		log.Error(newCtx, "AuthenticateUser: Unauthorized access", err)
+		return nil, err
+	}
 
 	return newCtx, nil
 }
@@ -120,18 +122,21 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 	// Parse objectID from request
 	objectID, err := uuid.FromString(objectIDString)
 	if err != nil {
-		log.Errorf("AuthorizeWrapper: Failed to parse object ID as UUID: %v", err)
+		errMsg := fmt.Sprintf("AuthorizeWrapper: Failed to parse object ID %s as UUID", objectIDString)
+		log.Error(ctx, errMsg, err)
 		return nil, nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 	}
 
 	accessObject, authorized, err := authorizer.Authorize(ctx, objectID, userID)
 	if err != nil {
-		log.Errorf("AuthorizeWrapper: Couldn't authorize user %v for object %v, encountered error: %v", userID, objectID, err)
+		errMsg := fmt.Sprintf("AuthorizeWrapper: Couldn't authorize user for object %v", accessObject)
+		log.Error(ctx, errMsg, err)
 		return nil, nil, status.Errorf(codes.Internal, "error encountered while authorizing user")
 	}
 
 	if !authorized {
-		log.Errorf("AuthorizeWrapper: Couldn't authorize user %v for object %v, encountered error: %v", userID, objectID, err)
+		msg := fmt.Sprintf("AuthorizeWrapper: Couldn't authorize user for object %v", accessObject)
+		log.Warn(ctx, msg)
 		return nil, nil, status.Errorf(codes.PermissionDenied, "access not authorized")
 	}
 	return authorizer, accessObject, err

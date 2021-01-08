@@ -17,53 +17,44 @@ import (
 	"context"
 
 	"encryption-service/contextkeys"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
-// Logging interceptor for unary calls
-func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		userID := metautils.ExtractIncoming(ctx).Get("userID")
-		requestID := ctx.Value(contextkeys.RequestIDCtxKey)
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+}
 
-		log.WithFields(log.Fields{
-			"UserID":    userID,
-			"Method":    info.FullMethod,
-			"Status":    "request",
-			"RequestID": requestID,
-		}).Info("Request start")
-
-		res, err := handler(ctx, req)
-
-		status := "success"
-		if err != nil {
-			status = "failure"
-		}
-
-		log.WithFields(log.Fields{
-			"UserID":    userID,
-			"Method":    info.FullMethod,
-			"Status":    status,
-			"RequestID": requestID,
-		}).Info("Request completed")
-
-		return res, err
+func fieldsFromCtx(ctx context.Context) log.Fields {
+	return log.Fields{
+		"UserID":    ctx.Value(contextkeys.UserIDCtxKey),
+		"Method":    ctx.Value(contextkeys.MethodNameCtxKey),
+		"RequestID": ctx.Value(contextkeys.RequestIDCtxKey),
 	}
 }
 
-// Logging interceptor for stream calls
-func StreamServerInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		log.Infof("srv: %v, stream: %v, info: %v", srv, stream, info)
+func Error(ctx context.Context, msg string, err error) {
+	fields := fieldsFromCtx(ctx)
+	fields["Error"] = err
+	log.WithFields(fields).Error(msg)
+}
 
-		var newCtx context.Context
-		wrapped := grpc_middleware.WrapServerStream(stream)
-		wrapped.WrappedContext = newCtx
-		err := handler(srv, wrapped)
+func Fatal(ctx context.Context, msg string, err error) {
+	fields := fieldsFromCtx(ctx)
+	fields["Error"] = err
+	log.WithFields(fields).Fatal(msg)
+}
 
-		return err
-	}
+func Warn(ctx context.Context, msg string) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Warn(msg)
+}
+
+func Info(ctx context.Context, msg string) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Info(msg)
+}
+
+func Debug(ctx context.Context, msg string) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Debug(msg)
 }
