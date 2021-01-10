@@ -214,7 +214,7 @@ spec:
         - /bin/ash
         - -c
         args:
-        - while sleep 3600; do :; done
+        - until tail -f /tmp/cockroach-sql-audit.log; do echo waiting for audit log; sleep 10; done
         volumeMounts:
         - name: shared-auditlog
           mountPath: /tmp
