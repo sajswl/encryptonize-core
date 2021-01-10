@@ -42,7 +42,7 @@ data:
     [INPUT]
         Name              tail
         Tag               encryptonize.auth-store.*
-        Path              /var/log/containers/cockroachdb*.log
+        Path              /var/log/containers/*sql-auditlog*.log
         Parser            docker
         DB                /var/log/encryptonize.db
         Mem_Buf_Limit     5MB
