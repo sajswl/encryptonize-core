@@ -52,7 +52,6 @@ func NewClient(userAT string) (*Client, error) {
 		// If the environment is unset assume tls not to be used
 		opts = append(opts, grpc.WithInsecure())
 	} else {
-
 		var tlsConf tls.Config
 		pool, err := x509.SystemCertPool()
 		if err != nil {
@@ -65,7 +64,7 @@ func NewClient(userAT string) (*Client, error) {
 			// extract the certificate from the environment variable and add it to the certificate pool
 			ok := pool.AppendCertsFromPEM([]byte(crt))
 			if !ok {
-				return nil, fmt.Errorf("%v Unable to add certificate from ECCS_CRT to the certificate pool. Make sure it is a PEM certificate and not a file containing one.", utils.Fail("Client creation failed:"))
+				return nil, fmt.Errorf("%v Unable to add certificate from ECCS_CRT to the certificate pool. Make sure it is a PEM certificate and not a file containing one", utils.Fail("Client creation failed:"))
 			}
 		}
 
