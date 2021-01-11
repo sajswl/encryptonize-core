@@ -19,14 +19,15 @@ import (
 	"fmt"
 	"time"
 
-	"encryption-service/contextkeys"
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgtype"
 	pgtypeuuid "github.com/jackc/pgtype/ext/gofrs-uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
+
+	"encryption-service/contextkeys"
+	log "encryption-service/logger"
 )
 
 // TODO: Tune circuit breaker
@@ -40,7 +41,8 @@ func initCircuitBreaker() *gobreaker.CircuitBreaker {
 		MaxRequests: 1,                               // Allow only 1 request in "half-opened" state
 		Timeout:     time.Duration(60) * time.Second, // Time to wait in the "open" state
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			log.Infof("Circuitbreaker %s has changed state from %v to %v", name, from, to)
+			msg := fmt.Sprintf("Circuitbreaker %s has changed state from %v to %v", name, from, to)
+			log.Info(context.TODO(), msg)
 		},
 	}
 

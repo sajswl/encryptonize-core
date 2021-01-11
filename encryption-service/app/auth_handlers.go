@@ -18,9 +18,7 @@ import (
 	"fmt"
 
 	"github.com/gofrs/uuid"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -44,26 +42,6 @@ var methodScopeMap = map[string]authn.ScopeType{
 	baseMethodPath + "Store":            authn.ScopeCreate,
 	baseMethodPath + "Retrieve":         authn.ScopeRead,
 	baseMethodPath + "Version":          authn.ScopeNone,
-}
-
-// Inject full method name into unary call
-func UnaryMethodNameMiddleware() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		newctx := context.WithValue(ctx, contextkeys.MethodNameCtxKey, info.FullMethod)
-		return handler(newctx, req)
-	}
-}
-
-// Inject full method name into stream call
-func StreamMethodNameMiddleware() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		newCtx := context.WithValue(stream.Context(), contextkeys.MethodNameCtxKey, info.FullMethod)
-		wrapped := grpc_middleware.WrapServerStream(stream)
-		wrapped.WrappedContext = newCtx
-		err := handler(srv, wrapped)
-
-		return err
-	}
 }
 
 // Authenticates user using an Access Token
