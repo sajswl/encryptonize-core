@@ -46,7 +46,7 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 		defer func() {
 			err := authStorage.Rollback(ctx)
 			if err != nil {
-				log.Error(ctx, "Perfroming rollback", err)
+				log.Error(ctx, "Performing rollback", err)
 			}
 		}()
 
