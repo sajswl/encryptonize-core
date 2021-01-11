@@ -38,7 +38,7 @@ lint: $(protobufs)  ## Lint the codebase
 ##### Test targets #####
 .PHONY: tests
 tests: build
-	./scripts/function_tests.sh
+	python3 ./scripts/function_tests.py
 
 
 ##### Cleanup targets #####
