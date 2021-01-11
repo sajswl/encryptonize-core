@@ -26,9 +26,9 @@ func init() {
 
 func fieldsFromCtx(ctx context.Context) log.Fields {
 	return log.Fields{
-		"UserID":    ctx.Value(contextkeys.UserIDCtxKey),
-		"Method":    ctx.Value(contextkeys.MethodNameCtxKey),
-		"RequestID": ctx.Value(contextkeys.RequestIDCtxKey),
+		"userId":    ctx.Value(contextkeys.UserIDCtxKey),
+		"method":    ctx.Value(contextkeys.MethodNameCtxKey),
+		"requestId": ctx.Value(contextkeys.RequestIDCtxKey),
 	}
 }
 

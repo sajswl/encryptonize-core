@@ -90,6 +90,7 @@ data:
         Name                modify
         Match               encryptonize.object-store.*
         Rename              uri method
+        Rename              http_x_headers requestId              
         
     [OUTPUT]
         Name            es
@@ -156,7 +157,7 @@ data:
     [PARSER]
         name       auth-store
         Format     regex
-        Regex      ^[^ ]+ [^ ]+[^\{]+\{(?<method>[^\}]+)\} \"(WITH request_id AS \(SELECT (?<requestId>[\d]+))?[^\"]+\" \{[^\}]*\} [^ ]+ [^ ]+ (?<status>[^ ]+)
+        Regex      ^[^ ]+ [^ ]+[^\{]+\{(?<method>[^\}]+)\} \"(WITH request_id AS \(SELECT '(?<requestId>[a-zA-Z0-9-]+)')?[^\"]+\" \{[^\}]*\} [^ ]+ [^ ]+ (?<status>[^ ]+)
 ---
 apiVersion: apps/v1
 kind: DaemonSet
