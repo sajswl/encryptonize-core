@@ -60,7 +60,7 @@ var unAuthAccessObject = &authz.AccessObject{
 	Version: 0,
 }
 
-var authnStorageMock = &authstorage.AuthStoreMock{
+var authnStorageTxMock = &authstorage.AuthStoreTxMock{
 	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 		data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
 		return data, tag, err
@@ -78,7 +78,7 @@ var authnStorageMock = &authstorage.AuthStoreMock{
 
 func TestGetPermissions(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 	expected := []string{userID.String()}
 
 	getPermissionsResponse, err := app.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
@@ -93,7 +93,7 @@ func TestGetPermissions(t *testing.T) {
 
 func TestGetPermissionsMissingOID(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.GetPermissions(ctx, &GetPermissionsRequest{})
 	if err == nil {
@@ -102,7 +102,7 @@ func TestGetPermissionsMissingOID(t *testing.T) {
 }
 
 func TestGetPermissionUnauthorized(t *testing.T) {
-	authnStorageMock := &authstorage.AuthStoreMock{
+	authnStorageTxMock := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
 			return data, tag, err
@@ -113,7 +113,7 @@ func TestGetPermissionUnauthorized(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
 	if err == nil {
@@ -126,7 +126,7 @@ func TestGetPermissionUnauthorized(t *testing.T) {
 
 func TestAddPermission(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err != nil {
@@ -137,18 +137,18 @@ func TestAddPermission(t *testing.T) {
 // Tests that a permission cannot be added if the target user doesn't exist
 func TestAddPermissionNoTargetUser(t *testing.T) {
 	// Temporarily overwrite GetUserTagFunc to return error (meaning empty rows)
-	oldGetTag := authnStorageMock.GetUserTagFunc
-	authnStorageMock.GetUserTagFunc = func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+	oldGetTag := authnStorageTxMock.GetUserTagFunc
+	authnStorageTxMock.GetUserTagFunc = func(ctx context.Context, userID uuid.UUID) ([]byte, error) {
 		return nil, errors.New("No rows found")
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 
 	// Restore the original GetTag function for the other tests
-	authnStorageMock.GetUserTagFunc = oldGetTag
+	authnStorageTxMock.GetUserTagFunc = oldGetTag
 
 	if err == nil {
 		t.Fatalf("Shouldn't able to add user that does not exist!")
@@ -156,7 +156,7 @@ func TestAddPermissionNoTargetUser(t *testing.T) {
 }
 
 func TestAddPermissionUnauthorized(t *testing.T) {
-	authnStorageMock := &authstorage.AuthStoreMock{
+	authnStorageTxMock := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
 			return data, tag, err
@@ -167,7 +167,7 @@ func TestAddPermissionUnauthorized(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err == nil {
@@ -180,7 +180,7 @@ func TestAddPermissionUnauthorized(t *testing.T) {
 
 func TestAddPermissionMissingOID(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.AddPermission(ctx, &AddPermissionRequest{Target: targetID.String()})
 	if err == nil {
@@ -190,7 +190,7 @@ func TestAddPermissionMissingOID(t *testing.T) {
 
 func TestAddPermissionMissingTarget(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String()})
 	if err == nil {
@@ -200,7 +200,7 @@ func TestAddPermissionMissingTarget(t *testing.T) {
 
 func TestRemovePermission(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err != nil {
@@ -209,7 +209,7 @@ func TestRemovePermission(t *testing.T) {
 }
 
 func TestRemovePermissionUnauthorized(t *testing.T) {
-	authnStorageMock := &authstorage.AuthStoreMock{
+	authnStorageTxMock := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
 			return data, tag, err
@@ -220,7 +220,7 @@ func TestRemovePermissionUnauthorized(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err == nil {
@@ -233,7 +233,7 @@ func TestRemovePermissionUnauthorized(t *testing.T) {
 
 func TestRemovePermissionMissingTarget(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String()})
 	if err == nil {
@@ -243,7 +243,7 @@ func TestRemovePermissionMissingTarget(t *testing.T) {
 
 func TestRemovePermissionMissingOID(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{Target: targetID.String()})
 	if err == nil {

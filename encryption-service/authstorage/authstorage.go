@@ -29,6 +29,27 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+// Interface representing a connection to the Auth Store
+type AuthStoreInterface interface {
+	NewTransaction(ctx context.Context) (AuthStoreTxInterface, error)
+	Close()
+}
+
+// Interface representing a transaction on the Auth Store
+type AuthStoreTxInterface interface {
+	Rollback(ctx context.Context) error
+	Commit(ctx context.Context) error
+
+	// User handling
+	GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error)
+	UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error
+
+	// Access Object handling
+	GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
+	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
+	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
+}
+
 // TODO: Tune circuit breaker
 // The circuit breaker helps to prevent unnecessary connections towards the auth storage
 // to connect while in the "closed" state. If the circuit breaker reaches a failure ratio high enough,
@@ -47,30 +68,26 @@ func initCircuitBreaker() *gobreaker.CircuitBreaker {
 	return gobreaker.NewCircuitBreaker(st)
 }
 
-// Abstraction interface mainly used for testing
-type AuthStoreInterface interface {
-	Rollback(ctx context.Context) error
-	Commit(ctx context.Context) error
-
-	// User handling
-	GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error)
-	UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error
-
-	// Access Object handling
-	GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
-	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
-	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
-}
-
 // ErrNoRows : Return this error when an empty record set is returned for the DB
 // e.g. when a users isn't found
 var ErrNoRows = errors.New("no rows in result set")
 var cb *gobreaker.CircuitBreaker = initCircuitBreaker()
 
-// ConnectDBPool creates a new DB pool for the DB URL (postgresql://...).
+// Implementation of the AuthStoreInterface
+type AuthStore struct {
+	pool *pgxpool.Pool
+}
+
+// Implementation of AuthStoreTxInterface
+type AuthStoreTx struct {
+	tx        pgx.Tx
+	requestID uuid.UUID
+}
+
+// NewAuthStore creates a new DB pool for the DB URL (postgresql://...).
 // Additionally, it configures the pool to use `gofrs-uuid` for handling UUIDs.
 // TODO: configure connection pool (min, max connections etc.)
-func ConnectDBPool(ctx context.Context, URL string) (*pgxpool.Pool, error) {
+func NewAuthStore(ctx context.Context, URL string) (*AuthStore, error) {
 	config, err := pgxpool.ParseConfig(URL)
 	if err != nil {
 		return nil, err
@@ -90,20 +107,14 @@ func ConnectDBPool(ctx context.Context, URL string) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pool, nil
+	return &AuthStore{pool: pool}, nil
 }
 
-// DBAuthStore encapsulates a DB Tx for the authentication storage
-type DBAuthStore struct {
-	tx        pgx.Tx
-	requestID uuid.UUID
-}
-
-// NewDBAuthStore starts a new Transaction (tx) in the pool and instances an DBAuthStore with it
-func NewDBAuthStore(ctx context.Context, pool *pgxpool.Pool) (*DBAuthStore, error) {
+// NewTransaction starts a new Transaction (tx) in the pool and instances an AuthStoreTx with it
+func (store *AuthStore) NewTransaction(ctx context.Context) (AuthStoreTxInterface, error) {
 	// Wrap DB connection in a circuit breaker. By default, it trips to "open" state after 5 consecutive failures.
 	tx, err := cb.Execute(func() (interface{}, error) {
-		tx, err := pool.Begin(ctx)
+		tx, err := store.pool.Begin(ctx)
 
 		if err != nil {
 			return nil, err
@@ -116,16 +127,20 @@ func NewDBAuthStore(ctx context.Context, pool *pgxpool.Pool) (*DBAuthStore, erro
 		return nil, err
 	}
 
-	authStorage := &DBAuthStore{
+	authStorage := &AuthStoreTx{
 		tx:        tx.(pgx.Tx),
 		requestID: ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID),
 	}
 	return authStorage, nil
 }
 
+func (store *AuthStore) Close() {
+	store.pool.Close()
+}
+
 // Used as a defer function to rollback an unfinished transaction
-func (storage *DBAuthStore) Rollback(ctx context.Context) error {
-	err := storage.tx.Rollback(ctx)
+func (storeTx *AuthStoreTx) Rollback(ctx context.Context) error {
+	err := storeTx.tx.Rollback(ctx)
 	if errors.Is(err, pgx.ErrTxClosed) {
 		return nil
 	}
@@ -133,21 +148,21 @@ func (storage *DBAuthStore) Rollback(ctx context.Context) error {
 }
 
 // Commit commits the encapsulated transcation
-func (storage *DBAuthStore) Commit(ctx context.Context) error {
-	return storage.tx.Commit(ctx)
+func (storeTx *AuthStoreTx) Commit(ctx context.Context) error {
+	return storeTx.tx.Commit(ctx)
 }
 
 // Enriches the query with request id for tracing to the SQL audit log
-func (storage *DBAuthStore) NewQuery(query string) string {
-	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storage.requestID.String(), query)
+func (storeTx *AuthStoreTx) NewQuery(query string) string {
+	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storeTx.requestID.String(), query)
 }
 
 // Fetches a tag from the database
 // If no user is found it returns the ErrNoRows error
-func (storage *DBAuthStore) GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+func (storeTx *AuthStoreTx) GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error) {
 	var storedTag []byte
 
-	row := storage.tx.QueryRow(ctx, storage.NewQuery("SELECT tag FROM users WHERE id = $1"), userID)
+	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT tag FROM users WHERE id = $1"), userID)
 	err := row.Scan(&storedTag)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRows
@@ -160,16 +175,16 @@ func (storage *DBAuthStore) GetUserTag(ctx context.Context, userID uuid.UUID) ([
 
 // Creates a user with a tag, updates the tag if the user exists
 // Returns an error if SQL query fails to execute in authstorage DB
-func (storage *DBAuthStore) UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error {
-	_, err := storage.tx.Exec(ctx, storage.NewQuery("UPSERT INTO users (id, tag) VALUES ($1, $2)"), userID, tag)
+func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error {
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, tag) VALUES ($1, $2)"), userID, tag)
 	return err
 }
 
 // GetAccessObject fetches data, tag of an Access Object with given Object ID
-func (storage *DBAuthStore) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
+func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	var data, tag []byte
 
-	row := storage.tx.QueryRow(ctx, storage.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
+	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
 	err := row.Scan(&data, &tag)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, ErrNoRows
@@ -182,13 +197,13 @@ func (storage *DBAuthStore) GetAccessObject(ctx context.Context, objectID uuid.U
 }
 
 // InsertAcccessObject inserts an Access Object (Object ID, data, tag)
-func (storage *DBAuthStore) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storage.tx.Exec(ctx, storage.NewQuery("INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)"), objectID, data, tag)
+func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)"), objectID, data, tag)
 	return err
 }
 
 // UpdateAccessObject updates an Access Object with Object ID and sets data, tag
-func (storage *DBAuthStore) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storage.tx.Exec(ctx, storage.NewQuery("UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3"), data, tag, objectID)
+func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3"), data, tag, objectID)
 	return err
 }

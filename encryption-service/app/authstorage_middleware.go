@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
 )
 
@@ -38,19 +37,19 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 			return handler(ctx, req)
 		}
 
-		authStorage, err := authstorage.NewDBAuthStore(ctx, app.AuthDBPool)
+		authStoreTx, err := app.AuthStore.NewTransaction(ctx)
 		if err != nil {
 			log.Errorf("NewDBAuthStore failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 		}
 		defer func() {
-			err := authStorage.Rollback(ctx)
+			err := authStoreTx.Rollback(ctx)
 			if err != nil {
 				log.Error(err)
 			}
 		}()
 
-		newCtx := context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+		newCtx := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
 		return handler(newCtx, req)
 	}
 }
@@ -61,20 +60,20 @@ func (app *App) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := stream.Context()
 
-		authStorage, err := authstorage.NewDBAuthStore(ctx, app.AuthDBPool)
+		authStoreTx, err := app.AuthStore.NewTransaction(ctx)
 		if err != nil {
 			log.Errorf("NewDBAuthStore failed: %v", err)
 			return status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 		}
 		defer func() {
-			err := authStorage.Rollback(ctx)
+			err := authStoreTx.Rollback(ctx)
 			if err != nil {
 				log.Error(err)
 			}
 		}()
 
 		newStream := grpc_middleware.WrapServerStream(stream)
-		newStream.WrappedContext = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+		newStream.WrappedContext = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
 		return handler(srv, newStream)
 	}
 }

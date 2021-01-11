@@ -110,10 +110,10 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 // or if a user isn't authorized to edit the accessObject
 func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
 	//Define authorizer struct
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: messageAuthenticator,
-		Store:                authStorage,
+		AuthStoreTx:                authStorageTx,
 	}
 	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 

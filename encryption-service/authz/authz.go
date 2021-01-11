@@ -27,7 +27,7 @@ import (
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
-	Store                authstorage.AuthStoreInterface
+	AuthStoreTx                authstorage.AuthStoreTxInterface
 }
 
 // serializeAccessObject serializes and signs an Object ID + Access Object into data + tag
@@ -82,7 +82,7 @@ func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUI
 		return nil, err
 	}
 
-	err = a.Store.InsertAcccessObject(ctx, objectID, data, tag)
+	err = a.AuthStoreTx.InsertAcccessObject(ctx, objectID, data, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUI
 // Authorize checks if a userID is allowed to access the objectID
 func (a *Authorizer) Authorize(ctx context.Context, objectID, userID uuid.UUID) (*AccessObject, bool, error) {
 	// TODO: add single row special case?
-	data, tag, err := a.Store.GetAccessObject(ctx, objectID)
+	data, tag, err := a.AuthStoreTx.GetAccessObject(ctx, objectID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -135,7 +135,7 @@ func (a *Authorizer) updatePermissions(ctx context.Context, objectID uuid.UUID, 
 		return err
 	}
 
-	err = a.Store.UpdateAccessObject(ctx, objectID, data, tag)
+	err = a.AuthStoreTx.UpdateAccessObject(ctx, objectID, data, tag)
 	if err != nil {
 		return err
 	}

@@ -102,7 +102,7 @@ func TestCreateObject(t *testing.T) {
 
 	insertCalledCorrectly := false
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		InsertAcccessObjectFunc: func(ctx context.Context, oid uuid.UUID, data, tag []byte) error {
 			accessObject, err := authorizer.ParseAccessObject(oid, data, tag)
 			if err != nil {
@@ -131,7 +131,7 @@ func TestCreateObjectFail(t *testing.T) {
 		t.Fatalf("Random errored: %v", err)
 	}
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		InsertAcccessObjectFunc: func(ctx context.Context, oid uuid.UUID, data, tag []byte) error {
 			return errors.New("mock error")
 		},
@@ -151,7 +151,7 @@ func TestAuthorize(t *testing.T) {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return data, tag, nil
 		},
@@ -170,7 +170,7 @@ func TestAuthorize(t *testing.T) {
 func TestAuthorizeStoreFailed(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return nil, nil, errors.New("mock error")
 		},
@@ -190,7 +190,7 @@ func TestAuthorizeParseFailed(t *testing.T) {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return data, append(tag, []byte("bad")...), nil
 		},
@@ -210,7 +210,7 @@ func TestAuthorizeWrongUserID(t *testing.T) {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return data, tag, nil
 		},
@@ -236,7 +236,7 @@ func TestUpdatePermissions(t *testing.T) {
 
 	var gotData, gotTag []byte
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			gotData = data
 			gotTag = tag
@@ -259,7 +259,7 @@ func TestUpdatePermissions(t *testing.T) {
 }
 
 func TestUpdatePermissionsStoreFailed(t *testing.T) {
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			return errors.New("mock error")
 		},
@@ -281,7 +281,7 @@ func TestAddPermission(t *testing.T) {
 
 	var gotData, gotTag []byte
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			gotData = data
 			gotTag = tag
@@ -317,7 +317,7 @@ func TestRemovePermission(t *testing.T) {
 
 	var gotData, gotTag []byte
 
-	authorizer.Store = &authstorage.AuthStoreMock{
+	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
 		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			gotData = data
 			gotTag = tag

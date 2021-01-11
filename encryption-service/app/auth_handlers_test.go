@@ -257,7 +257,7 @@ func TestAuthorizeWrapper(t *testing.T) {
 		Version: 0,
 	}
 
-	authnStorageMock := &authstorage.AuthStoreMock{
+	authnStorageTxMock := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 			data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
 			return data, tag, err
@@ -271,7 +271,7 @@ func TestAuthorizeWrapper(t *testing.T) {
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
 	if err != nil {
@@ -299,7 +299,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 		Version: 0,
 	}
 
-	authnStorageMock := &authstorage.AuthStoreMock{
+	authnStorageTxMock := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
 			return data, tag, err
@@ -313,7 +313,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authnStorageMock)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
 	failOnSuccess("User should not be authorized", err, t)

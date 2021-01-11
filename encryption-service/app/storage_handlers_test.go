@@ -48,7 +48,8 @@ var config = &Config{
 
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
-	authStorage := authstorage.NewMemoryAuthStore()
+	authStore := authstorage.NewMemoryAuthStore()
+	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
 	app := App{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
@@ -67,7 +68,7 @@ func TestStoreRetrieve(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := app.Store(
 		ctx,
@@ -94,7 +95,8 @@ func TestStoreRetrieve(t *testing.T) {
 
 // Test that retrieving a non-existing object fails
 func TestRetrieveBeforeStore(t *testing.T) {
-	authStorage := authstorage.NewMemoryAuthStore()
+	authStore := authstorage.NewMemoryAuthStore()
+	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
 	app := App{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
@@ -108,7 +110,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
 	retrieveResponse, err := app.Retrieve(
 		ctx,
@@ -129,7 +131,7 @@ func TestStoreFail(t *testing.T) {
 	objectStore := &ObjectStoreMock{
 		StoreFunc: func(ctx context.Context, objectID string, object []byte) error { return fmt.Errorf("") },
 	}
-	authStorage := &authstorage.AuthStoreMock{
+	authStorageTx := &authstorage.AuthStoreTxMock{
 		InsertAcccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			return nil
 		},
@@ -151,7 +153,7 @@ func TestStoreFail(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := app.Store(
 		ctx,
@@ -167,7 +169,7 @@ func TestStoreFail(t *testing.T) {
 
 // Test the case where the authn store fails to store
 func TestStoreFailAuth(t *testing.T) {
-	authStorage := &authstorage.AuthStoreMock{
+	authStorageTx := &authstorage.AuthStoreTxMock{
 		InsertAcccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			return fmt.Errorf("")
 		},
@@ -189,7 +191,7 @@ func TestStoreFailAuth(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := app.Store(
 		ctx,

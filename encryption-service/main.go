@@ -75,43 +75,7 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 	return grpcServer, lis
 }
 
-func main() {
-	log.SetOutput(os.Stderr)
-	log.SetLevel(log.DebugLevel)
-	log.Info("Encryption Server started")
-
-	config, err := app.ParseConfig()
-	if err != nil {
-		log.Fatalf("Config parse failed: %v", err)
-	}
-	log.Info("Config parsed")
-
-	// Setup authentication storage DB Pool connection
-	authDBPool, err := authstorage.ConnectDBPool(context.Background(), config.AuthStorageURL)
-	if err != nil {
-		log.Fatalf("Authstorage connect failed: %v", err)
-	}
-	defer authDBPool.Close()
-
-	messageAuthenticator, err := crypt.NewMessageAuthenticator(config.ASK)
-	if err != nil {
-		log.Fatalf("NewMessageAuthenticator failed: %v", err)
-	}
-
-	objectStore, err := objectstorage.NewObjectStore(
-		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
-	)
-	if err != nil {
-		log.Fatalf("Objectstorage connect failed: %v", err)
-	}
-
-	app := &app.App{
-		Config:               config,
-		MessageAuthenticator: messageAuthenticator,
-		AuthDBPool:           authDBPool,
-		ObjectStore:          objectStore,
-	}
-
+func StartServer(appStruct *app.App) {
 	// execute cli commands
 	if len(os.Args) > 1 && filepath.Base(os.Args[0]) != "main.test" {
 		log.Info("Running in cli mode")
@@ -119,7 +83,7 @@ func main() {
 		cmd := os.Args[1]
 		switch cmd {
 		case "create-admin":
-			app.CreateAdminCommand()
+			appStruct.CreateAdminCommand()
 		default:
 			log.Fatalf("Invalid command: %v", cmd)
 		}
@@ -129,7 +93,7 @@ func main() {
 
 	// Setup gRPC listner
 	var port int = 9000
-	grpcServer, lis := InitgRPC(port, app)
+	grpcServer, lis := InitgRPC(port, appStruct)
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
@@ -166,4 +130,44 @@ func main() {
 	}
 
 	log.Info("Shutting down")
+}
+
+func main() {
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.DebugLevel)
+	log.Info("Encryption Server started")
+
+	config, err := app.ParseConfig()
+	if err != nil {
+		log.Fatalf("Config parse failed: %v", err)
+	}
+	log.Info("Config parsed")
+
+	// Setup authentication storage DB Pool connection
+	authStore, err := authstorage.NewAuthStore(context.Background(), config.AuthStorageURL)
+	if err != nil {
+		log.Fatalf("Authstorage connect failed: %v", err)
+	}
+	defer authStore.Close()
+
+	messageAuthenticator, err := crypt.NewMessageAuthenticator(config.ASK)
+	if err != nil {
+		log.Fatalf("NewMessageAuthenticator failed: %v", err)
+	}
+
+	objectStore, err := objectstorage.NewObjectStore(
+		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
+	)
+	if err != nil {
+		log.Fatalf("Objectstorage connect failed: %v", err)
+	}
+
+	app := &app.App{
+		Config:               config,
+		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authStore,
+		ObjectStore:          objectStore,
+	}
+
+	StartServer(app)
 }
