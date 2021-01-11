@@ -78,6 +78,12 @@ data:
         Keep_Log            Off
 
     [FILTER]
+        Name                lua
+        Match               encryptonize.object-store.*
+        script              requestId-extractor.lua
+        call                extract_requestId
+
+    [FILTER]
         Name                kubernetes
         Match               encryptonize.encryption-service.*
         Kube_URL            https://kubernetes.default.svc.cluster.local:443
@@ -90,7 +96,7 @@ data:
         Name                modify
         Match               encryptonize.object-store.*
         Rename              uri method
-        Rename              http_x_headers requestId              
+        Rename              http_status status
         
     [OUTPUT]
         Name            es
@@ -104,6 +110,14 @@ data:
         Tls             On
         Tls.ca_path     /etc/certs/
 
+  requestId-extractor.lua : |
+    function extract_requestId(tag, timestamp, record)
+        new_record = record         
+        new_record["requestId"] = record["http_x_headers"][1]["HTTP_REQUEST_ID"]
+
+        return 1, timestamp, new_record
+    end
+    
   fluent-bit-parsers.conf : |
     [PARSER]
         Name   apache
