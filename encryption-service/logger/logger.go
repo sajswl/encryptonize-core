@@ -33,6 +33,7 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 }
 
+// Extracts logging fields from context. Does not set a field if it is not present in the context.
 func fieldsFromCtx(ctx context.Context) log.Fields {
 	fields := make(log.Fields)
 

@@ -82,6 +82,8 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 		return nil, err
 	}
 
+	log.Info(newCtx, "AuthenticateUser: User authenticated")
+
 	return newCtx, nil
 }
 
