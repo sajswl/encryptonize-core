@@ -69,7 +69,7 @@ func (app *App) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 		defer func() {
 			err := authStorage.Rollback(ctx)
 			if err != nil {
-				log.Error(ctx, "Perfroming rollback", err)
+				log.Error(ctx, "Performing rollback", err)
 			}
 		}()
 
