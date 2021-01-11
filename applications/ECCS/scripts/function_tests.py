@@ -52,17 +52,17 @@ def create_user(token, flags=None):
 		cmd.append(flags)
 
 	# uid and token are returned on stderr so we need to get that
-	res = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode()
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
 
 	uid = None
 	at = None
-	for match in re.finditer(r"user_id:\"([^\"]+)\"", res):
+	for match in re.finditer(r"user_id:\"([^\"]+)\"", res.stderr):
 		if uid is not None:
 			print(f"multiple matches for the UID, aborting")
 			sys.exit(1)
 		uid = match.group(1)
 
-	for match in re.finditer(r"access_token:\"([^\"]+)", res):
+	for match in re.finditer(r"access_token:\"([^\"]+)", res.stderr):
 		if at is not None:
 			print(f"multiple matches for the at, aborting")
 			print(at)
@@ -81,10 +81,10 @@ def create_object(token, data):
 	if data is not None:
 		cmd += ["-d", data]
 
-	res = subprocess.check_output(cmd, stdin=subprocess.DEVNULL, stderr=subprocess.STDOUT).decode()
+	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
 
 	oid = None
-	for match in re.finditer(r"ObjectID:\s+([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})", res):
+	for match in re.finditer(r"ObjectID:\s+([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})", res.stderr):
 		if oid is not None:
 			print(f"multiple matches for the OID, aborting")
 			print(oid)
@@ -106,9 +106,9 @@ if __name__ == "__main__":
 	print("[+] created second user")
 	oid = create_object(at1, "no one has the intention to store bytes here.")
 	print("[+] object created")
-	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"])
-	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid])
-	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2])
-	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid])
-	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2])
+	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
+	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
+	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
+	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
+	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)
 	print("[+] all tests succeeded")
