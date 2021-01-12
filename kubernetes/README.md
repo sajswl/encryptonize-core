@@ -271,13 +271,18 @@ kubectl apply -f object-storage/operator.yaml
 kubectl apply -f object-storage/cluster.yaml
 kubectl apply -f object-storage/object.yaml
 kubectl apply -f object-storage/ingress.yaml
-kubectl patch deployment rook-ceph-rgw-encryptonize-store-a -n rook-ceph --patch "$(cat object-storage/rgw-patch.yaml)"
 ```
 
 Wait for everything to finish. You should see three `rook-ceph-osd` pods eventually (takes about 5
 minutes):
 ```bash
 watch kubectl -n rook-ceph get pod
+```
+
+At last you have to apply the following patch in order to enable ceph audit logs:
+
+```bash
+kubectl patch deployment rook-ceph-rgw-encryptonize-store-a -n rook-ceph --patch "$(cat object-storage/rgw-patch.yaml)"
 ```
 
 ## Encryption Service Deployment
