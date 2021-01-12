@@ -11,7 +11,7 @@ jobs:
   esb-build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      image: ghcr.io/cyber-crypt-com/github-runner:1.1
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -30,7 +30,7 @@ jobs:
     needs: esb-build
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      image: ghcr.io/cyber-crypt-com/github-runner:1.1
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -46,7 +46,7 @@ jobs:
     needs: esb-build
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      image: ghcr.io/cyber-crypt-com/github-runner:1.1
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -76,7 +76,7 @@ jobs:
   esb-eccs-build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      image: ghcr.io/cyber-crypt-com/github-runner:1.1
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -98,7 +98,7 @@ jobs:
     needs: [esb-build, esb-eccs-build]
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.0
+      image: ghcr.io/cyber-crypt-com/github-runner:1.1
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
