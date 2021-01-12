@@ -27,6 +27,7 @@ import (
 	"encryption-service/contextkeys"
 )
 
+// Initializes the global logger for uniform and structured logging
 func init() {
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.DebugLevel)
@@ -60,6 +61,8 @@ func fieldsFromCtx(ctx context.Context) log.Fields {
 	return fields
 }
 
+// The following functions wrap the standard logging functions
+// in order to provide structured logging for our service
 func Error(ctx context.Context, msg string, err error) {
 	fields := fieldsFromCtx(ctx)
 	fields["error"] = err
