@@ -208,6 +208,16 @@ spec:
                   - cockroachdb
               topologyKey: kubernetes.io/hostname
       containers:
+      - name: sql-auditlog
+        image: alpine
+        command:
+        - /bin/ash
+        - -c
+        args:
+        - until tail -f /tmp/cockroach-sql-audit.log; do echo waiting for audit log; sleep 10; done
+        volumeMounts:
+        - name: shared-auditlog
+          mountPath: /tmp
       - name: cockroachdb
         image: cockroachdb/cockroach:v20.1.7
         imagePullPolicy: IfNotPresent
@@ -251,6 +261,8 @@ spec:
           mountPath: /cockroach/cockroach-data
         - name: certs
           mountPath: /cockroach/cockroach-certs
+        - name: shared-auditlog
+          mountPath: /cockroach/cockroach-data/logs
         env:
         - name: COCKROACH_CHANNEL
           value: kubernetes-secure
@@ -288,6 +300,8 @@ spec:
         persistentVolumeClaim:
           claimName: datadir
       - name: certs
+        emptyDir: {}
+      - name: shared-auditlog
         emptyDir: {}
   podManagementPolicy: Parallel
   updateStrategy:

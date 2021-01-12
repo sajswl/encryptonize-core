@@ -17,17 +17,18 @@ import (
 	context "context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	log "github.com/sirupsen/logrus"
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
+	log "encryption-service/logger"
 	"encryption-service/objectstorage"
 )
 
@@ -156,16 +157,18 @@ func ParseConfig() (*Config, error) {
 
 // Prevents an accidental deployment with testing parameters
 func CheckInsecure(config *Config) {
+	ctx := context.TODO()
+
 	if os.Getenv("ENCRYPTION_SERVICE_INSECURE") == "1" {
 		for _, line := range strings.Split(stopSign, "\n") {
-			log.Warn(line)
+			log.Warn(ctx, line)
 		}
 	} else {
 		if hex.EncodeToString(config.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
-			log.Fatal("Test KEK used outside of INSECURE testing mode")
+			log.Fatal(ctx, "Test KEK used outside of INSECURE testing mode", errors.New(""))
 		}
 		if hex.EncodeToString(config.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
-			log.Fatal("Test ASK used outside of INSECURE testing mode")
+			log.Fatal(ctx, "Test ASK used outside of INSECURE testing mode", errors.New(""))
 		}
 	}
 }
@@ -176,12 +179,12 @@ func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
 	authStorage, err := authstorage.NewDBAuthStore(ctx, app.AuthDBPool)
 	if err != nil {
-		log.Fatalf("Authstorage Begin failed: %v", err)
+		log.Fatal(ctx, "Authstorage Begin failed", err)
 	}
 	defer func() {
 		err := authStorage.Rollback(ctx)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(ctx, "Performing rollback", err)
 		}
 	}()
 
@@ -189,10 +192,10 @@ func (app *App) CreateAdminCommand() {
 	adminScope := authn.ScopeUserManagement
 	userID, accessToken, err := app.createUserWrapper(ctx, adminScope)
 	if err != nil {
-		log.Fatalf("Create user failed: %v", err)
+		log.Fatal(ctx, "Create user failed", err)
 	}
 
-	log.Info("Created admin user:")
-	log.Infof("    User ID:      %v", userID)
-	log.Infof("    Access Token: %v", accessToken)
+	log.Info(ctx, "Created admin user:")
+	log.Info(ctx, fmt.Sprintf("    User ID:      %v", userID))
+	log.Info(ctx, fmt.Sprintf("    Access Token: %v", accessToken))
 }
