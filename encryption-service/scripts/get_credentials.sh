@@ -31,7 +31,7 @@ gcloud config set project ${PROJECT}
 echo "[*] fetching CockroachDB certificates and client key"
 
 gcloud container clusters get-credentials encryptonize-auth --zone=europe-west4-a
-kubectl -n cockroachdb exec -it cockroachdb-0 -- cat /cockroach/cockroach-certs/ca.crt  > ${DATA}/ca.crt
+kubectl -n cockroachdb exec -it cockroachdb-0 -c cockroachdb -- cat /cockroach/cockroach-certs/ca.crt  > ${DATA}/ca.crt
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath="{.data['cert']}" | base64 -d > ${DATA}/client.root.crt
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath="{.data['key']}" | base64 -d > ${DATA}/client.root.key
 

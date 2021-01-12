@@ -19,5 +19,6 @@ const (
 	RequestIDCtxKey GlobalContextKey = iota
 	UserIDCtxKey
 	MethodNameCtxKey
+	StatusCtxKey
 	AuthStorageCtxKey
 )
