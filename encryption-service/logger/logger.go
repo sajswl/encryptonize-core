@@ -58,6 +58,11 @@ func fieldsFromCtx(ctx context.Context) log.Fields {
 		fields["status"] = status
 	}
 
+	objectID := ctx.Value(contextkeys.ObjectIDCtxKey)
+	if objectID != nil {
+		fields["objectId"] = objectID
+	}
+
 	return fields
 }
 

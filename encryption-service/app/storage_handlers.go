@@ -79,6 +79,10 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 		log.Error(ctx, "Store: Failed to commit auth storage transaction", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
+
+	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
+	log.Info(ctx, "Store: Object stored")
+
 	return &StoreResponse{ObjectId: objectIDString}, nil
 }
 
@@ -118,6 +122,9 @@ func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
+
+	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
+	log.Info(ctx, "Retrieve: Object retrieved")
 
 	return &RetrieveResponse{
 		Object: &Object{
