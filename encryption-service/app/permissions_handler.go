@@ -17,13 +17,13 @@ import (
 	"context"
 	"fmt"
 
-	log "encryption-service/logger"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
+	log "encryption-service/logger"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.

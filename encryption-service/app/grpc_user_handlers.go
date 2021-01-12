@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 
-	log "encryption-service/logger"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,6 +25,7 @@ import (
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
+	log "encryption-service/logger"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users

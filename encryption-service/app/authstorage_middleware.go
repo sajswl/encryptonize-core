@@ -16,7 +16,6 @@ package app
 import (
 	"context"
 
-	log "encryption-service/logger"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,6 +23,7 @@ import (
 
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
+	log "encryption-service/logger"
 )
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.

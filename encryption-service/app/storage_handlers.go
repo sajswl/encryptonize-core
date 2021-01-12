@@ -16,7 +16,6 @@ package app
 import (
 	"context"
 
-	log "encryption-service/logger"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,6 +24,7 @@ import (
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
+	log "encryption-service/logger"
 )
 
 const AssociatedDataStoreSuffix = "_aad"
