@@ -307,7 +307,7 @@ kubectl -n rook-ceph get secret ingress-certificate -o jsonpath="{.data['tls\.cr
 
 Connect `kubectl` to the CockroachDB cluster and retrieve the CA certificate, client certificate, and client key:
 ```bash
-kubectl -n cockroachdb exec -it cockroachdb-0 -- cat /cockroach/cockroach-certs/ca.crt  > ./encryptonize-secrets/ca.crt
+kubectl -n cockroachdb exec -it cockroachdb-0 -- cat /cockroach/cockroach-certs/ca.crt -c cockroachdb  > ./encryptonize-secrets/ca.crt
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.cert}' | base64 -d > ./encryptonize-secrets/client.root.crt
 touch ./encryptonize-secrets/client.root.key && chmod 600 ./encryptonize-secrets/client.root.key
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.key}' | base64 -d > ./encryptonize-secrets/client.root.key
