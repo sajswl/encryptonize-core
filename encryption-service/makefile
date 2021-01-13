@@ -53,7 +53,7 @@ lint: $(protobufs)  ## Lint the codebase
 
 ##### Test targets #####
 .PHONY: tests
-tests: unit-tests e2e-tests  ## Run all tests
+tests: unit-tests e2e-tests eccs-tests ## Run all tests
 
 .PHONY: coverage
 coverage: build  ## Generate coverage report
@@ -66,6 +66,10 @@ unit-tests: build  ## Run unit tests
 .PHONY: e2e-tests
 e2e-tests: build  ## Run end-to-end tests
 	./scripts/e2e_tests.sh
+
+.PHONY: eccs-tests
+eccs-tests: build
+	$(MAKE) -C ../applications/ECCS tests
 
 
 ##### Run targets #####
