@@ -11,28 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package utils
 
 import (
 	"fmt"
 )
 
-// Used for displaying RED text
+// Fail wraps text using ansi escape codes to color the output RED
 func Fail(text string) string {
 	return fmt.Sprintf("\x1b[31;1m%s\x1b[0m", text)
 }
 
-// Used for displaying GREEN text
+// Pass wraps text using ansi escape codes to color the output GREEN
 func Pass(text string) string {
 	return fmt.Sprintf("\x1b[32;1m%s\x1b[0m", text)
 }
 
-// Used for displaying BLUE text
+// Info wraps text using ansi escape codes to color the output BLUE
 func Info(text string) string {
 	return fmt.Sprintf("\x1b[34;1m%s\x1b[0m", text)
 }
 
-// Used for displaying YELLOW text
+// Warning wraps text using ansi escape codes to color the output YELLOW
 func Warning(text string) string {
 	return fmt.Sprintf("\x1b[33;1m%s\x1b[0m", text)
 }
