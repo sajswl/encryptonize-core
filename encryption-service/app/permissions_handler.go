@@ -104,6 +104,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	}
 
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, oid)
+	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
 	log.Info(ctx, "AddPermission: Permission added")
 
 	return &AddPermissionResponse{}, nil
@@ -145,6 +146,7 @@ func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionR
 	}
 
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, oid)
+	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
 	log.Info(ctx, "RemovePermission: Permission removed")
 
 	return &RemovePermissionResponse{}, nil
