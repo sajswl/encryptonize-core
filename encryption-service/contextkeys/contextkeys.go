@@ -21,4 +21,6 @@ const (
 	MethodNameCtxKey
 	StatusCtxKey
 	AuthStorageCtxKey
+	ObjectIDCtxKey
+	TargetIDCtxKey
 )
