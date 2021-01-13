@@ -22,6 +22,10 @@ import (
 )
 
 func main() {
+	if err := cmd.InitCmd(); err != nil {
+		fmt.Printf(utils.Fail("Unable to initialize CLI: %v\n"), err)
+		os.Exit(1)
+	}
 	if err := cmd.Execute(); err != nil {
 		fmt.Printf(utils.Fail("%v\n"), err)
 		os.Exit(1)
