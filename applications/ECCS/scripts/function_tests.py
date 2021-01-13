@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Test all functions of ECCS. Requires an Encryption Server to be running. Usage:
-#   ./tests/function_tests.py
+#   ./scripts/function_tests.py
 #
 # By default the tests are run on a local server. To change this behaviour, the following
 # environment variables can be set:
