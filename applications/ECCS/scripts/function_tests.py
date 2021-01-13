@@ -15,14 +15,19 @@
 # limitations under the License.
 
 # Test all functions of ECCS. Requires an Encryption Server to be running. Usage:
-#   ./tests/function_tests.sh
+#   ./tests/function_tests.py
 #
 # By default the tests are run on a local server. To change this behaviour, the following
 # environment variables can be set:
 #
-# - ECCS_TEST_ADMIN_AT : Admin user access token
-# - ECCS_ENDPOINT:        Address of the server (e.g.: 127.0.0.1:9000)
-# - ECCS_CRT:             Certification used by the Encryption server
+# - ECCS_TEST_ADMIN_AT: Admin user access token. As default it uses the following token:
+#                         UUID   00000000-0000-4000-8000-000000000002
+#                         scopes [UserManagement]
+#                         nonce  00000000000000000000000000000002
+#                         ASK    0000000000000000000000000000000000000000000000000000000000000001
+#                         which is the same one as in the authn unit test
+# - ECCS_ENDPOINT:      Address of the server (e.g.: 127.0.0.1:9000)
+# - ECCS_CRT:           Certification used by the Encryption server
 #                         leave unset for HTTP
 #                         "insecure" for HTTPS ignoring certificate errors
 
@@ -64,14 +69,14 @@ def create_user(token, flags=None):
 
 	for match in re.finditer(r"access_token:\"([^\"]+)", res.stderr):
 		if at is not None:
-			print(f"multiple matches for the at, aborting")
+			print(f"multiple matches for the AT, aborting")
 			print(at)
 			print(match.group(0))
 			sys.exit(1)
 		at = match.group(1)
 
 	if uid is None or at is None:
-		print(f"unable to match uid or at in {res}")
+		print(f"unable to match UID or AT in {res}")
 		sys.exit(1)
 
 	return uid, at
