@@ -37,7 +37,7 @@ lint: $(protobufs)  ## Lint the codebase
 
 ##### Test targets #####
 .PHONY: tests
-tests: build
+tests: build        ## Run function tests
 	./scripts/function_tests.py
 
 
