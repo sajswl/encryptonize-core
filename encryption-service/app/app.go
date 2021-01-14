@@ -179,6 +179,7 @@ func CheckInsecure(config *Config) {
 func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
 
+	// Need to inject requestID manually, as these calls dont pass the ususal middleware
 	requestID, err := uuid.NewV4()
 	if err != nil {
 		log.Fatal(ctx, "Could not generate uuid", err)
