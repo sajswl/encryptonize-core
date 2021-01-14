@@ -177,7 +177,7 @@ func CheckInsecure(config *Config) {
 // This function is intended to be used for cli operation
 func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
-	// Need to inject requestID manually, as these calls dont pass the ususal middleware
+	// Need to inject requestID manually, as these calls don't pass the usual middleware
 	requestID, err := uuid.NewV4()
 	if err != nil {
 		log.Fatal(ctx, "Could not generate uuid", err)
