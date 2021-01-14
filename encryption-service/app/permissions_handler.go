@@ -58,7 +58,7 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
 func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
@@ -78,7 +78,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	}
 
 	// Check if user exists (returns error on empty rows)
-	_, err = authStorage.GetUserTag(ctx, target)
+	_, err = authStorageTx.GetUserTag(ctx, target)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
 		log.Error(ctx, msg, err)
@@ -97,7 +97,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
 
-	err = authStorage.Commit(ctx)
+	err = authStorageTx.Commit(ctx)
 	if err != nil {
 		log.Error(ctx, "AddPermission: Failed to commit auth storage transaction", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
@@ -113,7 +113,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
 func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
@@ -139,7 +139,7 @@ func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionR
 		log.Error(ctx, msg, err)
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}
-	err = authStorage.Commit(ctx)
+	err = authStorageTx.Commit(ctx)
 	if err != nil {
 		log.Error(ctx, "RemovePermission: Failed to commit auth storage transaction", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")

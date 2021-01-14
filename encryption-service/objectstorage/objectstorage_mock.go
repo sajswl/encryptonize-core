@@ -16,29 +16,36 @@ package objectstorage
 import (
 	"context"
 	"errors"
+	"sync"
 )
 
 // MemoryObjectStore is used by tests to mock the ObjectStore in memory
 type MemoryObjectStore struct {
-	Data map[string][]byte
+	Data sync.Map // map[string][]byte
 }
 
 func NewMemoryObjectStore() *MemoryObjectStore {
 	return &MemoryObjectStore{
-		Data: make(map[string][]byte),
+		Data: sync.Map{},
 	}
 }
 
 func (o *MemoryObjectStore) Store(ctx context.Context, objectID string, object []byte) error {
-	o.Data[objectID] = object
+	objectCopy := make([]byte, len(object))
+	copy(objectCopy, object)
+	o.Data.Store(objectID, objectCopy)
 	return nil
 }
 
 func (o *MemoryObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
-	object, ok := o.Data[objectID]
+	object, ok := o.Data.Load(objectID)
 
 	if !ok {
 		return nil, errors.New("object not found")
 	}
-	return object, nil
+
+	objectCopy := make([]byte, len(object.([]byte)))
+	copy(objectCopy, object.([]byte))
+
+	return objectCopy, nil
 }

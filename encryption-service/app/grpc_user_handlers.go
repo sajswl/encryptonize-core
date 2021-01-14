@@ -65,7 +65,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
 func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType) (*uuid.UUID, string, error) {
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -90,12 +90,12 @@ func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorage.UpsertUser(ctx, userID, []byte{})
+	err = authStorageTx.UpsertUser(ctx, userID, []byte{})
 	if err != nil {
 		return nil, "", err
 	}
 
-	err = authStorage.Commit(ctx)
+	err = authStorageTx.Commit(ctx)
 	if err != nil {
 		return nil, "", err
 	}
