@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package app
 
 import (
@@ -21,7 +22,7 @@ import (
 	"eccs/utils"
 )
 
-// Load file into memory
+// openFile loads a file into memory
 func openFile(filename string) []byte {
 	dat, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -30,7 +31,7 @@ func openFile(filename string) []byte {
 	return dat
 }
 
-// Creates a new client and calls Store through the client
+// Store creates a new client and calls Store through the client
 func Store(userAT, filename, associatedData string, stdin bool) error {
 	var plaintext []byte
 	var err error

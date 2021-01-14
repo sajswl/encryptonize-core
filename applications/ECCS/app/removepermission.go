@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package app
 
 import (
@@ -19,7 +20,7 @@ import (
 	"eccs/utils"
 )
 
-// Creates a new client and calls RemovePermission through the client
+// RemovePermission creates a new client and calls RemovePermission through the client
 func RemovePermission(userAT, oid, target string) error {
 	// Create client
 	client, err := NewClient(userAT)
