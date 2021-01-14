@@ -22,6 +22,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"encryption-service/authn"
@@ -177,6 +178,13 @@ func CheckInsecure(config *Config) {
 // This function is intended to be used for cli operation
 func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
+
+	requestID, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(ctx, "Could not generate uuid", err)
+	}
+	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+
 	authStorage, err := authstorage.NewDBAuthStore(ctx, app.AuthDBPool)
 	if err != nil {
 		log.Fatal(ctx, "Authstorage Begin failed", err)

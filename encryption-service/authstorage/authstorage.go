@@ -118,15 +118,16 @@ func NewDBAuthStore(ctx context.Context, pool *pgxpool.Pool) (*DBAuthStore, erro
 		return nil, err
 	}
 
-	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID); if !ok{
+	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	if !ok {
 		return nil, errors.New("Could not typecast requestID to uuid.UUID")
 	}
 
 	authStorage := &DBAuthStore{
-		tx: tx.(pgx.Tx),
+		tx:        tx.(pgx.Tx),
 		requestID: requestID,
 	}
-	
+
 	return authStorage, nil
 }
 

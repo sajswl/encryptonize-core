@@ -34,7 +34,13 @@ const CiphertextStoreSuffix = "_data"
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
 func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
-	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while storing object")
+		log.Error(ctx, "Store: Could not parse userID from context", err)
+
+		return nil, err
+	}
 
 	objectID, err := uuid.NewV4()
 	if err != nil {
@@ -44,7 +50,14 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	if !ok {
+		err = status.Errorf(codes.Internal, "error encountered while storing object")
+		log.Error(ctx, "Store: Could not parse authStorage from context", err)
+
+		return nil, err
+	}
+
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: app.MessageAuthenticator,
 		Store:                authStorage,

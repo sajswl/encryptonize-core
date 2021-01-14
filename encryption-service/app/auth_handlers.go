@@ -51,7 +51,14 @@ var methodScopeMap = map[string]authn.ScopeType{
 // lacks the required scope
 func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	// Grab method name
-	methodName := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+	if !ok {
+		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
+		log.Error(ctx, "Could not parse methodName from context", err)
+
+		return nil, err
+	}
+
 	// Don't authenticate health checks
 	// IMPORTANT! This check MUST stay at the top of this function
 	if methodName == healthEndpointCheck || methodName == healthEndpointWatch {
@@ -92,12 +99,24 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 // or if a user isn't authorized to edit the accessObject
 func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
 	//Define authorizer struct
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
+		log.Error(ctx, "Could not parse authstorage from context", err)
+
+		return nil, nil, err
+	}
+
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: messageAuthenticator,
 		Store:                authStorage,
 	}
-	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	if !ok {
+		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
+		log.Error(ctx, "Could not parse userID from context", err)
+		return nil, nil, err
+	}
 
 	// Parse objectID from request
 	objectID, err := uuid.FromString(objectIDString)

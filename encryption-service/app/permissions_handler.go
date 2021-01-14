@@ -55,7 +55,14 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
 func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
+		log.Error(ctx, "AddPermission: Could not parse authStorage from context", err)
+
+		return nil, err
+	}
+
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
@@ -106,7 +113,14 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
 func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
-	authStorage := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
+		log.Error(ctx, "RemovePermission: Could not parse authStorage from context", err)
+
+		return nil, err
+	}
+
 	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
