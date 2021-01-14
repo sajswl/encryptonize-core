@@ -185,7 +185,6 @@ func (app *App) CreateAdminCommand() {
 	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
 
 	authStoreTx, err := app.AuthStore.NewTransaction(ctx)
-
 	if err != nil {
 		log.Fatal(ctx, "Authstorage Begin failed", err)
 	}
