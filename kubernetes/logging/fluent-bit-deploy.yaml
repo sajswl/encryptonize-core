@@ -95,7 +95,7 @@ data:
     [FILTER]
         Name                modify
         Match               encryptonize.object-store.*
-        Rename              uri method
+        Rename              operation method
         Rename              http_status status
         
     [OUTPUT]
