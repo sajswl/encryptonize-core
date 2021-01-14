@@ -55,7 +55,6 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
 		log.Error(ctx, "Could not parse methodName from context", err)
-
 		return nil, err
 	}
 
@@ -103,7 +102,6 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
 		log.Error(ctx, "Could not parse authstorage from context", err)
-
 		return nil, nil, err
 	}
 

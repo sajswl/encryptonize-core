@@ -38,7 +38,6 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
 		log.Error(ctx, "Store: Could not parse userID from context", err)
-
 		return nil, err
 	}
 
@@ -54,7 +53,6 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	if !ok {
 		err = status.Errorf(codes.Internal, "error encountered while storing object")
 		log.Error(ctx, "Store: Could not parse authStorage from context", err)
-
 		return nil, err
 	}
 

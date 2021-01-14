@@ -61,8 +61,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
-		log.Error(ctx, "AddPermission: Could not parse authStorage from context", err)
-
+		log.Error(ctx, "AddPermission: Could not typecast authstorage to AuthStoreTxInterface", err)
 		return nil, err
 	}
 
@@ -123,8 +122,7 @@ func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionR
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
-		log.Error(ctx, "RemovePermission: Could not parse authStorage from context", err)
-
+		log.Error(ctx, "RemovePermission: Could not typecast authstorage to AuthStoreTxInterface", err)
 		return nil, err
 	}
 

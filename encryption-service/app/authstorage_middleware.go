@@ -34,7 +34,6 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 		if !ok {
 			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 			log.Error(ctx, "Could not parse methodName from context", err)
-
 			return nil, err
 		}
 
