@@ -50,7 +50,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
-	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		err = status.Errorf(codes.Internal, "error encountered while storing object")
 		log.Error(ctx, "Store: Could not parse authStorage from context", err)
@@ -60,7 +60,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: app.MessageAuthenticator,
-		Store:                authStorage,
+		AuthStoreTx:          authStorageTx,
 	}
 
 	oek, err := authorizer.CreateObject(ctx, objectID, userID, app.Config.KEK)
@@ -88,7 +88,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	}
 
 	// All done, commit auth changes
-	if err := authStorage.Commit(ctx); err != nil {
+	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, "Store: Failed to commit auth storage transaction", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}

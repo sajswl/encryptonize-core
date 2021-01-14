@@ -13,9 +13,48 @@
 // limitations under the License.
 package main
 
-import "testing"
+import (
+	"os"
+	"testing"
+
+	log "github.com/sirupsen/logrus"
+
+	"encryption-service/app"
+	"encryption-service/authstorage"
+	"encryption-service/crypt"
+	"encryption-service/objectstorage"
+)
 
 // Helper test function for generating code coverage of integration tests
 func TestRunMain(t *testing.T) {
 	main()
+}
+
+// Test function for starting the server with mock storage backends
+func TestInMemoryMain(t *testing.T) {
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.DebugLevel)
+	log.Info("In memory test server started")
+
+	config, err := app.ParseConfig()
+	if err != nil {
+		log.Fatalf("Config parse failed: %v", err)
+	}
+	log.Info("Config parsed")
+
+	messageAuthenticator, err := crypt.NewMessageAuthenticator(config.ASK)
+	if err != nil {
+		log.Fatalf("NewMessageAuthenticator failed: %v", err)
+	}
+	authDBPool := authstorage.NewMemoryAuthStore()
+	objectStore := objectstorage.NewMemoryObjectStore()
+
+	app := &app.App{
+		Config:               config,
+		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authDBPool,
+		ObjectStore:          objectStore,
+	}
+
+	StartServer(app)
 }

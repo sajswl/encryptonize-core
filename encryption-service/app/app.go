@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/gofrs/uuid"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
@@ -39,7 +38,7 @@ var GitTag string
 type App struct {
 	Config               *Config
 	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthDBPool           *pgxpool.Pool
+	AuthStore            authstorage.AuthStoreInterface
 	ObjectStore          objectstorage.ObjectStoreInterface
 	UnimplementedEncryptonizeServer
 }
@@ -178,7 +177,6 @@ func CheckInsecure(config *Config) {
 // This function is intended to be used for cli operation
 func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
-
 	// Need to inject requestID manually, as these calls dont pass the ususal middleware
 	requestID, err := uuid.NewV4()
 	if err != nil {
@@ -186,18 +184,19 @@ func (app *App) CreateAdminCommand() {
 	}
 	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
 
-	authStorage, err := authstorage.NewDBAuthStore(ctx, app.AuthDBPool)
+	authStoreTx, err := app.AuthStore.NewTransaction(ctx)
+
 	if err != nil {
 		log.Fatal(ctx, "Authstorage Begin failed", err)
 	}
 	defer func() {
-		err := authStorage.Rollback(ctx)
+		err := authStoreTx.Rollback(ctx)
 		if err != nil {
 			log.Fatal(ctx, "Performing rollback", err)
 		}
 	}()
 
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageCtxKey, authStorage)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
 	adminScope := authn.ScopeUserManagement
 	userID, accessToken, err := app.createUserWrapper(ctx, adminScope)
 	if err != nil {

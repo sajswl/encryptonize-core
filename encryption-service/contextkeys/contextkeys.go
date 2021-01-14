@@ -20,7 +20,7 @@ const (
 	UserIDCtxKey
 	MethodNameCtxKey
 	StatusCtxKey
-	AuthStorageCtxKey
+	AuthStorageTxCtxKey
 	ObjectIDCtxKey
 	TargetIDCtxKey
 )

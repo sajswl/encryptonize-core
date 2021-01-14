@@ -65,11 +65,10 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
 func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType) (*uuid.UUID, string, error) {
-	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
-
 	userID, err := uuid.NewV4()
 	if err != nil {
 		return nil, "", err
@@ -93,12 +92,12 @@ func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorage.UpsertUser(ctx, userID, []byte{})
+	err = authStorageTx.UpsertUser(ctx, userID, []byte{})
 	if err != nil {
 		return nil, "", err
 	}
 
-	err = authStorage.Commit(ctx)
+	err = authStorageTx.Commit(ctx)
 	if err != nil {
 		return nil, "", err
 	}

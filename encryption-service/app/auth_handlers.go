@@ -99,7 +99,7 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 // or if a user isn't authorized to edit the accessObject
 func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
 	//Define authorizer struct
-	authStorage, ok := ctx.Value(contextkeys.AuthStorageCtxKey).(authstorage.AuthStoreInterface)
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
 		log.Error(ctx, "Could not parse authstorage from context", err)
@@ -109,7 +109,7 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: messageAuthenticator,
-		Store:                authStorage,
+		AuthStoreTx:          authStorageTx,
 	}
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
