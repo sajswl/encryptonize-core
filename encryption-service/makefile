@@ -73,6 +73,10 @@ e2e-tests: build  ## Run end-to-end tests
 run: build  ## Start a local instance of the Encryption Service
 	./scripts/run.sh
 
+.PHONY: run-in-mem
+run-in-mem: build  ## Start a local instance of the Encryption Service with mock backends
+	./scripts/run_in_mem.sh
+
 .PHONY: create-admin
 create-admin: build  ## Creates an admin for the local instance of the Encryption Service
 	./scripts/run.sh create-admin
