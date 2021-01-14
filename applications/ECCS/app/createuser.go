@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package app
 
 import (
@@ -19,7 +20,7 @@ import (
 	"eccs/utils"
 )
 
-// Creates a new client and calls CreateUser through the client
+// CreateUser creates a new client and calls CreateUser through the client
 func CreateUser(userAT string, read, create, index, objectPermissions, userManagement bool) error {
 	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
 	var scopes = []CreateUserRequest_UserScope{}

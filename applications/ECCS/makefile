@@ -31,6 +31,16 @@ build: $(protobufs)  ## Build the Encryptonize Core Cloud Storage app
 $(protobufs): $(protosource)
 	protoc --go_out=app --go-grpc_out=app --proto_path=../../encryption-service/app app.proto
 
+.PHONY: lint
+lint: $(protobufs)  ## Lint the codebase
+	./scripts/lint.sh
+
+##### Test targets #####
+.PHONY: tests
+tests: build        ## Run function tests
+	./scripts/function_tests.py
+
+
 ##### Cleanup targets #####
 .PHONY: clean  ## Remove build artifacts
 clean :

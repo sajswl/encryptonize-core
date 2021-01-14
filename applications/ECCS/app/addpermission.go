@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package app
 
 import (
@@ -19,7 +20,7 @@ import (
 	"eccs/utils"
 )
 
-// Creates a new client and calls AddPermission through the client
+// AddPermission creates a new client and calls AddPermission through the client
 func AddPermission(userAT, oid, target string) error {
 	// Create client
 	client, err := NewClient(userAT)

@@ -49,6 +49,9 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 		return nil, status.Errorf(codes.Internal, "error encountered while getting permissions")
 	}
 
+	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, request.ObjectId)
+	log.Info(ctx, "GetPermissions: Permission added")
+
 	return &GetPermissionsResponse{UserIds: uids}, nil
 }
 
@@ -107,6 +110,10 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
 
+	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, oid)
+	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
+	log.Info(ctx, "AddPermission: Permission added")
+
 	return &AddPermissionResponse{}, nil
 }
 
@@ -151,6 +158,10 @@ func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionR
 		log.Error(ctx, "RemovePermission: Failed to commit auth storage transaction", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}
+
+	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, oid)
+	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
+	log.Info(ctx, "RemovePermission: Permission removed")
 
 	return &RemovePermissionResponse{}, nil
 }
