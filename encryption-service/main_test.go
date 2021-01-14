@@ -42,7 +42,6 @@ func TestInMemoryMain(t *testing.T) {
 	}
 	log.Info("Config parsed")
 
-
 	messageAuthenticator, err := crypt.NewMessageAuthenticator(config.ASK)
 	if err != nil {
 		log.Fatalf("NewMessageAuthenticator failed: %v", err)
@@ -53,7 +52,7 @@ func TestInMemoryMain(t *testing.T) {
 	app := &app.App{
 		Config:               config,
 		MessageAuthenticator: messageAuthenticator,
-		AuthStore:           authDBPool,
+		AuthStore:            authDBPool,
 		ObjectStore:          objectStore,
 	}
 

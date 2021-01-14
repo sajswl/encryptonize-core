@@ -47,7 +47,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: app.MessageAuthenticator,
-		AuthStoreTx:                authStorageTx,
+		AuthStoreTx:          authStorageTx,
 	}
 
 	oek, err := authorizer.CreateObject(ctx, objectID, userID, app.Config.KEK)

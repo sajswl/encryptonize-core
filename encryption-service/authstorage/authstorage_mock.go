@@ -67,7 +67,7 @@ type MemoryAuthStore struct {
 }
 
 func NewMemoryAuthStore() *MemoryAuthStore {
-	return &MemoryAuthStore {
+	return &MemoryAuthStore{
 		data: sync.Map{},
 	}
 }

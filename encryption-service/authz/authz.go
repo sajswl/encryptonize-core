@@ -27,7 +27,7 @@ import (
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthStoreTx                authstorage.AuthStoreTxInterface
+	AuthStoreTx          authstorage.AuthStoreTxInterface
 }
 
 // serializeAccessObject serializes and signs an Object ID + Access Object into data + tag

@@ -95,7 +95,7 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: messageAuthenticator,
-		AuthStoreTx:                authStorageTx,
+		AuthStoreTx:          authStorageTx,
 	}
 	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 
