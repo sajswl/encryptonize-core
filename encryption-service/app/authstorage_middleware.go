@@ -17,12 +17,12 @@ import (
 	"context"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	log "github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
+	log "encryption-service/logger"
 )
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
@@ -39,13 +39,13 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 
 		authStoreTx, err := app.AuthStore.NewTransaction(ctx)
 		if err != nil {
-			log.Errorf("NewDBAuthStore failed: %v", err)
+			log.Error(ctx, "NewDBAuthStore failed", err)
 			return nil, status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 		}
 		defer func() {
 			err := authStoreTx.Rollback(ctx)
 			if err != nil {
-				log.Error(err)
+				log.Error(ctx, "Performing rollback", err)
 			}
 		}()
 
@@ -62,13 +62,13 @@ func (app *App) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 
 		authStoreTx, err := app.AuthStore.NewTransaction(ctx)
 		if err != nil {
-			log.Errorf("NewDBAuthStore failed: %v", err)
+			log.Error(ctx, "NewDBAuthStore failed", err)
 			return status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 		}
 		defer func() {
 			err := authStoreTx.Rollback(ctx)
 			if err != nil {
-				log.Error(err)
+				log.Error(ctx, "Performing rollback", err)
 			}
 		}()
 

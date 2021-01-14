@@ -15,15 +15,17 @@ package app
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/gofrs/uuid"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
+	log "encryption-service/logger"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
@@ -43,14 +45,15 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 		case CreateUserRequest_USERMANAGEMENT:
 			usertype |= authn.ScopeUserManagement
 		default:
-			log.Errorf("CreateUser: Invalid scope %v", us)
+			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)
+			log.Error(ctx, msg, errors.New("CreateUser: Invalid scope"))
 			return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 		}
 	}
 
 	userID, token, err := app.createUserWrapper(ctx, usertype)
 	if err != nil {
-		log.Errorf("CreateUser: Couldn't create new user: %v", err)
+		log.Error(ctx, "CreateUser: Couldn't create new user", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
 	}
 

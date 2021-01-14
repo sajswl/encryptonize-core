@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -26,7 +27,6 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
@@ -34,14 +34,15 @@ import (
 	"encryption-service/authstorage"
 	"encryption-service/crypt"
 	"encryption-service/health"
-	"encryption-service/logger"
+	log "encryption-service/logger"
 	"encryption-service/objectstorage"
 )
 
 func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Fatalf("Failed to listen on port: %s, error: %v", fmt.Sprint(port), err)
+		msg := fmt.Sprintf("Failed to listen on port: %s", fmt.Sprint(port))
+		log.Fatal(context.TODO(), msg, err)
 	}
 
 	// Add middlewares to the grpc server:
@@ -49,18 +50,18 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 	// TODO: make sure that grpc_recovery doesn't leak any infos
 	grpcServer := grpc.NewServer(
 		grpc_middleware.WithUnaryServerChain(
-			app.RequestIDUnaryInterceptor(),
 			grpc_recovery.UnaryServerInterceptor(),
-			logger.UnaryServerInterceptor(),
-			app.UnaryMethodNameMiddleware(),
+			log.UnaryRequestIDInterceptor(),
+			log.UnaryMethodNameInterceptor(),
+			log.UnaryLogInterceptor(),
 			appStruct.AuthStorageUnaryServerInterceptor(),
 			grpc_auth.UnaryServerInterceptor(appStruct.AuthenticateUser),
 		),
 		grpc_middleware.WithStreamServerChain(
-			app.RequestIDStreamingInterceptor(),
 			grpc_recovery.StreamServerInterceptor(),
-			logger.StreamServerInterceptor(),
-			app.StreamMethodNameMiddleware(),
+			log.StreamRequestIDInterceptor(),
+			log.StreamMethodNameInterceptor(),
+			log.StreamLogInterceptor(),
 			appStruct.AuthStorageStreamingInterceptor(),
 			grpc_auth.StreamServerInterceptor(appStruct.AuthenticateUser),
 		),
@@ -76,16 +77,19 @@ func InitgRPC(port int, appStruct *app.App) (*grpc.Server, net.Listener) {
 }
 
 func StartServer(appStruct *app.App) {
+	ctx := context.TODO()
+
 	// execute cli commands
 	if len(os.Args) > 1 && filepath.Base(os.Args[0]) != "main.test" {
-		log.Info("Running in cli mode")
+		log.Info(ctx, "Running in cli mode")
 
 		cmd := os.Args[1]
 		switch cmd {
 		case "create-admin":
 			appStruct.CreateAdminCommand()
 		default:
-			log.Fatalf("Invalid command: %v", cmd)
+			msg := fmt.Sprintf("Invalid command: %v", cmd)
+			log.Fatal(ctx, msg, errors.New(""))
 		}
 
 		return
@@ -97,20 +101,22 @@ func StartServer(appStruct *app.App) {
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve gRPC server over port %d: %v", port, err)
+			msg := fmt.Sprintf("Failed to serve gRPC server over port %d", port)
+			log.Fatal(ctx, msg, err)
 		}
 	}()
 
-	log.Infof("Running gRPC API on port :%v", port)
+	msg := fmt.Sprintf("Running gRPC API on port :%v", port)
+	log.Info(ctx, msg)
 
 	c := make(chan os.Signal, 1)
 	// We'll accept graceful shutdowns when quit via SIGTERM and SIGINT
 	signal.Notify(c, syscall.SIGTERM)
 	signal.Notify(c, syscall.SIGINT)
 
-	log.Info("Press CTRL + C to shutdown server")
+	log.Info(ctx, "Press CTRL + C to shutdown server")
 	<-c
-	log.Info("Received shutdown signal")
+	log.Info(ctx, "Received shutdown signal")
 
 	// Try to gracefully shutdown
 	go func() {
@@ -122,44 +128,43 @@ func StartServer(appStruct *app.App) {
 	timeToForceShutdown := time.NewTimer(25 * time.Second)
 	select {
 	case <-timeToForceShutdown.C:
-		log.Info("Timeout exceeded, forcing shutdown")
+		log.Info(ctx, "Timeout exceeded, forcing shutdown")
 		grpcServer.Stop()
 	case <-c:
 		// TODO should we not check if this is an repeated ctrl-c, or the channel closing?
 		timeToForceShutdown.Stop()
 	}
 
-	log.Info("Shutting down")
+	log.Info(ctx, "Shutting down")
 }
 
 func main() {
-	log.SetOutput(os.Stderr)
-	log.SetLevel(log.DebugLevel)
-	log.Info("Encryption Server started")
+	ctx := context.TODO()
+	log.Info(ctx, "Encryption Server started")
 
 	config, err := app.ParseConfig()
 	if err != nil {
-		log.Fatalf("Config parse failed: %v", err)
+		log.Fatal(ctx, "Config parse failed", err)
 	}
-	log.Info("Config parsed")
+	log.Info(ctx, "Config parsed")
 
 	// Setup authentication storage DB Pool connection
 	authStore, err := authstorage.NewAuthStore(context.Background(), config.AuthStorageURL)
 	if err != nil {
-		log.Fatalf("Authstorage connect failed: %v", err)
+		log.Fatal(ctx, "Authstorage connect failed", err)
 	}
 	defer authStore.Close()
 
 	messageAuthenticator, err := crypt.NewMessageAuthenticator(config.ASK)
 	if err != nil {
-		log.Fatalf("NewMessageAuthenticator failed: %v", err)
+		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
 
 	objectStore, err := objectstorage.NewObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
 	)
 	if err != nil {
-		log.Fatalf("Objectstorage connect failed: %v", err)
+		log.Fatal(ctx, "Objectstorage connect failed", err)
 	}
 
 	app := &app.App{

@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package app
 
 import (
@@ -34,8 +35,8 @@ type Client struct {
 	ctx        context.Context
 }
 
-// Create a new client. This sample application does not support https.
-// For a secure connection see: https://grpc.io/docs/guides/auth/#with-server-authentication-ssltls
+// NewClient creates a new client
+// For a secure connection set the environment variable "ECCS_CRT" appropriately
 func NewClient(userAT string) (*Client, error) {
 	// Wrap credentials as gRPC metadata
 	md := metadata.Pairs("authorization", fmt.Sprintf("bearer %s", userAT)) // set authorization header
@@ -52,7 +53,6 @@ func NewClient(userAT string) (*Client, error) {
 		// If the environment is unset assume tls not to be used
 		opts = append(opts, grpc.WithInsecure())
 	} else {
-
 		var tlsConf tls.Config
 		pool, err := x509.SystemCertPool()
 		if err != nil {
@@ -65,7 +65,7 @@ func NewClient(userAT string) (*Client, error) {
 			// extract the certificate from the environment variable and add it to the certificate pool
 			ok := pool.AppendCertsFromPEM([]byte(crt))
 			if !ok {
-				return nil, fmt.Errorf("%v Unable to add certificate from ECCS_CRT to the certificate pool. Make sure it is a PEM certificate and not a file containing one.", utils.Fail("Client creation failed:"))
+				return nil, fmt.Errorf("%v Unable to add certificate from ECCS_CRT to the certificate pool. Make sure it is a PEM certificate and not a file containing one", utils.Fail("Client creation failed:"))
 			}
 		}
 
@@ -94,7 +94,7 @@ func NewClient(userAT string) (*Client, error) {
 	}, nil
 }
 
-// Calls the Encryptonize Store endpoint
+// Store calls the Encryptonize Store endpoint
 func (c *Client) Store(plaintext, associatedData []byte) (*StoreResponse, error) {
 	// Define request struct
 	storeRequest := &StoreRequest{
@@ -112,7 +112,7 @@ func (c *Client) Store(plaintext, associatedData []byte) (*StoreResponse, error)
 	return storeResponse, nil
 }
 
-// Calls the Encryptonize Retrieve endpoint
+// Retrieve calls the Encryptonize Retrieve endpoint
 func (c *Client) Retrieve(oid string) (*RetrieveResponse, error) {
 	// Define request struct
 	retrieveRequest := &RetrieveRequest{ObjectId: oid} // Construct the retrieve request. This only requires the object id of the object to be fetched from storage.
@@ -125,7 +125,7 @@ func (c *Client) Retrieve(oid string) (*RetrieveResponse, error) {
 	return retrieveResponse, nil
 }
 
-// Calls the Encryptonize GetPermissions endpoint
+// GetPermissions calls the Encryptonize GetPermissions endpoint
 func (c *Client) GetPermissions(oid string) (*GetPermissionsResponse, error) {
 	// Define request struct
 	getPermissionsRequest := &GetPermissionsRequest{ObjectId: oid} // Construct the GetPermissions request. This only requires the object id of the object.
@@ -138,7 +138,7 @@ func (c *Client) GetPermissions(oid string) (*GetPermissionsResponse, error) {
 	return getPermissionsResponse, nil
 }
 
-// Calls the Encryptonize AddPermission endpoint
+// AddPermission calls the Encryptonize AddPermission endpoint
 func (c *Client) AddPermission(oid, target string) (*AddPermissionResponse, error) {
 	// Define request struct
 	addPermissionRequest := &AddPermissionRequest{ObjectId: oid, Target: target} // Construct the AddPermission request.
@@ -151,7 +151,7 @@ func (c *Client) AddPermission(oid, target string) (*AddPermissionResponse, erro
 	return addPermissionResponse, nil
 }
 
-// Calls the Encryptonize RemovePermission endpoint
+// RemovePermission calls the Encryptonize RemovePermission endpoint
 func (c *Client) RemovePermission(oid, target string) (*RemovePermissionResponse, error) {
 	// Define request struct
 	removePermissionRequest := &RemovePermissionRequest{ObjectId: oid, Target: target} // Construct the RemovePermission request.
@@ -164,7 +164,7 @@ func (c *Client) RemovePermission(oid, target string) (*RemovePermissionResponse
 	return removePermissionResponse, nil
 }
 
-// Calls the Encryptonize CreateUser endpoint
+// CreateUser calls the Encryptonize CreateUser endpoint
 func (c *Client) CreateUser(scopes []CreateUserRequest_UserScope) (*CreateUserResponse, error) {
 	// Define request struct
 	createUserRequest := &CreateUserRequest{UserScopes: scopes} // Construct the CreateUser request. This only requires the user list of scopes the user is granted.

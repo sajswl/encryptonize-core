@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package cmd
 
 import (
@@ -126,7 +127,7 @@ var createUserCmd = &cobra.Command{
 	},
 }
 
-func init() {
+func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
 	rootCmd.AddCommand(retrieveCmd)
@@ -137,7 +138,9 @@ func init() {
 
 	// Set credential flags
 	rootCmd.PersistentFlags().StringVarP(&userAT, "token", "a", "", "User access token")
-	rootCmd.MarkPersistentFlagRequired("token")
+	if err := rootCmd.MarkPersistentFlagRequired("token"); err != nil {
+		return err
+	}
 
 	// Set store flags
 	storeCmd.Flags().StringVarP(&filename, "filename", "f", "", "File to send to storage")
@@ -146,23 +149,35 @@ func init() {
 
 	// Set retrieve flags
 	retrieveCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to retrieve")
-	retrieveCmd.MarkFlagRequired("objectid")
+	if err := retrieveCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
 
 	// Set getPermissions flags
 	getPermissionsCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to get permissions from")
-	getPermissionsCmd.MarkFlagRequired("objectid")
+	if err := getPermissionsCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
 
 	// Set addPermission flags
 	addPermissionCmd.Flags().StringVarP(&target, "target", "t", "", "Target UID to add to permission list of object")
-	addPermissionCmd.MarkFlagRequired("target")
+	if err := addPermissionCmd.MarkFlagRequired("target"); err != nil {
+		return err
+	}
 	addPermissionCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to add permissions to")
-	addPermissionCmd.MarkFlagRequired("objectid")
+	if err := addPermissionCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
 
 	// Set removePermission flags
 	removePermissionCmd.Flags().StringVarP(&target, "target", "t", "", "Target UID to remove from permissions list of object")
-	removePermissionCmd.MarkFlagRequired("target")
+	if err := removePermissionCmd.MarkFlagRequired("target"); err != nil {
+		return err
+	}
 	removePermissionCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to remove permissions from")
-	removePermissionCmd.MarkFlagRequired("objectid")
+	if err := removePermissionCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
 
 	// Set createUser flags
 	createUserCmd.Flags().BoolVarP(&scopeRead, "read", "r", false, "Grants the Read scope to the newly created user")
@@ -170,8 +185,11 @@ func init() {
 	createUserCmd.Flags().BoolVarP(&scopeIndex, "index", "i", false, "Grants the Index scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeUserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
+
+	return nil
 }
 
+// Execute runs the parser for the command line arguments
 func Execute() error {
 	return rootCmd.Execute()
 }
