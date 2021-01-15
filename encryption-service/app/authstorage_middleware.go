@@ -30,7 +30,13 @@ import (
 func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
-		methodName := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+		if !ok {
+			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
+			log.Error(ctx, "Could not typecast methodName to string", err)
+			return nil, err
+		}
+
 		// Don't start DB tranaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
 		if methodName == healthEndpointCheck || methodName == healthEndpointWatch {

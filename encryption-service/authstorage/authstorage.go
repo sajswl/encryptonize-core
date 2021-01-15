@@ -129,10 +129,16 @@ func (store *AuthStore) NewTransaction(ctx context.Context) (AuthStoreTxInterfac
 		return nil, err
 	}
 
+	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	if !ok {
+		return nil, errors.New("Could not typecast requestID to uuid.UUID")
+	}
+
 	authStorage := &AuthStoreTx{
 		tx:        tx.(pgx.Tx),
-		requestID: ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID),
+		requestID: requestID,
 	}
+
 	return authStorage, nil
 }
 

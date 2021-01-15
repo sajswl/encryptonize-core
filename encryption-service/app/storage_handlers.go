@@ -34,7 +34,12 @@ const CiphertextStoreSuffix = "_data"
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
 func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
-	userID := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while storing object")
+		log.Error(ctx, "Store: Could not typecast userID to uuid.UUID", err)
+		return nil, err
+	}
 
 	objectID, err := uuid.NewV4()
 	if err != nil {
@@ -44,7 +49,13 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
-	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+	if !ok {
+		err = status.Errorf(codes.Internal, "error encountered while storing object")
+		log.Error(ctx, "Store: Could not typecast authstorage to AuthStoreTxInterface ", err)
+		return nil, err
+	}
+
 	authorizer := &authz.Authorizer{
 		MessageAuthenticator: app.MessageAuthenticator,
 		AuthStoreTx:          authStorageTx,

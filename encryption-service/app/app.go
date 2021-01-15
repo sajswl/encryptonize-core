@@ -22,6 +22,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gofrs/uuid"
+
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
@@ -175,6 +177,13 @@ func CheckInsecure(config *Config) {
 // This function is intended to be used for cli operation
 func (app *App) CreateAdminCommand() {
 	ctx := context.Background()
+	// Need to inject requestID manually, as these calls don't pass the usual middleware
+	requestID, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(ctx, "Could not generate uuid", err)
+	}
+	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+
 	authStoreTx, err := app.AuthStore.NewTransaction(ctx)
 	if err != nil {
 		log.Fatal(ctx, "Authstorage Begin failed", err)

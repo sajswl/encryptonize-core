@@ -65,8 +65,10 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
 func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
-
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+	if !ok {
+		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+	}
 	userID, err := uuid.NewV4()
 	if err != nil {
 		return nil, "", err
