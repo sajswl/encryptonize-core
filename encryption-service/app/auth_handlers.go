@@ -54,7 +54,7 @@ func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
-		log.Error(ctx, "Could not parse methodName from context", err)
+		log.Error(ctx, "Could not typecast methodName to string", err)
 		return nil, err
 	}
 
@@ -101,7 +101,7 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
-		log.Error(ctx, "Could not parse authstorage from context", err)
+		log.Error(ctx, "Could not typecast authstorage to AuthStoreTxInterface", err)
 		return nil, nil, err
 	}
 
@@ -112,7 +112,7 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
-		log.Error(ctx, "Could not parse userID from context", err)
+		log.Error(ctx, "Could not typecast userID to uuid.UUID", err)
 		return nil, nil, err
 	}
 

@@ -37,7 +37,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
-		log.Error(ctx, "Store: Could not parse userID from context", err)
+		log.Error(ctx, "Store: Could not typecast userID to uuid.UUID", err)
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		err = status.Errorf(codes.Internal, "error encountered while storing object")
-		log.Error(ctx, "Store: Could not parse authStorage from context", err)
+		log.Error(ctx, "Store: Could not typecast authstorage to AuthStoreTxInterface ", err)
 		return nil, err
 	}
 

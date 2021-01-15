@@ -33,7 +33,7 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 		if !ok {
 			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
-			log.Error(ctx, "Could not parse methodName from context", err)
+			log.Error(ctx, "Could not typecast methodName to string", err)
 			return nil, err
 		}
 
