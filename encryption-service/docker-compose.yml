@@ -42,6 +42,7 @@ services:
       - cockroachdb-2
       - cockroachdb-3
       - minio
+    tty: true
 
   # CockroachDB
   cockroachdb-1:
