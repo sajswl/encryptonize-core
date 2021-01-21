@@ -66,7 +66,6 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	// TODO: Refactor this abstraction
 	ciphertext, err := app.Crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
 	if err != nil {
 		log.Error(ctx, "Store: Failed to encrypt object", err)
