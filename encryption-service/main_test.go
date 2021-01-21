@@ -54,7 +54,8 @@ func TestInMemoryMain(t *testing.T) {
 		MessageAuthenticator: messageAuthenticator,
 		AuthStore:            authDBPool,
 		ObjectStore:          objectStore,
+		Crypter:              &crypt.AESCrypter{},
 	}
 
-	StartServer(app)
+	app.StartServer()
 }
