@@ -32,6 +32,11 @@ func init() {
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.JSONFormatter{})
+	if stderrInfo, err := os.Stderr.Stat(); err == nil {
+		if (stderrInfo.Mode() & os.ModeCharDevice) != 0 {
+			log.SetFormatter(&log.TextFormatter{})
+		}
+	}
 }
 
 // Extracts logging fields from context. Does not set a field if it is not present in the context.
