@@ -23,7 +23,6 @@ import (
 	"encryption-service/authstorage"
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
-	"encryption-service/crypt"
 	log "encryption-service/logger"
 )
 
@@ -67,9 +66,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	// TODO: Refactor this abstraction
-	crypter := &crypt.Crypter{}
-	ciphertext, err := crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
+	ciphertext, err := app.Crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
 	if err != nil {
 		log.Error(ctx, "Store: Failed to encrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
@@ -126,9 +123,7 @@ func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	// TODO: Refactor this abstraction
-	crypter := &crypt.Crypter{}
-	plaintext, err := crypter.Decrypt(ciphertext, aad, oek)
+	plaintext, err := app.Crypter.Decrypt(ciphertext, aad, oek)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")

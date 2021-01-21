@@ -28,7 +28,7 @@ var plaintext, _ = hex.DecodeString("d9313225f88406e5a55909c5aff5269a86a7a953153
 var ciphertextHex = "522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f66276fc6ece0f4e1768cddf8853bb2d551b" + hex.EncodeToString(nonce)
 
 func TestEncryptPilot(t *testing.T) {
-	crypter := &Crypter{}
+	crypter := &AESCrypter{}
 
 	tmpReader := rand.Reader
 	defer func() { rand.Reader = tmpReader }()
@@ -56,7 +56,7 @@ func TestEncryptPilot(t *testing.T) {
 }
 
 func TestAssociatedDataSizes(t *testing.T) {
-	crypter := &Crypter{}
+	crypter := &AESCrypter{}
 
 	encryptDecrypt := func(sz uint32) bool {
 		aad := GetRandomBytes(sz)
@@ -85,7 +85,7 @@ func TestAssociatedDataSizes(t *testing.T) {
 }
 
 func TestPlaintextSizes(t *testing.T) {
-	crypter := &Crypter{}
+	crypter := &AESCrypter{}
 
 	encryptDecrypt := func(sz uint32) bool {
 		plaintext := GetRandomBytes(sz)

@@ -19,15 +19,26 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/gofrs/uuid"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
 
 	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
+	"encryption-service/health"
 	log "encryption-service/logger"
 	"encryption-service/objectstorage"
 )
@@ -40,6 +51,7 @@ type App struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
 	AuthStore            authstorage.AuthStoreInterface
 	ObjectStore          objectstorage.ObjectStoreInterface
+	Crypter              crypt.CrypterInterface
 	UnimplementedEncryptonizeServer
 }
 
@@ -205,4 +217,104 @@ func (app *App) CreateAdminCommand() {
 	log.Info(ctx, "Created admin user:")
 	log.Info(ctx, fmt.Sprintf("    User ID:      %v", userID))
 	log.Info(ctx, fmt.Sprintf("    Access Token: %v", accessToken))
+}
+
+func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		msg := fmt.Sprintf("Failed to listen on port: %s", fmt.Sprint(port))
+		log.Fatal(context.TODO(), msg, err)
+	}
+
+	// Add middlewares to the grpc server:
+	// The order is important: AuthenticateUser needs AuthStore and Authstore needs MethodName
+	// TODO: make sure that grpc_recovery doesn't leak any infos
+	grpcServer := grpc.NewServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpc_recovery.UnaryServerInterceptor(),
+			log.UnaryRequestIDInterceptor(),
+			log.UnaryMethodNameInterceptor(),
+			log.UnaryLogInterceptor(),
+			app.AuthStorageUnaryServerInterceptor(),
+			grpc_auth.UnaryServerInterceptor(app.AuthenticateUser),
+		),
+		grpc_middleware.WithStreamServerChain(
+			grpc_recovery.StreamServerInterceptor(),
+			log.StreamRequestIDInterceptor(),
+			log.StreamMethodNameInterceptor(),
+			log.StreamLogInterceptor(),
+			app.AuthStorageStreamingInterceptor(),
+			grpc_auth.StreamServerInterceptor(app.AuthenticateUser),
+		),
+	)
+
+	RegisterEncryptonizeServer(grpcServer, app)
+
+	// Register health checker to grpc server
+	healthService := health.NewHealthChecker()
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthService)
+
+	return grpcServer, lis
+}
+
+func (app *App) StartServer() {
+	ctx := context.TODO()
+
+	// execute cli commands
+	if len(os.Args) > 1 && filepath.Base(os.Args[0]) != "main.test" {
+		log.Info(ctx, "Running in cli mode")
+
+		cmd := os.Args[1]
+		switch cmd {
+		case "create-admin":
+			app.CreateAdminCommand()
+		default:
+			msg := fmt.Sprintf("Invalid command: %v", cmd)
+			log.Fatal(ctx, msg, errors.New(""))
+		}
+
+		return
+	}
+
+	// Setup gRPC listener
+	var port int = 9000
+	grpcServer, lis := app.initgRPC(port)
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			msg := fmt.Sprintf("Failed to serve gRPC server over port %d", port)
+			log.Fatal(ctx, msg, err)
+		}
+	}()
+
+	msg := fmt.Sprintf("Running gRPC API on port :%v", port)
+	log.Info(ctx, msg)
+
+	c := make(chan os.Signal, 1)
+	// We'll accept graceful shutdowns when quit via SIGTERM and SIGINT
+	signal.Notify(c, syscall.SIGTERM)
+	signal.Notify(c, syscall.SIGINT)
+
+	log.Info(ctx, "Press CTRL + C to shutdown server")
+	<-c
+	log.Info(ctx, "Received shutdown signal")
+
+	// Try to gracefully shutdown
+	go func() {
+		grpcServer.GracefulStop()
+		close(c)
+	}()
+
+	// Wait 25 seconds, if server hasn't shut down gracefully, force it
+	timeToForceShutdown := time.NewTimer(25 * time.Second)
+	select {
+	case <-timeToForceShutdown.C:
+		log.Info(ctx, "Timeout exceeded, forcing shutdown")
+		grpcServer.Stop()
+	case <-c:
+		// TODO should we not check if this is an repeated ctrl-c, or the channel closing?
+		timeToForceShutdown.Stop()
+	}
+
+	log.Info(ctx, "Shutting down")
 }

@@ -20,7 +20,12 @@ import (
 	"fmt"
 )
 
-type Crypter struct {
+type CrypterInterface interface {
+	Encrypt(plaintext, aad, key []byte) ([]byte, error)
+	Decrypt(ciphertext, aad, key []byte) ([]byte, error)
+}
+
+type AESCrypter struct {
 }
 
 const nonceLength = 12
@@ -73,7 +78,7 @@ func AESGCMDecrypt(data, aad, nonce, key []byte, tagLen int) error {
 
 // Encrypt encrypts a plaintext with additional associated data (aad) using the provided key returning the resulting ciphertext.
 // The backing array of plaintext is likely modified during this operation.
-func (c *Crypter) Encrypt(plaintext, aad, key []byte) ([]byte, error) {
+func (c *AESCrypter) Encrypt(plaintext, aad, key []byte) ([]byte, error) {
 	ciphertext := append(plaintext, make([]byte, Overhead)...) // make sure we also have space
 	nonce, err := Random(nonceLength)
 	if err != nil {
@@ -91,7 +96,7 @@ func (c *Crypter) Encrypt(plaintext, aad, key []byte) ([]byte, error) {
 
 // Decrypt decrypts a ciphertext with additional associated data (aad) using the provided key returning the resulting plaintext.
 // ciphertext is modified during this operation.
-func (c *Crypter) Decrypt(ciphertext, aad, key []byte) ([]byte, error) {
+func (c *AESCrypter) Decrypt(ciphertext, aad, key []byte) ([]byte, error) {
 	if len(ciphertext) < Overhead {
 		return nil, fmt.Errorf("ciphertext is too short")
 	}

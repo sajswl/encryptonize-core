@@ -55,6 +55,7 @@ func TestStoreRetrieve(t *testing.T) {
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
 		Config:               config,
+		Crypter:              &crypt.AESCrypter{},
 	}
 
 	object := &Object{
@@ -102,6 +103,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
 		Config:               config,
+		Crypter:              &crypt.AESCrypter{},
 	}
 
 	userID, err := uuid.NewV4()
@@ -140,6 +142,7 @@ func TestStoreFail(t *testing.T) {
 		ObjectStore:          objectStore,
 		MessageAuthenticator: messageAuthenticator,
 		Config:               config,
+		Crypter:              &crypt.AESCrypter{},
 	}
 
 	object := &Object{
@@ -178,6 +181,7 @@ func TestStoreFailAuth(t *testing.T) {
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
 		Config:               config,
+		Crypter:              &crypt.AESCrypter{},
 	}
 
 	object := &Object{
