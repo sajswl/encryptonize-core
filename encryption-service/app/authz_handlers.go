@@ -18,80 +18,15 @@ import (
 	"fmt"
 
 	"github.com/gofrs/uuid"
-	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 	log "encryption-service/logger"
 )
-
-const baseMethodPath string = "/app.Encryptonize/"
-const healthEndpointCheck string = "/grpc.health.v1.Health/Check"
-const healthEndpointWatch string = "/grpc.health.v1.Health/Watch"
-
-var methodScopeMap = map[string]authn.ScopeType{
-	baseMethodPath + "CreateUser":       authn.ScopeUserManagement,
-	baseMethodPath + "GetPermissions":   authn.ScopeIndex,
-	baseMethodPath + "AddPermission":    authn.ScopeObjectPermissions,
-	baseMethodPath + "RemovePermission": authn.ScopeObjectPermissions,
-	baseMethodPath + "Store":            authn.ScopeCreate,
-	baseMethodPath + "Retrieve":         authn.ScopeRead,
-	baseMethodPath + "Version":          authn.ScopeNone,
-}
-
-// Authenticates user using an Access Token
-// the Access Token contains uid, scopes, and a random value
-// this token has to be integrity protected (e.g. by an HMAC)
-// this method fails if the integrity check failed or the token
-// lacks the required scope
-func (app *App) AuthenticateUser(ctx context.Context) (context.Context, error) {
-	// Grab method name
-	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
-	if !ok {
-		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
-		log.Error(ctx, "Could not typecast methodName to string", err)
-		return nil, err
-	}
-
-	// Don't authenticate health checks
-	// IMPORTANT! This check MUST stay at the top of this function
-	if methodName == healthEndpointCheck || methodName == healthEndpointWatch {
-		return ctx, nil
-	}
-
-	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
-	if err != nil {
-		log.Error(ctx, "AuthenticateUser: Couldn't find token in metadata", err)
-		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
-	}
-
-	authenticator := &authn.Authenticator{
-		MessageAuthenticator: app.MessageAuthenticator,
-	}
-
-	accessToken, err := authenticator.ParseAccessToken(token)
-	if err != nil {
-		log.Error(ctx, "AuthenticateUser: Unable to parse Access Token", err)
-		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
-	}
-
-	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.UserID)
-
-	if !accessToken.HasScopes(methodScopeMap[methodName]) {
-		err = status.Errorf(codes.PermissionDenied, "access not authorized")
-		log.Error(newCtx, "AuthenticateUser: Unauthorized access", err)
-		return nil, err
-	}
-
-	log.Info(newCtx, "AuthenticateUser: User authenticated")
-
-	return newCtx, nil
-}
 
 // Wraps the Authorize call
 // Fails if uid or oid are wrongly formatted

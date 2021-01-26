@@ -30,6 +30,7 @@ build: $(protobufs)  ## Build the Encryptonize Core Cloud Storage app
 
 $(protobufs): $(protosource)
 	protoc --go_out=app --go-grpc_out=app --proto_path=../../encryption-service/app app.proto
+	protoc --go_out=authn --go-grpc_out=authn --proto_path=../../encryption-service/authn authn.proto
 
 .PHONY: lint
 lint: $(protobufs)  ## Lint the codebase

@@ -11,40 +11,24 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package authn
 
 import (
-	"encoding/base64"
-	"encoding/hex"
+	"context"
 	"strings"
 	"testing"
 
 	"github.com/gofrs/uuid"
+	codes "google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
 
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 )
 
-var (
-	ASK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
-	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
-	nonce, _  = hex.DecodeString("00000000000000000000000000000002")
-	userScope = ScopeUserManagement
-	AT        = &AccessToken{
-		UserID:     userID,
-		userScopes: userScope,
-	}
-
-	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK)
-	authenticator           = &Authenticator{
-		MessageAuthenticator: messageAuthenticator,
-	}
-
-	expectedSerialized = "ChAAAAAAAABAAIAAAAAAAAACEgEE"
-	expectedMessage, _ = base64.RawURLEncoding.DecodeString(expectedSerialized)
-	expectedTag, _     = messageAuthenticator.Tag(crypt.TokenDomain, append(nonce, expectedMessage...))
-	expectedToken      = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg." + base64.RawURLEncoding.EncodeToString(expectedTag)
-)
-
+// copy
 func failOnError(message string, err error, t *testing.T) {
 	if err != nil {
 		t.Fatalf(message+": %v", err)
@@ -57,130 +41,203 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
-func TestSerialize(t *testing.T) {
-	token, err := authenticator.SerializeAccessToken(AT)
+func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes ScopeType) (string, error) {
+	authenticator := &Authenticator{
+		MessageAuthenticator: m,
+	}
+
+	accessToken := &AccessToken{}
+	err := accessToken.New(userID, scopes)
 	if err != nil {
-		t.Fatalf("SerializeAccessToken errored: %v", err)
+		return "", err
 	}
 
-	serialized := strings.Split(token, ".")[0]
-
-	if serialized != expectedSerialized {
-		t.Errorf("Message doesn't match:\n%v\n%v", expectedToken, token)
-	}
-
-	t.Logf("dev admin token: %v", expectedToken)
-}
-
-func TestSerializeParseIdentity(t *testing.T) {
-	token, err := authenticator.SerializeAccessToken(AT)
+	token, err := authenticator.SerializeAccessToken(accessToken)
 	if err != nil {
-		t.Fatalf("SerializeAccessToken errored: %v", err)
+		return "", err
 	}
 
-	AT2, err := authenticator.ParseAccessToken(token)
-	failOnError("Parsing serialized access token failed", err, t)
-	if AT2.UserID != AT.UserID || AT2.userScopes != AT.userScopes {
-		t.Errorf("Serialize parse identity violated")
-	}
+	token = "bearer " + token
+	return token, nil
 }
 
-func TestSerializeBaduserScope(t *testing.T) {
-	BadScopeAT := &AccessToken{
-		UserID:     userID,
-		userScopes: ScopeType(0xff),
-	}
+// This is a good path test of the authentication middleware
+// It ONLY tests the middleware and assumes that the LoginUser works as intended
+func TestAuthMiddlewareGoodPath(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
 
-	token, err := authenticator.SerializeAccessToken(BadScopeAT)
-	if (err == nil && err.Error() != "Invalid scopes") || token != "" {
-		t.Errorf("formatMessage should have errored")
-	}
-}
-
-func TestSerializeBadUserID(t *testing.T) {
-	BadUUIDAT := &AccessToken{
-		UserID:     uuid.Nil,
-		userScopes: userScope,
-	}
-
-	token, err := authenticator.SerializeAccessToken(BadUUIDAT)
-	if (err == nil && err.Error() != "Invalid userID UUID") || token != "" {
-		t.Errorf("formatMessage should have errored")
-	}
-}
-
-func TestParseAccessToken(t *testing.T) {
-	AT, err := authenticator.ParseAccessToken(expectedToken)
-	failOnError("ParseAccessToken did fail", err, t)
-
-	if AT.UserID != userID || AT.userScopes != userScope {
-		t.Errorf("Parsed Access Token contained different data!")
-	}
-}
-
-// the checks for the modified parts of the token is currently handled
-// in auth_handlers_test (TestAuthMiddlewareSwappedTokenParts)
-
-func TestVerifyModifiedASK(t *testing.T) {
-	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+	m, err := crypt.NewMessageAuthenticator(ASK)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	authenticator := &Authenticator{
-		MessageAuthenticator: ma,
+	token, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken errored", err, t)
+
+	var md = metadata.Pairs("authorization", token)
+	au := Authenticator{
+		MessageAuthenticator: m,
 	}
 
-	_, err = authenticator.ParseAccessToken(expectedToken)
-	failOnSuccess("ParseAccessToken should have failed with modified ASK", err, t)
-	if err.Error() != "invalid token" {
-		t.Errorf("ParseAccessToken failed with different error. Expected \"invalid token\" but go %v", err)
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+	ctx = metadata.NewIncomingContext(ctx, md)
+	_, err = au.AuthenticateUser(ctx)
+	failOnError("Auth failed", err, t)
+}
+
+func TestAuthMiddlewareNonBase64(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
+
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("NewMessageAuthenticator errored %v", err, t)
+
+	goodToken, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+
+	goodTokenParts := strings.Split(goodToken, ".")
+
+	au := Authenticator{
+		MessageAuthenticator: m,
+	}
+
+	// for each position of the split token
+	for i := 0; i < len(goodTokenParts); i++ {
+		tokenParts := []string{}
+		// combine both tokens such that all but the
+		// position 'i' come from the first.
+		for j := 0; j < len(goodTokenParts); j++ {
+			if i != j {
+				tokenParts = append(tokenParts, goodTokenParts[j])
+			} else {
+				tokenParts = append(tokenParts, "-~iamnoturlbase64+/")
+			}
+		}
+		token := strings.Join(tokenParts, ".")
+
+		var md = metadata.Pairs("authorization", token)
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = au.AuthenticateUser(ctx)
+		failOnSuccess("Auth should have errored", err, t)
 	}
 }
 
-func TestSerializeAccessTokenAnyScopes(t *testing.T) {
-	// try to create a use for every valid combination of scopes
-	// even the empty set
-	for i := uint64(0); i < uint64(ScopeEnd); i++ {
-		uScope := ScopeType(i)
-		tAT := &AccessToken{
-			UserID:     userID,
-			userScopes: uScope,
+func TestAuthMiddlewareSwappedTokenParts(t *testing.T) {
+	userIDFirst := uuid.Must(uuid.NewV4())
+	userIDSecond := uuid.Must(uuid.NewV4())
+	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
+
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("NewMessageAuthenticator errored %v", err, t)
+
+	tokenFirst, err := CreateUserForTests(m, userIDFirst, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+	tokenSecond, err := CreateUserForTests(m, userIDSecond, userScope)
+	failOnError("SerializeAccessToken failed", err, t)
+
+	firstTokenParts := strings.Split(tokenFirst, ".")
+	secondTokenParts := strings.Split(tokenSecond, ".")
+
+	au := Authenticator{
+		MessageAuthenticator: m,
+	}
+
+	// for each position of the split token
+	for i := 0; i < len(firstTokenParts); i++ {
+		tokenParts := []string{}
+		// combine both tokens such that all but the
+		// position 'i' come from the first.
+		for j := 0; j < len(firstTokenParts); j++ {
+			if i != j {
+				tokenParts = append(tokenParts, firstTokenParts[j])
+			} else {
+				tokenParts = append(tokenParts, secondTokenParts[j])
+			}
 		}
-		_, err := authenticator.SerializeAccessToken(tAT)
-		if err != nil {
-			t.Fatalf("Failed to create/update user with scopes %v: %v", uScope, err)
-		}
+		token := strings.Join(tokenParts, ".")
+
+		var md = metadata.Pairs("authorization", token)
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = au.AuthenticateUser(ctx)
+		failOnSuccess("Auth should have errored", err, t)
 	}
 }
 
-func TestAccessTokenNew(t *testing.T) {
-	// try to create a use for every valid combination of scopes
-	// even the empty set
-	for i := uint64(0); i < uint64(ScopeEnd); i++ {
-		uScope := ScopeType(i)
-		at := &AccessToken{}
+// Tests that accesstoken of wrong type gets rejected
+func TestAuthMiddlewareInvalidAT(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	ASK, _ := crypt.Random(32)
 
-		err := at.New(userID, uScope)
-		if err != nil {
-			t.Fatalf("AccessToken.New errored for scope %v: %v", uScope, err)
-		}
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("NewMessageAuthenticator errored", err, t)
 
-		if at.UserID != userID || at.userScopes != uScope {
-			t.Fatalf("AccessToken.New result differed from input")
-		}
+	token, err := CreateUserForTests(m, userID, userScope)
+	failOnError("SerializeAccessToken errored", err, t)
+
+	token = "notBearer" + token[6:]
+	var md = metadata.Pairs("authorization", token)
+	au := Authenticator{
+		MessageAuthenticator: m,
+	}
+
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+	ctx = metadata.NewIncomingContext(ctx, md)
+	_, err = au.AuthenticateUser(ctx)
+	failOnSuccess("Auth should have failed", err, t)
+}
+
+// Tests that accesstoken thats not hex gets rejected
+func TestAuthMiddlewareInvalidATformat(t *testing.T) {
+	au := Authenticator{}
+
+	// Test wrong format AT
+	// User credentials
+	AT := "bearer thisIsANonHexaDecimalSentenceThatsAtLeastSixtyFourCharactersLong"
+	var md = metadata.Pairs("authorization", AT)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+	_, err := au.AuthenticateUser(ctx)
+	failOnSuccess("Invalid Auth Passed", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
+		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.InvalidArgument, errStatus.Code())
 	}
 }
 
-func TestAccessTokenNewInvalidUUID(t *testing.T) {
-	at := &AccessToken{}
-	badUUID := uuid.Nil
-	err := at.New(badUUID, userScope)
-	failOnSuccess("AccessToken.New should have failed for invalid UUID", err, t)
-}
+// This test tries to access each endpoint with every but the required scope
+// all tests should fail
+func TestAuthMiddlewareNegativeScopes(t *testing.T) {
+	ASK, _ := crypt.Random(32)
+	m, err := crypt.NewMessageAuthenticator(ASK)
+	failOnError("Error creating MessageAuthenticator", err, t)
 
-func TestAccessTokenNewInvalidScopes(t *testing.T) {
-	at := &AccessToken{}
-	badScopes := ScopeType(0xff)
+	au := Authenticator{
+		MessageAuthenticator: m,
+	}
 
-	err := at.New(userID, badScopes)
-	failOnSuccess("AccessToken.New should have failed for invalid UUID", err, t)
+	for endpoint, rscope := range methodScopeMap {
+		if rscope == ScopeNone {
+			// endpoints that only require logged in users are already covered
+			// by tests that check if authentication works
+			continue
+		}
+		tscopes := (ScopeEnd - 1) &^ rscope
+		tuid := uuid.Must(uuid.NewV4())
+		token, err := CreateUserForTests(m, tuid, tscopes)
+		failOnError("Error Creating User", err, t)
+
+		var md = metadata.Pairs("authorization", token)
+
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, endpoint)
+		ctx = metadata.NewIncomingContext(ctx, md)
+		_, err = au.AuthenticateUser(ctx)
+		if err == nil {
+			t.Errorf("User allowed to call endpoint %v requireing scopes %v using scopes %v", endpoint, rscope, tscopes)
+		}
+	}
 }

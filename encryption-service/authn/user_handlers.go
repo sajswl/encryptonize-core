@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package authn
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
 	log "encryption-service/logger"
@@ -30,20 +29,20 @@ import (
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
-func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	usertype := authn.ScopeNone
+func (au Authenticator) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
+	usertype := ScopeNone
 	for _, us := range request.UserScopes {
 		switch us {
-		case CreateUserRequest_READ:
-			usertype |= authn.ScopeRead
-		case CreateUserRequest_CREATE:
-			usertype |= authn.ScopeCreate
-		case CreateUserRequest_INDEX:
-			usertype |= authn.ScopeIndex
-		case CreateUserRequest_OBJECTPERMISSIONS:
-			usertype |= authn.ScopeObjectPermissions
-		case CreateUserRequest_USERMANAGEMENT:
-			usertype |= authn.ScopeUserManagement
+		case UserScope_READ:
+			usertype |= ScopeRead
+		case UserScope_CREATE:
+			usertype |= ScopeCreate
+		case UserScope_INDEX:
+			usertype |= ScopeIndex
+		case UserScope_OBJECTPERMISSIONS:
+			usertype |= ScopeObjectPermissions
+		case UserScope_USERMANAGEMENT:
+			usertype |= ScopeUserManagement
 		default:
 			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)
 			log.Error(ctx, msg, errors.New("CreateUser: Invalid scope"))
@@ -51,7 +50,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 		}
 	}
 
-	userID, token, err := app.createUserWrapper(ctx, usertype)
+	userID, token, err := au.createUserWrapper(ctx, usertype)
 	if err != nil {
 		log.Error(ctx, "CreateUser: Couldn't create new user", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
@@ -64,7 +63,7 @@ func (app *App) CreateUser(ctx context.Context, request *CreateUserRequest) (*Cr
 }
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType) (*uuid.UUID, string, error) {
+func (au *Authenticator) createUserWrapper(ctx context.Context, userscope ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
@@ -74,17 +73,13 @@ func (app *App) createUserWrapper(ctx context.Context, userscope authn.ScopeType
 		return nil, "", err
 	}
 
-	authenticator := &authn.Authenticator{
-		MessageAuthenticator: app.MessageAuthenticator,
-	}
-
-	accessToken := &authn.AccessToken{}
+	accessToken := &AccessToken{}
 	err = accessToken.New(userID, userscope)
 	if err != nil {
 		return nil, "", err
 	}
 
-	token, err := authenticator.SerializeAccessToken(accessToken)
+	token, err := au.SerializeAccessToken(accessToken)
 	if err != nil {
 		return nil, "", err
 	}

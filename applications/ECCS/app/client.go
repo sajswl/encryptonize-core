@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"eccs/utils"
+	"eccs/authn"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -31,7 +32,8 @@ import (
 // Client for making test gRPC calls to the Encryptonize service
 type Client struct {
 	connection *grpc.ClientConn
-	client     EncryptonizeClient
+	appClient  EncryptonizeClient
+	authClient authn.EncryptonizeClient
 	ctx        context.Context
 }
 
@@ -82,14 +84,16 @@ func NewClient(userAT string) (*Client, error) {
 	}
 
 	// Create client
-	client := NewEncryptonizeClient(connection)
+	appClient := NewEncryptonizeClient(connection)
+	authClient := authn.NewEncryptonizeClient(connection)
 
 	// Add metadata/credetials to context
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	return &Client{
 		connection: connection, // The grpc connection
-		client:     client,     // The client generated to the grpc stubs
+		appClient:  appClient,  // The client generated to the grpc stubs
+		authClient: authClient, 
 		ctx:        ctx,        // The request context
 	}, nil
 }
@@ -105,7 +109,7 @@ func (c *Client) Store(plaintext, associatedData []byte) (*StoreResponse, error)
 	}
 
 	// Make the actual gRPC call
-	storeResponse, err := c.client.Store(c.ctx, storeRequest)
+	storeResponse, err := c.appClient.Store(c.ctx, storeRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Store failed: %v", err)
 	}
@@ -118,7 +122,7 @@ func (c *Client) Retrieve(oid string) (*RetrieveResponse, error) {
 	retrieveRequest := &RetrieveRequest{ObjectId: oid} // Construct the retrieve request. This only requires the object id of the object to be fetched from storage.
 
 	// Make the actual gRPC call
-	retrieveResponse, err := c.client.Retrieve(c.ctx, retrieveRequest)
+	retrieveResponse, err := c.appClient.Retrieve(c.ctx, retrieveRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Retrieve failed: %v", err)
 	}
@@ -131,7 +135,7 @@ func (c *Client) GetPermissions(oid string) (*GetPermissionsResponse, error) {
 	getPermissionsRequest := &GetPermissionsRequest{ObjectId: oid} // Construct the GetPermissions request. This only requires the object id of the object.
 
 	// Make the actual gRPC call
-	getPermissionsResponse, err := c.client.GetPermissions(c.ctx, getPermissionsRequest)
+	getPermissionsResponse, err := c.appClient.GetPermissions(c.ctx, getPermissionsRequest)
 	if err != nil {
 		return nil, fmt.Errorf("GetPermissions failed: %v", err)
 	}
@@ -144,7 +148,7 @@ func (c *Client) AddPermission(oid, target string) (*AddPermissionResponse, erro
 	addPermissionRequest := &AddPermissionRequest{ObjectId: oid, Target: target} // Construct the AddPermission request.
 
 	// Make the actual gRPC call
-	addPermissionResponse, err := c.client.AddPermission(c.ctx, addPermissionRequest)
+	addPermissionResponse, err := c.appClient.AddPermission(c.ctx, addPermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("AddPermission failed: %v", err)
 	}
@@ -157,7 +161,7 @@ func (c *Client) RemovePermission(oid, target string) (*RemovePermissionResponse
 	removePermissionRequest := &RemovePermissionRequest{ObjectId: oid, Target: target} // Construct the RemovePermission request.
 
 	// Make the actual gRPC call
-	removePermissionResponse, err := c.client.RemovePermission(c.ctx, removePermissionRequest)
+	removePermissionResponse, err := c.appClient.RemovePermission(c.ctx, removePermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("RemovePermission failed: %v", err)
 	}
@@ -165,12 +169,12 @@ func (c *Client) RemovePermission(oid, target string) (*RemovePermissionResponse
 }
 
 // CreateUser calls the Encryptonize CreateUser endpoint
-func (c *Client) CreateUser(scopes []CreateUserRequest_UserScope) (*CreateUserResponse, error) {
+func (c *Client) CreateUser(scopes []authn.UserScope) (*authn.CreateUserResponse, error) {
 	// Define request struct
-	createUserRequest := &CreateUserRequest{UserScopes: scopes} // Construct the CreateUser request. This only requires the user list of scopes the user is granted.
+	createUserRequest := &authn.CreateUserRequest{UserScopes: scopes} // Construct the CreateUser request. This only requires the user list of scopes the user is granted.
 
 	// Make the actual gRPC call
-	createUserResponse, err := c.client.CreateUser(c.ctx, createUserRequest)
+	createUserResponse, err := c.authClient.CreateUser(c.ctx, createUserRequest)
 	if err != nil {
 		return nil, fmt.Errorf("CreateUser failed: %v", err)
 	}

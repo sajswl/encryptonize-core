@@ -18,27 +18,28 @@ import (
 	"log"
 
 	"eccs/utils"
+	"eccs/authn"
 )
 
 // CreateUser creates a new client and calls CreateUser through the client
 func CreateUser(userAT string, read, create, index, objectPermissions, userManagement bool) error {
 	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
-	var scopes = []CreateUserRequest_UserScope{}
+	var scopes = []authn.UserScope{}
 
 	if read {
-		scopes = append(scopes, CreateUserRequest_READ)
+		scopes = append(scopes, authn.UserScope_READ)
 	}
 	if create {
-		scopes = append(scopes, CreateUserRequest_CREATE)
+		scopes = append(scopes, authn.UserScope_CREATE)
 	}
 	if index {
-		scopes = append(scopes, CreateUserRequest_INDEX)
+		scopes = append(scopes, authn.UserScope_INDEX)
 	}
 	if objectPermissions {
-		scopes = append(scopes, CreateUserRequest_OBJECTPERMISSIONS)
+		scopes = append(scopes, authn.UserScope_OBJECTPERMISSIONS)
 	}
 	if userManagement {
-		scopes = append(scopes, CreateUserRequest_USERMANAGEMENT)
+		scopes = append(scopes, authn.UserScope_USERMANAGEMENT)
 	}
 
 	// Create client

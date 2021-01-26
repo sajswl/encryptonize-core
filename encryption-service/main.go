@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"encryption-service/app"
+	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/crypt"
 	log "encryption-service/logger"
@@ -52,10 +53,15 @@ func main() {
 		log.Fatal(ctx, "Objectstorage connect failed", err)
 	}
 
+	authenticator := &authn.Authenticator{
+		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authStore,
+	}
+
 	app := &app.App{
 		Config:               config,
 		MessageAuthenticator: messageAuthenticator,
-		AuthStore:            authStore,
+		Authenticator:        authenticator,
 		ObjectStore:          objectStore,
 		Crypter:              &crypt.AESCrypter{},
 	}

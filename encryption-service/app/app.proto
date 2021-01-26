@@ -24,9 +24,6 @@ service Encryptonize{
   // Retrieves an object
   rpc Retrieve (RetrieveRequest) returns (RetrieveResponse){}
 
-  // Creates a new user on the service
-  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse){}
-
   // Returns list of users with permission to decrypt the Package
   rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse){}
 
@@ -63,22 +60,6 @@ message RetrieveRequest{
 
 message RetrieveResponse{
   Object object = 1;
-}
-
-message CreateUserRequest{
-  enum UserScope{
-    READ = 0;
-    CREATE = 1;
-    INDEX = 2;
-    OBJECTPERMISSIONS = 3;
-    USERMANAGEMENT = 4;
-  }
-  repeated UserScope user_scopes = 1;
-}
-
-message CreateUserResponse{
-  string user_id = 1;
-  string access_token = 2;
 }
 
 message GetPermissionsRequest{

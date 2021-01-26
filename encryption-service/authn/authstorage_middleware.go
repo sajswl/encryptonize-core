@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package authn
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
+func (au *Authenticator) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
 		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
@@ -43,7 +43,7 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 			return handler(ctx, req)
 		}
 
-		authStoreTx, err := app.AuthStore.NewTransaction(ctx)
+		authStoreTx, err := au.AuthStore.NewTransaction(ctx)
 		if err != nil {
 			log.Error(ctx, "NewDBAuthStore failed", err)
 			return nil, status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
@@ -62,11 +62,11 @@ func (app *App) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (app *App) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
+func (au *Authenticator) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := stream.Context()
 
-		authStoreTx, err := app.AuthStore.NewTransaction(ctx)
+		authStoreTx, err := au.AuthStore.NewTransaction(ctx)
 		if err != nil {
 			log.Error(ctx, "NewDBAuthStore failed", err)
 			return status.Errorf(codes.Internal, "error encountered while connecting to auth storage")

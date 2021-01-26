@@ -20,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"encryption-service/app"
+	"encryption-service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/crypt"
 	"encryption-service/objectstorage"
@@ -49,12 +50,16 @@ func TestInMemoryMain(t *testing.T) {
 	authDBPool := authstorage.NewMemoryAuthStore()
 	objectStore := objectstorage.NewMemoryObjectStore()
 
-	app := &app.App{
-		Config:               config,
+	authenticator := &authn.Authenticator{
 		MessageAuthenticator: messageAuthenticator,
 		AuthStore:            authDBPool,
-		ObjectStore:          objectStore,
-		Crypter:              &crypt.AESCrypter{},
+	}
+
+	app := &app.App{
+		Config:        config,
+		Authenticator: authenticator,
+		ObjectStore:   objectStore,
+		Crypter:       &crypt.AESCrypter{},
 	}
 
 	app.StartServer()

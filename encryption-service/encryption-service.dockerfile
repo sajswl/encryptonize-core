@@ -23,13 +23,13 @@ RUN go mod download -x
 # Generate protobuf
 COPY app/app.proto /encryption-service/app/
 COPY authz/access_object.proto /encryption-service/authz/
-COPY authn/token.proto /encryption-service/authn/
+COPY authn/authn.proto /encryption-service/authn/
 RUN apt-get update \
     && apt-get install -y protobuf-compiler \
     && go get google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
 RUN protoc --go-grpc_out=app --go_out=app app/app.proto \
     && protoc --go_out=authz authz/access_object.proto \
-    && protoc --go_out=authn authn/token.proto
+    && protoc --go-grpc_out=authn --go_out=authn authn/authn.proto
 
 # Build dependencies
 COPY . /encryption-service
