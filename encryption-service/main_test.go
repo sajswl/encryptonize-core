@@ -52,14 +52,15 @@ func TestInMemoryMain(t *testing.T) {
 
 	authenticator := &authn.Authenticator{
 		MessageAuthenticator: messageAuthenticator,
-		AuthStore:            authDBPool,
 	}
 
 	app := &app.App{
-		Config:        config,
-		Authenticator: authenticator,
-		ObjectStore:   objectStore,
-		Crypter:       &crypt.AESCrypter{},
+		Config:               config,
+		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authDBPool,
+		Authenticator:        authenticator,
+		ObjectStore:          objectStore,
+		Crypter:              &crypt.AESCrypter{},
 	}
 
 	app.StartServer()

@@ -55,12 +55,12 @@ func main() {
 
 	authenticator := &authn.Authenticator{
 		MessageAuthenticator: messageAuthenticator,
-		AuthStore:            authStore,
 	}
 
 	app := &app.App{
 		Config:               config,
 		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authStore,
 		Authenticator:        authenticator,
 		ObjectStore:          objectStore,
 		Crypter:              &crypt.AESCrypter{},

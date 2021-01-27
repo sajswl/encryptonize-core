@@ -50,7 +50,7 @@ func (au Authenticator) CreateUser(ctx context.Context, request *CreateUserReque
 		}
 	}
 
-	userID, token, err := au.createUserWrapper(ctx, usertype)
+	userID, token, err := au.CreateUserWrapper(ctx, usertype)
 	if err != nil {
 		log.Error(ctx, "CreateUser: Couldn't create new user", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
@@ -63,7 +63,7 @@ func (au Authenticator) CreateUser(ctx context.Context, request *CreateUserReque
 }
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (au *Authenticator) createUserWrapper(ctx context.Context, userscope ScopeType) (*uuid.UUID, string, error) {
+func (au *Authenticator) CreateUserWrapper(ctx context.Context, userscope ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")

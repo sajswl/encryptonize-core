@@ -28,13 +28,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gofrs/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/reflection"
 
 	"encryption-service/authn"
+	"encryption-service/authstorage"
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 	"encryption-service/health"
 	log "encryption-service/logger"
@@ -48,6 +51,7 @@ type App struct {
 	Config               *Config
 	MessageAuthenticator *crypt.MessageAuthenticator
 	Authenticator        authn.AuthenticatorInterface
+	AuthStore            authstorage.AuthStoreInterface
 	ObjectStore          objectstorage.ObjectStoreInterface
 	Crypter              crypt.CrypterInterface
 	UnimplementedEncryptonizeServer
@@ -183,6 +187,50 @@ func CheckInsecure(config *Config) {
 	}
 }
 
+// CreateAdminCommand creates a new admin users with random credentials
+// This function is intended to be used for cli operation
+func (app *App) CreateAdminCommand() error {
+	ctx := context.Background()
+
+	auth, ok := app.Authenticator.(*authn.Authenticator)
+	if !ok {
+		err := errors.New("app.Authenticator is not of type authn.Authenticator")
+		msg := fmt.Sprintf("Create Admin is not supported for Authentication Backend %v", reflect.TypeOf(app.Authenticator))
+		log.Fatal(ctx, msg, err)
+	}
+
+	// Need to inject requestID manually, as these calls don't pass the usual middleware
+	requestID, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(ctx, "Could not generate uuid", err)
+	}
+	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+
+	authStoreTx, err := app.AuthStore.NewTransaction(ctx)
+	if err != nil {
+		log.Fatal(ctx, "Authstorage Begin failed", err)
+	}
+	defer func() {
+		err := authStoreTx.Rollback(ctx)
+		if err != nil {
+			log.Fatal(ctx, "Performing rollback", err)
+		}
+	}()
+
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	adminScope := authn.ScopeUserManagement
+	userID, accessToken, err := auth.CreateUserWrapper(ctx, adminScope)
+	if err != nil {
+		log.Fatal(ctx, "Create user failed", err)
+	}
+
+	log.Info(ctx, "Created admin user:")
+	log.Info(ctx, fmt.Sprintf("    User ID:      %v", userID))
+	log.Info(ctx, fmt.Sprintf("    Access Token: %v", accessToken))
+
+	return nil
+}
+
 func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -196,7 +244,6 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		log.UnaryMethodNameInterceptor(),
 		log.UnaryLogInterceptor(),
 	}
-	unaryInterceptors = append(unaryInterceptors, app.Authenticator.GRPCUnaryInterceptors()...)
 
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		grpc_recovery.StreamServerInterceptor(),
@@ -204,7 +251,17 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		log.StreamMethodNameInterceptor(),
 		log.StreamLogInterceptor(),
 	}
-	streamInterceptors = append(streamInterceptors, app.Authenticator.GRPCStreamInterceptors()...)
+
+	authStore, ok := app.AuthStore.(*authstorage.AuthStore)
+	if ok {
+		unaryInterceptors = append(unaryInterceptors, authStore.AuthStorageUnaryServerInterceptor())
+		streamInterceptors = append(streamInterceptors, authStore.AuthStorageStreamingInterceptor())
+	} else {
+		log.Warn(context.TODO(), "No GRPC interceptor registered for authstorage")
+	}
+
+	unaryInterceptors = append(unaryInterceptors, grpc_auth.UnaryServerInterceptor(app.Authenticator.AuthenticateUser))
+	streamInterceptors = append(streamInterceptors, grpc_auth.StreamServerInterceptor(app.Authenticator.AuthenticateUser))
 
 	// Add middlewares to the grpc server:
 	// The order is important: AuthenticateUser needs AuthStore and Authstore needs MethodName
@@ -224,7 +281,6 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	// Register health checker to grpc server
 	healthService := health.NewHealthChecker()
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthService)
-	reflection.Register(grpcServer)
 
 	return grpcServer, lis
 }
@@ -241,10 +297,8 @@ func (app *App) StartServer() {
 		case "create-admin":
 			msg := fmt.Sprintf("AuthenticatorInterface is of dynamic type: %v", reflect.TypeOf(app.Authenticator))
 			log.Info(ctx, msg)
-			if auth, ok := app.Authenticator.(*authn.Authenticator); ok {
-				auth.CreateAdminCommand()
-			} else {
-				log.Fatal(ctx, "create-admin is not supported in this configuration", errors.New(""))
+			if err := app.CreateAdminCommand(); err != nil {
+				log.Fatal(ctx, "CreateAdminCommand", err)
 			}
 		default:
 			msg := fmt.Sprintf("Invalid command: %v", cmd)

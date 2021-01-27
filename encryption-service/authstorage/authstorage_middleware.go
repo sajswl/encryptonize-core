@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package authn
+package authstorage
 
 import (
 	"context"
@@ -23,11 +23,13 @@ import (
 
 	"encryption-service/contextkeys"
 	log "encryption-service/logger"
+
+	"encryption-service/health"
 )
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (au *Authenticator) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
+func (as *AuthStore) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
 		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
@@ -39,11 +41,11 @@ func (au *Authenticator) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInt
 
 		// Don't start DB tranaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
-		if methodName == healthEndpointCheck || methodName == healthEndpointWatch {
+		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch {
 			return handler(ctx, req)
 		}
 
-		authStoreTx, err := au.AuthStore.NewTransaction(ctx)
+		authStoreTx, err := as.NewTransaction(ctx)
 		if err != nil {
 			log.Error(ctx, "NewDBAuthStore failed", err)
 			return nil, status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
@@ -62,11 +64,11 @@ func (au *Authenticator) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInt
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (au *Authenticator) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
+func (as *AuthStore) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := stream.Context()
 
-		authStoreTx, err := au.AuthStore.NewTransaction(ctx)
+		authStoreTx, err := as.NewTransaction(ctx)
 		if err != nil {
 			log.Error(ctx, "NewDBAuthStore failed", err)
 			return status.Errorf(codes.Internal, "error encountered while connecting to auth storage")

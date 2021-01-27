@@ -19,6 +19,11 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
+const (
+	HealthEndpointCheck string = "/grpc.health.v1.Health/Check"
+	HealthEndpointWatch string = "/grpc.health.v1.Health/Watch"
+)
+
 type Checker struct{}
 
 func NewHealthChecker() *Checker {
