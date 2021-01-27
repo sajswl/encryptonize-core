@@ -97,7 +97,7 @@ func (au *Authenticator) AuthenticateUser(ctx context.Context) (context.Context,
 		return nil, err
 	}
 
-	if !accessToken.HasScopes(reqScope) {
+	if !accessToken.UserScopes.HasScopes(reqScope) {
 		err = status.Errorf(codes.PermissionDenied, "access not authorized")
 		log.Error(newCtx, "AuthenticateUser: Unauthorized access", err)
 		return nil, err

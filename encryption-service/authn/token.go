@@ -45,7 +45,7 @@ func (us ScopeType) isValid() error {
 	return errors.New("invalid combination of scopes")
 }
 
-func (us ScopeType) hasScopes(tar ScopeType) bool {
+func (us ScopeType) HasScopes(tar ScopeType) bool {
 	return (us & tar) == tar
 }
 
@@ -53,26 +53,7 @@ type AccessToken struct {
 	UserID uuid.UUID
 	// this field is not exported to prevent other parts
 	// of the encryption service to depend on its implementation
-	userScopes ScopeType
-}
-
-// creates an access token only if the arguments are valid
-func (a *AccessToken) New(userID uuid.UUID, userScopes ScopeType) error {
-	if userID.Version() != 4 || userID.Variant() != uuid.VariantRFC4122 {
-		return errors.New("invalid user ID UUID version or variant")
-	}
-
-	if err := userScopes.isValid(); err != nil {
-		return err
-	}
-
-	a.UserID = userID
-	a.userScopes = userScopes
-	return nil
-}
-
-func (a *AccessToken) HasScopes(scopes ScopeType) bool {
-	return a.userScopes.hasScopes(scopes)
+	UserScopes ScopeType
 }
 
 // serializes an access token together with a random value. The random
@@ -81,7 +62,6 @@ func (a *AccessToken) HasScopes(scopes ScopeType) bool {
 // this is last function every token has to go through before the token
 // are presented to an API. If this method only signs valid token we
 // can then assume that any signed token is valid.
-// This may not hold in when an encryption server was compromised.
 // The returned token has three parts. Each part is individually base64url encoded
 // the first part (data) is a serialized protobuf message containing
 // the user ID and a set of scopes. The structure of the assembled token is
@@ -92,7 +72,7 @@ func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken) (string, 
 		return "", err
 	}
 
-	if accessToken.userScopes.isValid() != nil {
+	if accessToken.UserScopes.isValid() != nil {
 		return "", errors.New("Invalid scopes")
 	}
 
@@ -103,7 +83,7 @@ func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken) (string, 
 	userScope := []UserScope{}
 	// scopes is a bitmap. This checks each bit individually
 	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
-		if !accessToken.userScopes.hasScopes(i) {
+		if !accessToken.UserScopes.HasScopes(i) {
 			continue
 		}
 		switch i {
@@ -209,6 +189,6 @@ func (a *Authenticator) ParseAccessToken(token string) (*AccessToken, error) {
 	}
 	return &AccessToken{
 		UserID:     uuid,
-		userScopes: userScopes,
+		UserScopes: userScopes,
 	}, nil
 }

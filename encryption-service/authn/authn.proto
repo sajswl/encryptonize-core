@@ -19,9 +19,6 @@ option go_package = ".;authn";
 service Encryptonize{
   // Creates a new user on the service
   rpc CreateUser (CreateUserRequest) returns (CreateUserResponse){}
-
-  // User Login
-
 }
 
 enum UserScope{

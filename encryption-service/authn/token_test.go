@@ -31,7 +31,7 @@ var (
 	userScope = ScopeUserManagement
 	AT        = &AccessToken{
 		UserID:     userID,
-		userScopes: userScope,
+		UserScopes: userScope,
 	}
 
 	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK)
@@ -68,7 +68,7 @@ func TestSerializeParseIdentity(t *testing.T) {
 
 	AT2, err := authenticator.ParseAccessToken(token)
 	failOnError("Parsing serialized access token failed", err, t)
-	if AT2.UserID != AT.UserID || AT2.userScopes != AT.userScopes {
+	if AT2.UserID != AT.UserID || AT2.UserScopes != AT.UserScopes {
 		t.Errorf("Serialize parse identity violated")
 	}
 }
@@ -76,7 +76,7 @@ func TestSerializeParseIdentity(t *testing.T) {
 func TestSerializeBaduserScope(t *testing.T) {
 	BadScopeAT := &AccessToken{
 		UserID:     userID,
-		userScopes: ScopeType(0xff),
+		UserScopes: ScopeType(0xff),
 	}
 
 	token, err := authenticator.SerializeAccessToken(BadScopeAT)
@@ -88,7 +88,7 @@ func TestSerializeBaduserScope(t *testing.T) {
 func TestSerializeBadUserID(t *testing.T) {
 	BadUUIDAT := &AccessToken{
 		UserID:     uuid.Nil,
-		userScopes: userScope,
+		UserScopes: userScope,
 	}
 
 	token, err := authenticator.SerializeAccessToken(BadUUIDAT)
@@ -101,7 +101,7 @@ func TestParseAccessToken(t *testing.T) {
 	AT, err := authenticator.ParseAccessToken(expectedToken)
 	failOnError("ParseAccessToken did fail", err, t)
 
-	if AT.UserID != userID || AT.userScopes != userScope {
+	if AT.UserID != userID || AT.UserScopes != userScope {
 		t.Errorf("Parsed Access Token contained different data!")
 	}
 }
@@ -131,44 +131,11 @@ func TestSerializeAccessTokenAnyScopes(t *testing.T) {
 		uScope := ScopeType(i)
 		tAT := &AccessToken{
 			UserID:     userID,
-			userScopes: uScope,
+			UserScopes: uScope,
 		}
 		_, err := authenticator.SerializeAccessToken(tAT)
 		if err != nil {
 			t.Fatalf("Failed to create/update user with scopes %v: %v", uScope, err)
 		}
 	}
-}
-
-func TestAccessTokenNew(t *testing.T) {
-	// try to create a use for every valid combination of scopes
-	// even the empty set
-	for i := uint64(0); i < uint64(ScopeEnd); i++ {
-		uScope := ScopeType(i)
-		at := &AccessToken{}
-
-		err := at.New(userID, uScope)
-		if err != nil {
-			t.Fatalf("AccessToken.New errored for scope %v: %v", uScope, err)
-		}
-
-		if at.UserID != userID || at.userScopes != uScope {
-			t.Fatalf("AccessToken.New result differed from input")
-		}
-	}
-}
-
-func TestAccessTokenNewInvalidUUID(t *testing.T) {
-	at := &AccessToken{}
-	badUUID := uuid.Nil
-	err := at.New(badUUID, userScope)
-	failOnSuccess("AccessToken.New should have failed for invalid UUID", err, t)
-}
-
-func TestAccessTokenNewInvalidScopes(t *testing.T) {
-	at := &AccessToken{}
-	badScopes := ScopeType(0xff)
-
-	err := at.New(userID, badScopes)
-	failOnSuccess("AccessToken.New should have failed for invalid UUID", err, t)
 }

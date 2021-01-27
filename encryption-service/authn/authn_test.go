@@ -46,10 +46,9 @@ func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes 
 		MessageAuthenticator: m,
 	}
 
-	accessToken := &AccessToken{}
-	err := accessToken.New(userID, scopes)
-	if err != nil {
-		return "", err
+	accessToken := &AccessToken{
+		UserID:     userID,
+		UserScopes: scopes,
 	}
 
 	token, err := authenticator.SerializeAccessToken(accessToken)
