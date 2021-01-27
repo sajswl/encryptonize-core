@@ -33,7 +33,6 @@ build: $(protobufs)  ## Build the Encryption Service binary
 $(protobufs): $(protosource)
 	protoc --go-grpc_out=app --go_out=app app/app.proto
 	protoc --go-grpc_out=authn --go_out=authn authn/authn.proto
-	protoc --go_out=authn authn/authn.proto
 	protoc --go_out=authz authz/access_object.proto
 
 .PHONY: docker-build
