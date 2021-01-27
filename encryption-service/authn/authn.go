@@ -38,7 +38,7 @@ type AuthenticatorInterface interface {
 	AuthenticateUser(ctx context.Context) (context.Context, error)
 }
 
-func (au Authenticator) RegisterService(srv grpc.ServiceRegistrar) {
+func (au *Authenticator) RegisterService(srv grpc.ServiceRegistrar) {
 	RegisterEncryptonizeServer(srv, au)
 }
 
@@ -60,7 +60,7 @@ var methodScopeMap = map[string]ScopeType{
 // this token has to be integrity protected (e.g. by an HMAC)
 // this method fails if the integrity check failed or the token
 // lacks the required scope
-func (au Authenticator) AuthenticateUser(ctx context.Context) (context.Context, error) {
+func (au *Authenticator) AuthenticateUser(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {
