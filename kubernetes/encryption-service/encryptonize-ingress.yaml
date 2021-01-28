@@ -71,7 +71,7 @@ data:
         location / {
           grpc_pass grpc://encryptonize-service.encryptonize.svc.cluster.local:9000;
         }
-        client_max_body_size 5M;
+        client_max_body_size 100M;
       }
     }
 ---

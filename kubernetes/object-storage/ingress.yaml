@@ -74,7 +74,7 @@ data:
           proxy_set_header Host '${OBJECT_STORAGE_HOSTNAME}';
           proxy_pass http://rook-ceph-rgw-encryptonize-store.rook-ceph.svc.cluster.local:80;
         }
-        client_max_body_size 5M;
+        client_max_body_size 100M;
       }
     }
 ---
