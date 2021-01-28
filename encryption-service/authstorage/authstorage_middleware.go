@@ -39,7 +39,7 @@ func (as *AuthStore) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterce
 			return nil, err
 		}
 
-		// Don't start DB tranaction on health checks
+		// Don't start DB transaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
 		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch {
 			return handler(ctx, req)
