@@ -14,210 +14,94 @@
 package authn
 
 import (
-	"encoding/base64"
-	"errors"
-	"strings"
+	context "context"
 
-	"github.com/gofrs/uuid"
-	"google.golang.org/protobuf/proto"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
+	"encryption-service/contextkeys"
 	"encryption-service/crypt"
+	"encryption-service/health"
+	log "encryption-service/logger"
 )
 
-// Authenticator represents a MessageAuthenticator used for signing and checking the access token
-type Authenticator struct {
+// AuthService represents a MessageAuthenticator used for signing and checking the access token
+type AuthService struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
+	UnimplementedEncryptonizeServer
 }
 
-type AuthenticatorInterface interface {
-	SerializeAccessToken(accessToken *AccessToken) (string, error)
-	ParseAccessToken(token string) (*AccessToken, error)
+type AuthServiceInterface interface {
+	RegisterService(srv grpc.ServiceRegistrar)
+	CheckAccessToken(ctx context.Context) (context.Context, error)
 }
 
-// ScopeType represents the different scopes a user could be granted
-type ScopeType uint64
-
-const ScopeNone ScopeType = 0
-const (
-	ScopeRead ScopeType = 1 << iota
-	ScopeCreate
-	ScopeIndex
-	ScopeObjectPermissions
-	ScopeUserManagement
-	ScopeEnd
-)
-
-func (us ScopeType) isValid() error {
-	if us < ScopeEnd {
-		return nil
-	}
-	return errors.New("invalid combination of scopes")
+func (au *AuthService) RegisterService(srv grpc.ServiceRegistrar) {
+	RegisterEncryptonizeServer(srv, au)
 }
 
-func (us ScopeType) hasScopes(tar ScopeType) bool {
-	return (us & tar) == tar
+const baseAppPath string = "/app.Encryptonize/"
+const baseAuthPath string = "/authn.Encryptonize/"
+
+var methodScopeMap = map[string]ScopeType{
+	baseAuthPath + "CreateUser":      ScopeUserManagement,
+	baseAppPath + "GetPermissions":   ScopeIndex,
+	baseAppPath + "AddPermission":    ScopeObjectPermissions,
+	baseAppPath + "RemovePermission": ScopeObjectPermissions,
+	baseAppPath + "Store":            ScopeCreate,
+	baseAppPath + "Retrieve":         ScopeRead,
+	baseAppPath + "Version":          ScopeNone,
 }
 
-type AccessToken struct {
-	UserID uuid.UUID
-	// this field is not exported to prevent other parts
-	// of the encryption service to depend on its implementation
-	userScopes ScopeType
-}
-
-// creates an access token only if the arguments are valid
-func (a *AccessToken) New(userID uuid.UUID, userScopes ScopeType) error {
-	if userID.Version() != 4 || userID.Variant() != uuid.VariantRFC4122 {
-		return errors.New("invalid user ID UUID version or variant")
-	}
-
-	if err := userScopes.isValid(); err != nil {
-		return err
-	}
-
-	a.UserID = userID
-	a.userScopes = userScopes
-	return nil
-}
-
-func (a *AccessToken) HasScopes(scopes ScopeType) bool {
-	return a.userScopes.hasScopes(scopes)
-}
-
-// serializes an access token together with a random value. The random
-// value ensures unique user facing token even if the actual access token
-// would be equal. It also checks the validity of the access token as
-// this is last function every token has to go through before the token
-// are presented to an API. If this method only signs valid token we
-// can then assume that any signed token is valid.
-// This may not hold in when an encryption server was compromised.
-// The returned token has three parts. Each part is individually base64url encoded
-// the first part (data) is a serialized protobuf message containing
-// the user ID and a set of scopes. The structure of the assembled token is
-// <data>.<nonce>.HMAC(nonce||data)
-func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken) (string, error) {
-	nonce, err := crypt.Random(16)
-	if err != nil {
-		return "", err
-	}
-
-	if accessToken.userScopes.isValid() != nil {
-		return "", errors.New("Invalid scopes")
-	}
-
-	if accessToken.UserID.Version() != 4 || accessToken.UserID.Variant() != uuid.VariantRFC4122 {
-		return "", errors.New("Invalid userID UUID")
-	}
-
-	userScope := []AccessTokenClient_UserScope{}
-	// scopes is a bitmap. This checks each bit individually
-	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
-		if !accessToken.userScopes.hasScopes(i) {
-			continue
-		}
-		switch i {
-		case ScopeRead:
-			userScope = append(userScope, AccessTokenClient_READ)
-		case ScopeCreate:
-			userScope = append(userScope, AccessTokenClient_CREATE)
-		case ScopeIndex:
-			userScope = append(userScope, AccessTokenClient_INDEX)
-		case ScopeObjectPermissions:
-			userScope = append(userScope, AccessTokenClient_OBJECTPERMISSIONS)
-		case ScopeUserManagement:
-			userScope = append(userScope, AccessTokenClient_USERMANAGEMENT)
-		default:
-			return "", errors.New("Invalid scopes")
-		}
-	}
-
-	accessTokenClient := &AccessTokenClient{
-		UserId:     accessToken.UserID.Bytes(),
-		UserScopes: userScope,
-	}
-
-	data, err := proto.Marshal(accessTokenClient)
-	if err != nil {
-		return "", err
-	}
-
-	msg := append(nonce, data...)
-	tag, err := a.MessageAuthenticator.Tag(crypt.TokenDomain, msg)
-	if err != nil {
-		return "", err
-	}
-
-	nonceStr := base64.RawURLEncoding.EncodeToString(nonce)
-	dataStr := base64.RawURLEncoding.EncodeToString(data)
-	tagStr := base64.RawURLEncoding.EncodeToString(tag)
-
-	return dataStr + "." + nonceStr + "." + tagStr, nil
-}
-
-// this function takes a user facing token and parses it into the internal
-// access token format. It assumes that if the mac is valid the token information
-// also is.
-func (a *Authenticator) ParseAccessToken(token string) (*AccessToken, error) {
-	tokenParts := strings.Split(token, ".")
-	if len(tokenParts) != 3 {
-		return nil, errors.New("invalid token format")
-	}
-
-	data, err := base64.RawURLEncoding.DecodeString(tokenParts[0])
-	if err != nil {
-		return nil, errors.New("invalid data portion of token")
-	}
-
-	nonce, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
-	if err != nil {
-		return nil, errors.New("invalid nonce portion of token")
-	}
-
-	tag, err := base64.RawURLEncoding.DecodeString(tokenParts[2])
-	if err != nil {
-		return nil, errors.New("invalid tag portion of token")
-	}
-
-	msg := append(nonce, data...)
-	valid, err := a.MessageAuthenticator.Verify(crypt.TokenDomain, msg, tag)
-	if err != nil {
+// CheckAccessToken verifies the authenticity of a token and
+// that the token contains the required scope for the requested API
+// The Access Token contains uid, scopes, and a random value
+// this token has to be integrity protected (e.g. by an HMAC)
+func (au *AuthService) CheckAccessToken(ctx context.Context) (context.Context, error) {
+	// Grab method name
+	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+	if !ok {
+		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
+		log.Error(ctx, "Could not typecast methodName to string", err)
 		return nil, err
 	}
 
-	if !valid {
-		return nil, errors.New("invalid token")
+	// Don't authenticate health checks
+	// IMPORTANT! This check MUST stay at the top of this function
+	if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch {
+		return ctx, nil
 	}
 
-	accessTokenClient := &AccessTokenClient{}
-	err = proto.Unmarshal(data, accessTokenClient)
+	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
+		log.Error(ctx, "AuthenticateUser: Couldn't find token in metadata", err)
+		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
+	}
+
+	accessToken, err := au.ParseAccessToken(token)
+	if err != nil {
+		log.Error(ctx, "AuthenticateUser: Unable to parse Access Token", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
+	}
+
+	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.UserID)
+
+	reqScope, ok := methodScopeMap[methodName]
+	if !ok {
+		err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
+		log.Error(newCtx, "AuthenticateUser: Invalid Endpoint", err)
 		return nil, err
 	}
 
-	uuid, err := uuid.FromBytes(accessTokenClient.UserId)
-	if err != nil {
+	if !accessToken.UserScopes.HasScopes(reqScope) {
+		err = status.Errorf(codes.PermissionDenied, "access not authorized")
+		log.Error(newCtx, "AuthenticateUser: Unauthorized access", err)
 		return nil, err
 	}
 
-	var userScopes ScopeType
-	for _, scope := range accessTokenClient.UserScopes {
-		switch scope {
-		case AccessTokenClient_READ:
-			userScopes |= ScopeRead
-		case AccessTokenClient_CREATE:
-			userScopes |= ScopeCreate
-		case AccessTokenClient_INDEX:
-			userScopes |= ScopeIndex
-		case AccessTokenClient_OBJECTPERMISSIONS:
-			userScopes |= ScopeObjectPermissions
-		case AccessTokenClient_USERMANAGEMENT:
-			userScopes |= ScopeUserManagement
-		default:
-			return nil, errors.New("Invalid Scopes in Token")
-		}
-	}
-	return &AccessToken{
-		UserID:     uuid,
-		userScopes: userScopes,
-	}, nil
+	log.Info(newCtx, "AuthenticateUser: User authenticated")
+
+	return newCtx, nil
 }
