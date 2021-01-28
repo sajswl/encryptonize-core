@@ -50,7 +50,7 @@ func TestInMemoryMain(t *testing.T) {
 	authDBPool := authstorage.NewMemoryAuthStore()
 	objectStore := objectstorage.NewMemoryObjectStore()
 
-	authenticator := &authn.Authenticator{
+	authService := &authn.AuthService{
 		MessageAuthenticator: messageAuthenticator,
 	}
 
@@ -58,7 +58,7 @@ func TestInMemoryMain(t *testing.T) {
 		Config:               config,
 		MessageAuthenticator: messageAuthenticator,
 		AuthStore:            authDBPool,
-		Authenticator:        authenticator,
+		AuthService:          authService,
 		ObjectStore:          objectStore,
 		Crypter:              &crypt.AESCrypter{},
 	}

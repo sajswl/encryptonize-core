@@ -41,7 +41,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes authn.ScopeType) (string, error) {
-	authenticator := &authn.Authenticator{
+	authenticator := &authn.AuthService{
 		MessageAuthenticator: m,
 	}
 

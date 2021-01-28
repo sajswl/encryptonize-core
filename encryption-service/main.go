@@ -53,7 +53,7 @@ func main() {
 		log.Fatal(ctx, "Objectstorage connect failed", err)
 	}
 
-	authenticator := &authn.Authenticator{
+	authService := &authn.AuthService{
 		MessageAuthenticator: messageAuthenticator,
 	}
 
@@ -61,7 +61,7 @@ func main() {
 		Config:               config,
 		MessageAuthenticator: messageAuthenticator,
 		AuthStore:            authStore,
-		Authenticator:        authenticator,
+		AuthService:          authService,
 		ObjectStore:          objectStore,
 		Crypter:              &crypt.AESCrypter{},
 	}

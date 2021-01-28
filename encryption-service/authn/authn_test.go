@@ -41,7 +41,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes ScopeType) (string, error) {
-	authenticator := &Authenticator{
+	authenticator := &AuthService{
 		MessageAuthenticator: m,
 	}
 
@@ -73,7 +73,7 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 	failOnError("SerializeAccessToken errored", err, t)
 
 	var md = metadata.Pairs("authorization", token)
-	au := Authenticator{
+	au := &AuthService{
 		MessageAuthenticator: m,
 	}
 
@@ -96,7 +96,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 
 	goodTokenParts := strings.Split(goodToken, ".")
 
-	au := Authenticator{
+	au := &AuthService{
 		MessageAuthenticator: m,
 	}
 
@@ -139,7 +139,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	firstTokenParts := strings.Split(tokenFirst, ".")
 	secondTokenParts := strings.Split(tokenSecond, ".")
 
-	au := Authenticator{
+	au := &AuthService{
 		MessageAuthenticator: m,
 	}
 
@@ -179,7 +179,7 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 
 	token = "notBearer" + token[6:]
 	var md = metadata.Pairs("authorization", token)
-	au := Authenticator{
+	au := &AuthService{
 		MessageAuthenticator: m,
 	}
 
@@ -191,7 +191,7 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 
 // Tests that accesstoken thats not hex gets rejected
 func TestCheckAccessTokenInvalidATformat(t *testing.T) {
-	au := Authenticator{}
+	au := &AuthService{}
 
 	// Test wrong format AT
 	// User credentials
@@ -214,7 +214,7 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	m, err := crypt.NewMessageAuthenticator(ASK)
 	failOnError("Error creating MessageAuthenticator", err, t)
 
-	au := Authenticator{
+	au := &AuthService{
 		MessageAuthenticator: m,
 	}
 

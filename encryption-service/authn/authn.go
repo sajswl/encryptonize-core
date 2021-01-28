@@ -27,18 +27,18 @@ import (
 	log "encryption-service/logger"
 )
 
-// Authenticator represents a MessageAuthenticator used for signing and checking the access token
-type Authenticator struct {
+// AuthService represents a MessageAuthenticator used for signing and checking the access token
+type AuthService struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
 	UnimplementedEncryptonizeServer
 }
 
-type AuthenticatorInterface interface {
+type AuthServiceInterface interface {
 	RegisterService(srv grpc.ServiceRegistrar)
 	CheckAccessToken(ctx context.Context) (context.Context, error)
 }
 
-func (au *Authenticator) RegisterService(srv grpc.ServiceRegistrar) {
+func (au *AuthService) RegisterService(srv grpc.ServiceRegistrar) {
 	RegisterEncryptonizeServer(srv, au)
 }
 
@@ -59,7 +59,7 @@ var methodScopeMap = map[string]ScopeType{
 // that the token contains the required token for the requested API
 // The Access Token contains uid, scopes, and a random value
 // this token has to be integrity protected (e.g. by an HMAC)
-func (au *Authenticator) CheckAccessToken(ctx context.Context) (context.Context, error) {
+func (au *AuthService) CheckAccessToken(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {

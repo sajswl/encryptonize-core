@@ -50,7 +50,7 @@ var GitTag string
 type App struct {
 	Config               *Config
 	MessageAuthenticator *crypt.MessageAuthenticator
-	Authenticator        authn.AuthenticatorInterface
+	AuthService          authn.AuthServiceInterface
 	AuthStore            authstorage.AuthStoreInterface
 	ObjectStore          objectstorage.ObjectStoreInterface
 	Crypter              crypt.CrypterInterface
@@ -192,12 +192,7 @@ func CheckInsecure(config *Config) {
 func (app *App) CreateAdminCommand() error {
 	ctx := context.Background()
 
-	auth, ok := app.Authenticator.(*authn.Authenticator)
-	if !ok {
-		err := errors.New("app.Authenticator is not of type authn.Authenticator")
-		msg := fmt.Sprintf("Create Admin is not supported for Authentication Backend %v", reflect.TypeOf(app.Authenticator))
-		log.Fatal(ctx, msg, err)
-	}
+	auth := app.AuthService.(*authn.AuthService)
 
 	// Need to inject requestID manually, as these calls don't pass the usual middleware
 	requestID, err := uuid.NewV4()
@@ -260,8 +255,8 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		log.Warn(context.TODO(), "No GRPC interceptor registered for authstorage")
 	}
 
-	unaryInterceptors = append(unaryInterceptors, grpc_auth.UnaryServerInterceptor(app.Authenticator.CheckAccessToken))
-	streamInterceptors = append(streamInterceptors, grpc_auth.StreamServerInterceptor(app.Authenticator.CheckAccessToken))
+	unaryInterceptors = append(unaryInterceptors, grpc_auth.UnaryServerInterceptor(app.AuthService.CheckAccessToken))
+	streamInterceptors = append(streamInterceptors, grpc_auth.StreamServerInterceptor(app.AuthService.CheckAccessToken))
 
 	// Add middlewares to the grpc server:
 	// The order is important: AuthenticateUser needs AuthStore and Authstore needs MethodName
@@ -276,7 +271,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	)
 
 	RegisterEncryptonizeServer(grpcServer, app)
-	app.Authenticator.RegisterService(grpcServer)
+	app.AuthService.RegisterService(grpcServer)
 
 	// Register health checker to grpc server
 	healthService := health.NewHealthChecker()
@@ -295,7 +290,7 @@ func (app *App) StartServer() {
 		cmd := os.Args[1]
 		switch cmd {
 		case "create-admin":
-			msg := fmt.Sprintf("AuthenticatorInterface is of dynamic type: %v", reflect.TypeOf(app.Authenticator))
+			msg := fmt.Sprintf("AuthenticatorInterface is of dynamic type: %v", reflect.TypeOf(app.AuthService))
 			log.Info(ctx, msg)
 			if err := app.CreateAdminCommand(); err != nil {
 				log.Fatal(ctx, "CreateAdminCommand", err)

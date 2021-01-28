@@ -66,7 +66,7 @@ type AccessToken struct {
 // the first part (data) is a serialized protobuf message containing
 // the user ID and a set of scopes. The structure of the assembled token is
 // <data>.<nonce>.HMAC(nonce||data)
-func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken) (string, error) {
+func (a *AuthService) SerializeAccessToken(accessToken *AccessToken) (string, error) {
 	nonce, err := crypt.Random(16)
 	if err != nil {
 		return "", err
@@ -128,7 +128,7 @@ func (a *Authenticator) SerializeAccessToken(accessToken *AccessToken) (string, 
 // this function takes a user facing token and parses it into the internal
 // access token format. It assumes that if the mac is valid the token information
 // also is.
-func (a *Authenticator) ParseAccessToken(token string) (*AccessToken, error) {
+func (a *AuthService) ParseAccessToken(token string) (*AccessToken, error) {
 	tokenParts := strings.Split(token, ".")
 	if len(tokenParts) != 3 {
 		return nil, errors.New("invalid token format")
