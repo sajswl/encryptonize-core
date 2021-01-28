@@ -21,6 +21,9 @@ set -euo pipefail
 #
 # The environment variables below can be set to modify the configuration of the service.
 
+# Static compilation
+export CGO_ENABLED=0
+
 # testing keys never deploy them!
 export KEK=0000000000000000000000000000000000000000000000000000000000000000
 export ASK=0000000000000000000000000000000000000000000000000000000000000001

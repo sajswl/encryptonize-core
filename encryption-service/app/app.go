@@ -262,6 +262,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	// The order is important: AuthenticateUser needs AuthStore and Authstore needs MethodName
 	// TODO: make sure that grpc_recovery doesn't leak any infos
 	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(65*1024*1024),
 		grpc_middleware.WithUnaryServerChain(
 			unaryInterceptors...,
 		),
