@@ -55,8 +55,8 @@ var methodScopeMap = map[string]ScopeType{
 	baseAppPath + "Version":          ScopeNone,
 }
 
-// CheckAccessToken verifies the authententicity of a token and
-// that the token contains the required token for the requested API
+// CheckAccessToken verifies the authenticity of a token and
+// that the token contains the required scope for the requested API
 // The Access Token contains uid, scopes, and a random value
 // this token has to be integrity protected (e.g. by an HMAC)
 func (au *AuthService) CheckAccessToken(ctx context.Context) (context.Context, error) {
@@ -70,8 +70,7 @@ func (au *AuthService) CheckAccessToken(ctx context.Context) (context.Context, e
 
 	// Don't authenticate health checks
 	// IMPORTANT! This check MUST stay at the top of this function
-	if methodName == health.HealthEndpointCheck ||
-		methodName == health.HealthEndpointWatch {
+	if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch {
 		return ctx, nil
 	}
 
