@@ -28,7 +28,6 @@ import (
 	"encryption-service/crypt"
 )
 
-// copy
 func failOnError(message string, err error, t *testing.T) {
 	if err != nil {
 		t.Fatalf(message+": %v", err)
@@ -62,7 +61,7 @@ func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes 
 
 // This is a good path test of the authentication middleware
 // It ONLY tests the middleware and assumes that the LoginUser works as intended
-func TestAuthMiddlewareGoodPath(t *testing.T) {
+func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
@@ -80,11 +79,11 @@ func TestAuthMiddlewareGoodPath(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = au.AuthenticateUser(ctx)
+	_, err = au.CheckAccessToken(ctx)
 	failOnError("Auth failed", err, t)
 }
 
-func TestAuthMiddlewareNonBase64(t *testing.T) {
+func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
@@ -118,12 +117,12 @@ func TestAuthMiddlewareNonBase64(t *testing.T) {
 		var md = metadata.Pairs("authorization", token)
 		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
-		_, err = au.AuthenticateUser(ctx)
+		_, err = au.CheckAccessToken(ctx)
 		failOnSuccess("Auth should have errored", err, t)
 	}
 }
 
-func TestAuthMiddlewareSwappedTokenParts(t *testing.T) {
+func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userIDFirst := uuid.Must(uuid.NewV4())
 	userIDSecond := uuid.Must(uuid.NewV4())
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
@@ -161,13 +160,13 @@ func TestAuthMiddlewareSwappedTokenParts(t *testing.T) {
 		var md = metadata.Pairs("authorization", token)
 		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
-		_, err = au.AuthenticateUser(ctx)
+		_, err = au.CheckAccessToken(ctx)
 		failOnSuccess("Auth should have errored", err, t)
 	}
 }
 
 // Tests that accesstoken of wrong type gets rejected
-func TestAuthMiddlewareInvalidAT(t *testing.T) {
+func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
@@ -186,12 +185,12 @@ func TestAuthMiddlewareInvalidAT(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = au.AuthenticateUser(ctx)
+	_, err = au.CheckAccessToken(ctx)
 	failOnSuccess("Auth should have failed", err, t)
 }
 
 // Tests that accesstoken thats not hex gets rejected
-func TestAuthMiddlewareInvalidATformat(t *testing.T) {
+func TestCheckAccessTokenInvalidATformat(t *testing.T) {
 	au := Authenticator{}
 
 	// Test wrong format AT
@@ -200,7 +199,7 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 	var md = metadata.Pairs("authorization", AT)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
-	_, err := au.AuthenticateUser(ctx)
+	_, err := au.CheckAccessToken(ctx)
 	failOnSuccess("Invalid Auth Passed", err, t)
 
 	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
@@ -210,7 +209,7 @@ func TestAuthMiddlewareInvalidATformat(t *testing.T) {
 
 // This test tries to access each endpoint with every but the required scope
 // all tests should fail
-func TestAuthMiddlewareNegativeScopes(t *testing.T) {
+func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	ASK, _ := crypt.Random(32)
 	m, err := crypt.NewMessageAuthenticator(ASK)
 	failOnError("Error creating MessageAuthenticator", err, t)
@@ -234,7 +233,7 @@ func TestAuthMiddlewareNegativeScopes(t *testing.T) {
 
 		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, endpoint)
 		ctx = metadata.NewIncomingContext(ctx, md)
-		_, err = au.AuthenticateUser(ctx)
+		_, err = au.CheckAccessToken(ctx)
 		if err == nil {
 			t.Errorf("User allowed to call endpoint %v requireing scopes %v using scopes %v", endpoint, rscope, tscopes)
 		}

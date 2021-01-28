@@ -35,7 +35,7 @@ type Authenticator struct {
 
 type AuthenticatorInterface interface {
 	RegisterService(srv grpc.ServiceRegistrar)
-	AuthenticateUser(ctx context.Context) (context.Context, error)
+	CheckAccessToken(ctx context.Context) (context.Context, error)
 }
 
 func (au *Authenticator) RegisterService(srv grpc.ServiceRegistrar) {
@@ -55,12 +55,11 @@ var methodScopeMap = map[string]ScopeType{
 	baseAppPath + "Version":          ScopeNone,
 }
 
-// Authenticates user using an Access Token
-// the Access Token contains uid, scopes, and a random value
+// CheckAccessToken verifies the authententicity of a token and
+// that the token contains the required token for the requested API
+// The Access Token contains uid, scopes, and a random value
 // this token has to be integrity protected (e.g. by an HMAC)
-// this method fails if the integrity check failed or the token
-// lacks the required scope
-func (au *Authenticator) AuthenticateUser(ctx context.Context) (context.Context, error) {
+func (au *Authenticator) CheckAccessToken(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {

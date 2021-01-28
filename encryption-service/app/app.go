@@ -260,8 +260,8 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		log.Warn(context.TODO(), "No GRPC interceptor registered for authstorage")
 	}
 
-	unaryInterceptors = append(unaryInterceptors, grpc_auth.UnaryServerInterceptor(app.Authenticator.AuthenticateUser))
-	streamInterceptors = append(streamInterceptors, grpc_auth.StreamServerInterceptor(app.Authenticator.AuthenticateUser))
+	unaryInterceptors = append(unaryInterceptors, grpc_auth.UnaryServerInterceptor(app.Authenticator.CheckAccessToken))
+	streamInterceptors = append(streamInterceptors, grpc_auth.StreamServerInterceptor(app.Authenticator.CheckAccessToken))
 
 	// Add middlewares to the grpc server:
 	// The order is important: AuthenticateUser needs AuthStore and Authstore needs MethodName
