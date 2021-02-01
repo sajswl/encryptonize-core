@@ -1,4 +1,4 @@
-# Copyright 2020 CYBERCRYPT
+# Copyright 2021 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ COPY . /encryption-service
 ARG COMMIT
 ARG TAG
 ENV CGO_ENABLED=0
-RUN go build -v -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT' -X 'encryption-service/app.GitTag=$TAG'" -o /go/bin/es main.go
+RUN go build -v -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT' -X 'encryption-service/app.GitTag=$TAG'" -o /go/bin/es
 
 # Adding the grpc_health_probe
 RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \

@@ -11,13 +11,24 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// +build !storage_mocked
+
 package main
 
 import (
-	"testing"
+	"context"
+	"encryption-service/authstorage"
+	log "encryption-service/logger"
+	"encryption-service/objectstorage"
 )
 
-// Helper test function for generating code coverage of integration tests
-func TestRunMain(t *testing.T) {
-	main()
+func SetupAuthStore(ctx context.Context, URL string) (authstorage.AuthStoreInterface, error) {
+	log.Info(ctx, "Setup AuthStore")
+	return authstorage.NewAuthStore(context.Background(), URL)
+}
+
+func SetupObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (objectstorage.ObjectStoreInterface, error) {
+	log.Info(context.TODO(), "Setup ObjectStore")
+	return objectstorage.NewObjectStore(endpoint, bucket, accessID, accessKey, cert)
 }
