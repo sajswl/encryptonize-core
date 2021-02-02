@@ -18,6 +18,7 @@ import (
 
 	"encryption-service/app"
 	"encryption-service/authn"
+	"encryption-service/buildtag"
 	"encryption-service/crypt"
 	log "encryption-service/logger"
 )
@@ -33,7 +34,7 @@ func main() {
 	log.Info(ctx, "Config parsed")
 
 	// Setup authentication storage DB Pool connection
-	authStore, err := SetupAuthStore(context.Background(), config.AuthStorageURL)
+	authStore, err := buildtag.SetupAuthStore(context.Background(), config.AuthStorageURL)
 	if err != nil {
 		log.Fatal(ctx, "Authstorage connect failed", err)
 	}
@@ -44,7 +45,7 @@ func main() {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
 
-	objectStore, err := SetupObjectStore(
+	objectStore, err := buildtag.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
 	)
 	if err != nil {

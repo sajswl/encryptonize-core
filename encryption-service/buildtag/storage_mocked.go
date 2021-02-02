@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !storage_mocked
+// +build storage_mocked
 
-package main
+package buildtag
 
 import (
 	"context"
@@ -24,11 +24,11 @@ import (
 )
 
 func SetupAuthStore(ctx context.Context, URL string) (authstorage.AuthStoreInterface, error) {
-	log.Info(ctx, "Setup AuthStore")
-	return authstorage.NewAuthStore(context.Background(), URL)
+	log.Info(ctx, "Setup AuthStore mocked")
+	return authstorage.NewMemoryAuthStore(), nil
 }
 
 func SetupObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (objectstorage.ObjectStoreInterface, error) {
-	log.Info(context.TODO(), "Setup ObjectStore")
-	return objectstorage.NewObjectStore(endpoint, bucket, accessID, accessKey, cert)
+	log.Info(context.TODO(), "Setup ObjectStore mocked")
+	return objectstorage.NewMemoryObjectStore(), nil
 }
