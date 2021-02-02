@@ -1,4 +1,4 @@
-# Copyright 2020 CYBERCRYPT
+# Copyright 2021 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,11 +24,13 @@ protosource = app/app.proto authn/authn.proto authz/access_object.proto
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
 coverage = coverage-unit.html coverage-e2e.html coverage-all.html
 
+# Build Tags variable
+tags =
 
 ##### Build targets #####
 .PHONY: build
 build: $(protobufs)  ## Build the Encryption Service binary
-	CGO_ENABLED=0 go build -v .
+	CGO_ENABLED=0 go build -v -tags "$(tags)" .
 
 $(protobufs): $(protosource)
 	protoc --go-grpc_out=app --go_out=app app/app.proto
@@ -78,8 +80,9 @@ run: build  ## Start a local instance of the Encryption Service
 	./scripts/run.sh
 
 .PHONY: run-in-mem
+run-in-mem: tags += storage_mocked
 run-in-mem: build  ## Start a local instance of the Encryption Service with mock backends
-	./scripts/run_in_mem.sh
+	./scripts/run.sh
 
 .PHONY: create-admin
 create-admin: build  ## Creates an admin for the local instance of the Encryption Service

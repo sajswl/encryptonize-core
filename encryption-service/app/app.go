@@ -1,4 +1,4 @@
-// Copyright 2020 CYBERCRYPT
+// Copyright 2021 CYBERCRYPT
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -295,7 +295,7 @@ func (app *App) StartServer() {
 	ctx := context.TODO()
 
 	// execute cli commands
-	if len(os.Args) > 1 && filepath.Base(os.Args[0]) != "main.test" {
+	if len(os.Args) > 1 && filepath.Base(os.Args[0]) != "encryption-service.test" {
 		log.Info(ctx, "Running in cli mode")
 
 		cmd := os.Args[1]

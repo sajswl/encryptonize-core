@@ -1,4 +1,4 @@
-// Copyright 2020 CYBERCRYPT
+// Copyright 2021 CYBERCRYPT
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,9 @@ import (
 
 	"encryption-service/app"
 	"encryption-service/authn"
-	"encryption-service/authstorage"
+	"encryption-service/buildtag"
 	"encryption-service/crypt"
 	log "encryption-service/logger"
-	"encryption-service/objectstorage"
 )
 
 func main() {
@@ -35,7 +34,7 @@ func main() {
 	log.Info(ctx, "Config parsed")
 
 	// Setup authentication storage DB Pool connection
-	authStore, err := authstorage.NewAuthStore(context.Background(), config.AuthStorageURL)
+	authStore, err := buildtag.SetupAuthStore(context.Background(), config.AuthStorageURL)
 	if err != nil {
 		log.Fatal(ctx, "Authstorage connect failed", err)
 	}
@@ -46,7 +45,7 @@ func main() {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
 
-	objectStore, err := objectstorage.NewObjectStore(
+	objectStore, err := buildtag.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
 	)
 	if err != nil {
