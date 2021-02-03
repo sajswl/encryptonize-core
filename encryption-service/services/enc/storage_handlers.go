@@ -20,8 +20,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/impl/authz"
 	"encryption-service/contextkeys"
+	"encryption-service/impl/authz"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )

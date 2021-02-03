@@ -21,8 +21,8 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/impl/authstorage"
 	"encryption-service/contextkeys"
+	"encryption-service/impl/authstorage"
 	"encryption-service/impl/crypt"
 	"encryption-service/impl/objectstorage"
 )

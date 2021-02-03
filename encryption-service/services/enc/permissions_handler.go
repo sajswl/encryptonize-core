@@ -21,8 +21,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/impl/authstorage"
 	"encryption-service/contextkeys"
+	"encryption-service/impl/authstorage"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )

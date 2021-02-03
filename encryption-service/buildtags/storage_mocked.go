@@ -19,9 +19,9 @@ package buildtag
 import (
 	"context"
 	"encryption-service/impl/authstorage"
+	"encryption-service/impl/objectstorage"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/impl/objectstorage"
 )
 
 func SetupAuthStore(ctx context.Context, URL string) (interfaces.AuthStoreInterface, error) {

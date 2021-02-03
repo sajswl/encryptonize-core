@@ -23,7 +23,6 @@ import (
 
 	"encryption-service/contextkeys"
 	log "encryption-service/logger"
-
 	"encryption-service/services/health"
 )
 
