@@ -64,7 +64,7 @@ func (au *AuthnService) CheckAccessToken(ctx context.Context) (context.Context, 
 		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
 	}
 
-	accessToken, err := au.UserAuthenticator.ParseAccessToken(token, au.MessageAuthenticator)
+	accessToken, err := au.UserAuthenticator.ParseAccessToken(token, au.TokenMAC)
 	if err != nil {
 		log.Error(ctx, "AuthenticateUser: Unable to parse Access Token", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")

@@ -48,7 +48,7 @@ func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserReque
 		}
 	}
 
-	userID, token, err := au.UserAuthenticator.NewUser(ctx, usertype, au.MessageAuthenticator)
+	userID, token, err := au.UserAuthenticator.NewUser(ctx, usertype, au.TokenMAC)
 	if err != nil {
 		log.Error(ctx, "CreateUser: Couldn't create new user", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")

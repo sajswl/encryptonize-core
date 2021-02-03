@@ -42,7 +42,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes authn.ScopeType) (string, error) {
 	authenticator := &authn.AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	accessToken := &authn.AccessToken{
@@ -83,7 +83,7 @@ func TestAuthorizeWrapper(t *testing.T) {
 		},
 	}
 
-	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
@@ -125,7 +125,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 		},
 	}
 
-	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)

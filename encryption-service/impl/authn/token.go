@@ -100,7 +100,7 @@ func (at *AccessToken) SerializeAccessToken(authenticator interfaces.MessageAuth
 	}
 
 	msg := append(nonce, data...)
-	tag, err := authenticator.Tag(crypt.TokenDomain, msg)
+	tag, err := a.TokenMAC.Tag(msg)
 	if err != nil {
 		return "", err
 	}
@@ -137,7 +137,7 @@ func (at *AccessToken) ParseAccessToken(token string, authenticator interfaces.M
 	}
 
 	msg := append(nonce, data...)
-	valid, err := authenticator.Verify(crypt.TokenDomain, msg, tag)
+	valid, err := a.TokenMAC.Verify(msg, tag)
 	if err != nil {
 		return nil, err
 	}

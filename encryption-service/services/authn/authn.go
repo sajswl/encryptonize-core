@@ -19,8 +19,8 @@ import (
 
 // AuthnService represents a MessageAuthenticator used for signing and checking the access token
 type AuthnService struct {
-	MessageAuthenticator interfaces.MessageAuthenticatorInterface
-	AuthStore            interfaces.AuthStoreInterface
-	UserAuthenticator    interfaces.UserAuthenticatorInterface
+	TokenMAC          interfaces.MessageAuthenticatorInterface
+	AuthStore         interfaces.AuthStoreInterface
+	UserAuthenticator interfaces.UserAuthenticatorInterface
 	UnimplementedEncryptonizeServer
 }

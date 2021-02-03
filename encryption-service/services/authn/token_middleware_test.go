@@ -42,7 +42,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes ScopeType) (string, error) {
 	authenticator := &AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	accessToken := &AccessToken{
@@ -66,7 +66,7 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK)
+	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	token, err := CreateUserForTests(m, userID, userScope)
@@ -74,7 +74,7 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 
 	var md = metadata.Pairs("authorization", token)
 	au := &AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -88,7 +88,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK)
+	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored %v", err, t)
 
 	goodToken, err := CreateUserForTests(m, userID, userScope)
@@ -97,7 +97,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 	goodTokenParts := strings.Split(goodToken, ".")
 
 	au := &AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	// for each position of the split token
@@ -128,7 +128,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK)
+	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored %v", err, t)
 
 	tokenFirst, err := CreateUserForTests(m, userIDFirst, userScope)
@@ -140,7 +140,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	secondTokenParts := strings.Split(tokenSecond, ".")
 
 	au := &AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	// for each position of the split token
@@ -171,7 +171,7 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK)
+	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	token, err := CreateUserForTests(m, userID, userScope)
@@ -180,7 +180,7 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	token = "notBearer" + token[6:]
 	var md = metadata.Pairs("authorization", token)
 	au := &AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -211,11 +211,11 @@ func TestCheckAccessTokenInvalidATformat(t *testing.T) {
 // all tests should fail
 func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	ASK, _ := crypt.Random(32)
-	m, err := crypt.NewMessageAuthenticator(ASK)
+	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
 	failOnError("Error creating MessageAuthenticator", err, t)
 
 	au := &AuthnService{
-		MessageAuthenticator: m,
+		TokenMAC: m,
 	}
 
 	for endpoint, rscope := range methodScopeMap {

@@ -20,14 +20,13 @@ import (
 	"github.com/gofrs/uuid"
 	"google.golang.org/protobuf/proto"
 
-	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 )
 
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
-	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthStoreTx          interfaces.AuthStoreTxInterface
+	AccessObjectMAC interfaces.MessageAuthenticatorInterface
+	AuthStoreTx     interfaces.AuthStoreTxInterface
 }
 
 // serializeAccessObject serializes and signs an Object ID + Access Object into data + tag
@@ -38,7 +37,7 @@ func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *Acc
 	}
 
 	msg := append(objectID.Bytes(), data...) // TODO: move linking to MessageAuthenticator?
-	tag, err := a.MessageAuthenticator.Tag(crypt.AccessObjectsDomain, msg)
+	tag, err := a.AccessObjectMAC.Tag(msg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,7 +48,7 @@ func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *Acc
 // parseAccessObject verifies and parses an Object ID + data + tag into an Access Object
 func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*AccessObject, error) {
 	msg := append(objectID.Bytes(), data...) // TODO: move linking to MessageAuthenticator?
-	valid, err := a.MessageAuthenticator.Verify(crypt.AccessObjectsDomain, msg, tag)
+	valid, err := a.AccessObjectMAC.Verify(msg, tag)
 	if err != nil {
 		return nil, err
 	}

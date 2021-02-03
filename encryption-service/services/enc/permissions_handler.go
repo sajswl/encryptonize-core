@@ -29,7 +29,7 @@ import (
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (enc *EncService) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	_, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, request.ObjectId)
+	_, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -66,7 +66,7 @@ func (enc *EncService) AddPermission(ctx context.Context, request *AddPermission
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, request.ObjectId)
+	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -127,7 +127,7 @@ func (enc *EncService) RemovePermission(ctx context.Context, request *RemovePerm
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, request.ObjectId)
+	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

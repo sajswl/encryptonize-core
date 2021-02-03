@@ -42,7 +42,7 @@ var (
 )
 
 func TestMessageAuthenticator(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
+	s, err := NewMessageAuthenticator(ASK, MessageAuthenticatorDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
@@ -52,12 +52,12 @@ func TestMessageAuthenticator(t *testing.T) {
 		t.Fatalf("Random errored: %v", err)
 	}
 
-	tag, err := s.Tag(MessageAuthenticatorDomain, msg)
+	tag, err := s.Tag(msg)
 	if err != nil {
 		t.Fatalf("Tag errored: %v", err)
 	}
 
-	ok, err := s.Verify(MessageAuthenticatorDomain, msg, tag)
+	ok, err := s.Verify(msg, tag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -68,12 +68,12 @@ func TestMessageAuthenticator(t *testing.T) {
 }
 
 func TestTag(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
+	s, err := NewMessageAuthenticator(ASK, MessageAuthenticatorDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	got, err := s.Tag(MessageAuthenticatorDomain, msg)
+	got, err := s.Tag(msg)
 	if err != nil {
 		t.Fatalf("Tag errored: %v", err)
 	}
@@ -84,32 +84,27 @@ func TestTag(t *testing.T) {
 }
 
 func TestInvalidASK(t *testing.T) {
-	_, err := NewMessageAuthenticator(ASK[1:])
+	_, err := NewMessageAuthenticator(ASK[1:], MessageAuthenticatorDomain)
 	if err == nil || err.Error() != "invalid ASK size" {
 		t.Error("Sign should have errored")
 	}
 }
 
 func TestInvalidDomain(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
-	if err != nil {
-		t.Fatalf("NewMessageAuthenticator errored: %v", err)
-	}
 	maxUint64 := ^uint64(0)
-
-	_, err = s.Tag(MessageAuthenticatorDomainType(maxUint64), msg)
+	_, err := NewMessageAuthenticator(ASK, MessageAuthenticatorDomainType(maxUint64))
 	if err == nil || err.Error() != "invalid MessageAuthenticator Domain" {
-		t.Error("Sign should have errored")
+		t.Error("NewMessageAuthenticator should have errored")
 	}
 }
 
 func TestVerify(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
+	s, err := NewMessageAuthenticator(ASK, MessageAuthenticatorDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	valid, err := s.Verify(MessageAuthenticatorDomain, msg, expectedTag)
+	valid, err := s.Verify(msg, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -121,12 +116,12 @@ func TestVerify(t *testing.T) {
 
 func TestVerifyModifiedASK(t *testing.T) {
 	ASKmodified, _ := hex.DecodeString("28855c7efc8532d92567300933cc1ca2d0586f55dcc9f054fcca2f05254fbf7e")
-	s, err := NewMessageAuthenticator(ASKmodified)
+	s, err := NewMessageAuthenticator(ASKmodified, MessageAuthenticatorDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	valid, err := s.Verify(MessageAuthenticatorDomain, msg, expectedTag)
+	valid, err := s.Verify(msg, expectedTag)
 
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
@@ -138,12 +133,12 @@ func TestVerifyModifiedASK(t *testing.T) {
 }
 
 func TestVerifyModifiedMsg(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
+	s, err := NewMessageAuthenticator(ASK, MessageAuthenticatorDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	valid, err := s.Verify(MessageAuthenticatorDomain, append(msg, 0), expectedTag)
+	valid, err := s.Verify(append(msg, 0), expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -154,12 +149,12 @@ func TestVerifyModifiedMsg(t *testing.T) {
 }
 
 func TestVerifyModifiedDomain(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
+	s, err := NewMessageAuthenticator(ASK, TokenDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	valid, err := s.Verify(TokenDomain, msg, expectedTag)
+	valid, err := s.Verify(msg, expectedTag)
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}
@@ -170,12 +165,12 @@ func TestVerifyModifiedDomain(t *testing.T) {
 }
 
 func TestVerifyModifiedMAC(t *testing.T) {
-	s, err := NewMessageAuthenticator(ASK)
+	s, err := NewMessageAuthenticator(ASK, MessageAuthenticatorDomain)
 	if err != nil {
 		t.Fatalf("NewMessageAuthenticator errored: %v", err)
 	}
 
-	valid, err := s.Verify(MessageAuthenticatorDomain, msg, append(expectedTag, 0))
+	valid, err := s.Verify(msg, append(expectedTag, 0))
 	if err != nil {
 		t.Fatalf("Verify errored: %v", err)
 	}

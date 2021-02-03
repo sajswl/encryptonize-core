@@ -34,14 +34,14 @@ var (
 		UserScopes: userScope,
 	}
 
-	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK)
+	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
 	authenticator           = &AuthnService{
-		MessageAuthenticator: messageAuthenticator,
+		TokenMAC: messageAuthenticator,
 	}
 
 	expectedSerialized = "ChAAAAAAAABAAIAAAAAAAAACEgEE"
 	expectedMessage, _ = base64.RawURLEncoding.DecodeString(expectedSerialized)
-	expectedTag, _     = messageAuthenticator.Tag(crypt.TokenDomain, append(nonce, expectedMessage...))
+	expectedTag, _     = messageAuthenticator.Tag(append(nonce, expectedMessage...))
 	expectedToken      = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg." + base64.RawURLEncoding.EncodeToString(expectedTag)
 )
 
@@ -110,11 +110,11 @@ func TestParseAccessToken(t *testing.T) {
 // in auth_handlers_test (TestAuthMiddlewareSwappedTokenParts)
 
 func TestVerifyModifiedASK(t *testing.T) {
-	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	authenticator := &AuthnService{
-		MessageAuthenticator: ma,
+		TokenMAC: ma,
 	}
 
 	_, err = authenticator.ParseAccessToken(expectedToken)

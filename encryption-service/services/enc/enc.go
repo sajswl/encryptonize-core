@@ -14,15 +14,14 @@
 package enc
 
 import (
-	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 )
 
 type EncService struct {
-	KEK                  []byte // TODO: Fix with new crypter interface
-	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthStore            interfaces.AuthStoreInterface
-	ObjectStore          interfaces.ObjectStoreInterface
-	Crypter              interfaces.CrypterInterface
+	KEK             []byte // TODO: Fix with new crypter interface
+	AccessObjectMAC interfaces.MessageAuthenticatorInterface
+	AuthStore       interfaces.AuthStoreInterface
+	ObjectStore     interfaces.ObjectStoreInterface
+	Crypter         interfaces.CrypterInterface
 	UnimplementedEncryptonizeServer
 }

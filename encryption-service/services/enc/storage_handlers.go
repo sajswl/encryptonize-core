@@ -56,8 +56,8 @@ func (enc *EncService) Store(ctx context.Context, request *StoreRequest) (*Store
 	}
 
 	authorizer := &authz.Authorizer{
-		MessageAuthenticator: enc.MessageAuthenticator,
-		AuthStoreTx:          authStorageTx,
+		AccessObjectMAC: enc.AccessObjectMAC,
+		AuthStoreTx:     authStorageTx,
 	}
 
 	// TODO: Fix with new crypter interface
@@ -100,7 +100,7 @@ func (enc *EncService) Store(ctx context.Context, request *StoreRequest) (*Store
 // Errors if authentication, authorization, or retrieving the object fails
 func (enc *EncService) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	_, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, objectIDString)
+	_, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

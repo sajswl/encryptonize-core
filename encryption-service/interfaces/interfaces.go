@@ -64,8 +64,8 @@ type UserAuthenticatorInterface interface {
 }
 
 type MessageAuthenticatorInterface interface {
-	Tag(domain uint64, msg []byte) ([]byte, error)
-	Verify(domain uint64, msg, msgTag []byte) (bool, error)
+	Tag(msg []byte) ([]byte, error)
+	Verify(msg, msgTag []byte) (bool, error)
 }
 
 type AccessTokenInterface interface {
