@@ -24,7 +24,7 @@ import (
 	"encryption-service/contextkeys"
 	log "encryption-service/logger"
 
-	"encryption-service/health"
+	"encryption-service/service/health"
 )
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.

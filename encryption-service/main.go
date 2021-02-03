@@ -16,11 +16,11 @@ package main
 import (
 	"context"
 
-	"encryption-service/app"
-	"encryption-service/authn"
+	"encryption-service/service/app"
+	"encryption-service/service/authn"
 	"encryption-service/buildtag"
 	"encryption-service/crypt"
-	"encryption-service/enc"
+	"encryption-service/service/enc"
 	log "encryption-service/logger"
 )
 

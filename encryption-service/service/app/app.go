@@ -37,9 +37,9 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authn"
-	"encryption-service/enc"
-	"encryption-service/health"
+	"encryption-service/service/authn"
+	"encryption-service/service/enc"
+	"encryption-service/service/health"
 	log "encryption-service/logger"
 )
 

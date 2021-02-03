@@ -21,7 +21,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
-	"encryption-service/authn"
+	"encryption-service/service/authn"
 	"encryption-service/authstorage"
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
