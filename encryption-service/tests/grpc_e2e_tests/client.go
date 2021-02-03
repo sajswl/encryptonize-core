@@ -21,13 +21,15 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
-	"encryption-service/service/enc"
+	"encryption-service/service/app"
 	"encryption-service/service/authn"
+	"encryption-service/service/enc"
 )
 
 // Client for making test gRPC calls to the encryption service
 type Client struct {
 	connection *grpc.ClientConn
+	appClient  app.EncryptonizeClient
 	encClient  enc.EncryptonizeClient
 	authClient authn.EncryptonizeClient
 	ctx        context.Context
@@ -53,6 +55,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 		return nil, err
 	}
 
+	appClient := app.NewEncryptonizeClient(connection)
 	encClient := enc.NewEncryptonizeClient(connection)
 	authClient := authn.NewEncryptonizeClient(connection)
 	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
@@ -60,6 +63,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 
 	return &Client{
 		connection: connection,
+		appClient:  appClient,
 		encClient:  encClient,
 		authClient: authClient,
 		ctx:        ctx,
@@ -152,8 +156,8 @@ func (c *Client) CreateUser(userscopes []authn.UserScope) (*authn.CreateUserResp
 }
 
 // Perform a `Version` request.
-func (c *Client) GetVersion() (*enc.VersionResponse, error) {
-	versionResponse, err := c.encClient.Version(c.ctx, &enc.VersionRequest{})
+func (c *Client) GetVersion() (*app.VersionResponse, error) {
+	versionResponse, err := c.appClient.Version(c.ctx, &app.VersionRequest{})
 
 	if err != nil {
 		return nil, fmt.Errorf("Get version failed: %v", err)

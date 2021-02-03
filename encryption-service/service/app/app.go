@@ -37,11 +37,14 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
+	log "encryption-service/logger"
 	"encryption-service/service/authn"
 	"encryption-service/service/enc"
 	"encryption-service/service/health"
-	log "encryption-service/logger"
 )
+
+var GitCommit string
+var GitTag string
 
 type App struct {
 	Config       *Config

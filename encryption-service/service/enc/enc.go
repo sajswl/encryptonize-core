@@ -18,11 +18,8 @@ import (
 	"encryption-service/interfaces"
 )
 
-var GitCommit string
-var GitTag string
-
 type EncService struct {
-	KEK									 []byte // TODO: Fix with new crypter interface
+	KEK                  []byte // TODO: Fix with new crypter interface
 	MessageAuthenticator *crypt.MessageAuthenticator
 	AuthStore            interfaces.AuthStoreInterface
 	ObjectStore          interfaces.ObjectStoreInterface

@@ -32,18 +32,6 @@ service Encryptonize{
 
   // Removes permission from an object
   rpc RemovePermission (RemovePermissionRequest) returns (RemovePermissionResponse){}
-
-  // Returns the versions of the currently running services
-  rpc Version (VersionRequest) returns (VersionResponse){}
-}
-
-
-message VersionRequest{
-}
-
-message VersionResponse{
-  string commit = 1;
-  string tag = 2;
 }
 
 message StoreRequest{

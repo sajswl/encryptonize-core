@@ -11,11 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package enc
+package app
 
 import "context"
 
-func (enc *EncService) Version(ctx context.Context, request *VersionRequest) (*VersionResponse, error) {
+func (app *App) Version(ctx context.Context, request *VersionRequest) (*VersionResponse, error) {
 	return &VersionResponse{
 		Commit: GitCommit,
 		Tag:    GitTag,
