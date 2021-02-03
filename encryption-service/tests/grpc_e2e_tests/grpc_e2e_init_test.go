@@ -18,7 +18,7 @@ import (
 	"os"
 	"testing"
 
-	"encryption-service/service/authn"
+	"encryption-service/services/authn"
 )
 
 var endpoint = "127.0.0.1:9000"

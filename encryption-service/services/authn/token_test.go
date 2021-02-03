@@ -21,7 +21,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 )
 
 var (

@@ -20,7 +20,7 @@ import (
 	"github.com/gofrs/uuid"
 	"google.golang.org/protobuf/proto"
 
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 )
 

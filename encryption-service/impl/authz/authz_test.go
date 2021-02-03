@@ -21,8 +21,8 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/authstorage"
-	"encryption-service/crypt"
+	"encryption-service/impl/authstorage"
+	"encryption-service/impl/crypt"
 )
 
 // TODO: accessObject comes from access_object_test.go this is not nice

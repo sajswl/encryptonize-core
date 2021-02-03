@@ -23,10 +23,10 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
-	"encryption-service/authstorage"
-	"encryption-service/authz"
+	"encryption-service/impl/authstorage"
+	"encryption-service/impl/authz"
 	"encryption-service/contextkeys"
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 )
 
 var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))

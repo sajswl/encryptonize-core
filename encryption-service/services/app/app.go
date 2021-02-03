@@ -38,9 +38,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	log "encryption-service/logger"
-	"encryption-service/service/authn"
-	"encryption-service/service/enc"
-	"encryption-service/service/health"
+	"encryption-service/services/authn"
+	"encryption-service/services/enc"
+	"encryption-service/services/health"
 )
 
 var GitCommit string

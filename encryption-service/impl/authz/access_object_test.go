@@ -22,7 +22,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 )
 
 var objectID = uuid.Must(uuid.FromString("F0000000-0000-0000-0000-000000000000"))

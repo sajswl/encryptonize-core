@@ -20,7 +20,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 )
 
 // Test the we can store an object and retrieve it later

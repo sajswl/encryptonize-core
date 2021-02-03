@@ -14,7 +14,7 @@
 package enc
 
 import (
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 )
 

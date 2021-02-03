@@ -25,7 +25,7 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 )
 
 func failOnError(message string, err error, t *testing.T) {

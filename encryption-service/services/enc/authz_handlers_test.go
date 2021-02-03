@@ -21,11 +21,11 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
-	"encryption-service/authstorage"
-	"encryption-service/authz"
+	"encryption-service/impl/authstorage"
+	"encryption-service/impl/authz"
 	"encryption-service/contextkeys"
-	"encryption-service/crypt"
-	"encryption-service/service/authn"
+	"encryption-service/impl/crypt"
+	"encryption-service/services/authn"
 )
 
 func failOnError(message string, err error, t *testing.T) {

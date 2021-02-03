@@ -22,7 +22,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"encryption-service/crypt"
+	"encryption-service/impl/crypt"
 )
 
 // ScopeType represents the different scopes a user could be granted

@@ -16,12 +16,12 @@ package main
 import (
 	"context"
 
-	"encryption-service/buildtag"
-	"encryption-service/crypt"
+	"encryption-service/buildtags"
+	"encryption-service/impl/crypt"
 	log "encryption-service/logger"
-	"encryption-service/service/app"
-	"encryption-service/service/authn"
-	"encryption-service/service/enc"
+	"encryption-service/services/app"
+	"encryption-service/services/authn"
+	"encryption-service/services/enc"
 )
 
 func main() {
