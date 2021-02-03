@@ -25,7 +25,8 @@ import (
 
 // MessageAuthenticator encapsulates a symmetric key used for tagging msgs and verifying msgs + tags
 type MessageAuthenticator struct {
-	domainKeys map[MessageAuthenticatorDomainType][]byte
+	domain    MessageAuthenticatorDomainType
+	domainKey []byte
 }
 
 // MessageAuthenticatorDomainType represents the different tagging Domains of the MessageAuthenticator
@@ -38,23 +39,23 @@ const (
 	DomainLimit
 )
 
-// NewMessageAuthenticator creates a new MessageAuthenticator and derives all domain keys
-func NewMessageAuthenticator(ask []byte) (*MessageAuthenticator, error) {
+// NewMessageAuthenticator creates a new MessageAuthenticator and derives the corresponding domain key
+func NewMessageAuthenticator(ask []byte, domain MessageAuthenticatorDomainType) (*MessageAuthenticator, error) {
 	if len(ask) != 32 {
 		return nil, errors.New("invalid ASK size")
 	}
+	if domain >= DomainLimit {
+		return nil, errors.New("invalid MessageAuthenticator Domain")
+	}
 
-	domainKeys := make(map[MessageAuthenticatorDomainType][]byte)
-	for domain := MessageAuthenticatorDomainType(0); domain < DomainLimit; domain++ {
-		domainKey, err := deriveDomainKey(ask, domain)
-		if err != nil {
-			return nil, err
-		}
-		domainKeys[domain] = domainKey
+	domainKey, err := deriveDomainKey(ask, domain)
+	if err != nil {
+		return nil, err
 	}
 
 	return &MessageAuthenticator{
-		domainKeys: domainKeys,
+		domain:    domain,
+		domainKey: domainKey,
 	}, nil
 }
 
@@ -74,13 +75,8 @@ func deriveDomainKey(ask []byte, MessageAuthenticatorDomain MessageAuthenticator
 }
 
 // Tag returns a tag for the msg
-func (s *MessageAuthenticator) Tag(domain MessageAuthenticatorDomainType, msg []byte) ([]byte, error) {
-	domainKey, ok := s.domainKeys[domain]
-	if !ok {
-		return nil, errors.New("invalid MessageAuthenticator Domain")
-	}
-
-	h := NewKMAC256(domainKey, 32, nil)
+func (s *MessageAuthenticator) Tag(msg []byte) ([]byte, error) {
+	h := NewKMAC256(s.domainKey, 32, nil)
 	_, err := h.Write(msg)
 	if err != nil {
 		return nil, err
@@ -90,8 +86,8 @@ func (s *MessageAuthenticator) Tag(domain MessageAuthenticatorDomainType, msg []
 }
 
 // Verify returns if a msg and its tags are valid
-func (s *MessageAuthenticator) Verify(domain MessageAuthenticatorDomainType, msg, msgTag []byte) (bool, error) {
-	calcTag, err := s.Tag(domain, msg)
+func (s *MessageAuthenticator) Verify(msg, msgTag []byte) (bool, error) {
+	calcTag, err := s.Tag(msg)
 	if err != nil {
 		return false, err
 	}
