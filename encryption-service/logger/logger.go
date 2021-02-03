@@ -183,13 +183,12 @@ func UnaryLogInterceptor() grpc.UnaryServerInterceptor {
 // Logging interceptor for stream calls
 func StreamLogInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		log.Infof("srv: %v, stream: %v, info: %v", srv, stream, info)
+		ctx := stream.Context()
+		Info(ctx, "Request start")
 
-		var newCtx context.Context
-		wrapped := grpc_middleware.WrapServerStream(stream)
-		wrapped.WrappedContext = newCtx
-		err := handler(srv, wrapped)
+		err := handler(srv, stream)
 
+		Info(ctx, "Request completed")
 		return err
 	}
 }

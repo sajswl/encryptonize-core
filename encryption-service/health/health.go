@@ -22,6 +22,7 @@ import (
 const (
 	HealthEndpointCheck string = "/grpc.health.v1.Health/Check"
 	HealthEndpointWatch string = "/grpc.health.v1.Health/Watch"
+	ReflectionEndpoint  string = "/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo"
 )
 
 type Checker struct{}
