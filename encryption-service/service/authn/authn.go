@@ -24,9 +24,9 @@ import (
 
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
-	"encryption-service/service/health"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
+	"encryption-service/service/health"
 )
 
 // AuthnService represents a MessageAuthenticator used for signing and checking the access token

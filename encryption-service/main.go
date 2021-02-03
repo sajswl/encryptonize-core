@@ -16,12 +16,12 @@ package main
 import (
 	"context"
 
-	"encryption-service/service/app"
-	"encryption-service/service/authn"
 	"encryption-service/buildtag"
 	"encryption-service/crypt"
-	"encryption-service/service/enc"
 	log "encryption-service/logger"
+	"encryption-service/service/app"
+	"encryption-service/service/authn"
+	"encryption-service/service/enc"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	encService := &enc.EncService{
-		KEK: config.KEK,
+		KEK:                  config.KEK,
 		MessageAuthenticator: messageAuthenticator,
 		AuthStore:            authStore,
 		ObjectStore:          objectStore,

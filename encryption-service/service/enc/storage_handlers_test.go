@@ -52,7 +52,7 @@ func TestStoreRetrieve(t *testing.T) {
 	enc := EncService{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
-		KEK: KEK,
+		KEK:                  KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -100,7 +100,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	enc := EncService{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
-		KEK: KEK,
+		KEK:                  KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -139,7 +139,7 @@ func TestStoreFail(t *testing.T) {
 	enc := EncService{
 		ObjectStore:          objectStore,
 		MessageAuthenticator: messageAuthenticator,
-		KEK: KEK,
+		KEK:                  KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -178,7 +178,7 @@ func TestStoreFailAuth(t *testing.T) {
 	enc := EncService{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
-		KEK: KEK,
+		KEK:                  KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
