@@ -56,13 +56,18 @@ func main() {
 		MessageAuthenticator: messageAuthenticator,
 	}
 
+	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
+	if err != nil {
+		log.Fatal(ctx, "NewAESCryptor failed", err)
+	}
+
 	app := &app.App{
 		Config:               config,
 		MessageAuthenticator: messageAuthenticator,
 		AuthStore:            authStore,
 		AuthService:          authService,
 		ObjectStore:          objectStore,
-		Crypter:              &crypt.AESCrypter{},
+		DataCryptor:          dataCryptor,
 	}
 
 	app.StartServer()
