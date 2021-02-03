@@ -13,7 +13,7 @@
 // limitations under the License.
 package crypt
 
-type Cryptor interface {
+type CryptorInterface interface {
 	Encrypt(data, aad []byte) (wrappedKey, ciphertext []byte, err error)
 	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
 }

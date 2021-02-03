@@ -55,7 +55,7 @@ type App struct {
 	AuthService          authn.AuthServiceInterface
 	AuthStore            authstorage.AuthStoreInterface
 	ObjectStore          objectstorage.ObjectStoreInterface
-	DataCryptor          crypt.Cryptor
+	DataCryptor          crypt.CryptorInterface
 	UnimplementedEncryptonizeServer
 }
 
