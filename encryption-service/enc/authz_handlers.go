@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -21,10 +21,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authstorage"
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
@@ -33,7 +33,7 @@ import (
 // or if a user isn't authorized to edit the accessObject
 func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
 	//Define authorizer struct
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
 		log.Error(ctx, "Could not typecast authstorage to AuthStoreTxInterface", err)

@@ -27,29 +27,9 @@ import (
 	"github.com/sony/gobreaker"
 
 	"encryption-service/contextkeys"
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
-
-// Interface representing a connection to the Auth Store
-type AuthStoreInterface interface {
-	NewTransaction(ctx context.Context) (AuthStoreTxInterface, error)
-	Close()
-}
-
-// Interface representing a transaction on the Auth Store
-type AuthStoreTxInterface interface {
-	Rollback(ctx context.Context) error
-	Commit(ctx context.Context) error
-
-	// User handling
-	GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error)
-	UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error
-
-	// Access Object handling
-	GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
-	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
-	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
-}
 
 // TODO: Tune circuit breaker
 // The circuit breaker helps to prevent unnecessary connections towards the auth storage
@@ -113,7 +93,7 @@ func NewAuthStore(ctx context.Context, URL string) (*AuthStore, error) {
 }
 
 // NewTransaction starts a new Transaction (tx) in the pool and instances an AuthStoreTx with it
-func (store *AuthStore) NewTransaction(ctx context.Context) (AuthStoreTxInterface, error) {
+func (store *AuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
 	// Wrap DB connection in a circuit breaker. By default, it trips to "open" state after 5 consecutive failures.
 	tx, err := cb.Execute(func() (interface{}, error) {
 		tx, err := store.pool.Begin(ctx)

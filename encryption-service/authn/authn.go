@@ -15,51 +15,45 @@ package authn
 
 import (
 	context "context"
+	"fmt"
 
+	"github.com/gofrs/uuid"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
 	"encryption-service/crypt"
 	"encryption-service/health"
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
-// AuthService represents a MessageAuthenticator used for signing and checking the access token
-type AuthService struct {
+// AuthnService represents a MessageAuthenticator used for signing and checking the access token
+type AuthnService struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
+	AuthStore            interfaces.AuthStoreInterface
 	UnimplementedEncryptonizeServer
 }
 
-type AuthServiceInterface interface {
-	RegisterService(srv grpc.ServiceRegistrar)
-	CheckAccessToken(ctx context.Context) (context.Context, error)
-}
-
-func (au *AuthService) RegisterService(srv grpc.ServiceRegistrar) {
-	RegisterEncryptonizeServer(srv, au)
-}
-
-const baseAppPath string = "/app.Encryptonize/"
+const baseEncPath string = "/enc.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
 
 var methodScopeMap = map[string]ScopeType{
 	baseAuthPath + "CreateUser":      ScopeUserManagement,
-	baseAppPath + "GetPermissions":   ScopeIndex,
-	baseAppPath + "AddPermission":    ScopeObjectPermissions,
-	baseAppPath + "RemovePermission": ScopeObjectPermissions,
-	baseAppPath + "Store":            ScopeCreate,
-	baseAppPath + "Retrieve":         ScopeRead,
-	baseAppPath + "Version":          ScopeNone,
+	baseEncPath + "GetPermissions":   ScopeIndex,
+	baseEncPath + "AddPermission":    ScopeObjectPermissions,
+	baseEncPath + "RemovePermission": ScopeObjectPermissions,
+	baseEncPath + "Store":            ScopeCreate,
+	baseEncPath + "Retrieve":         ScopeRead,
+	baseEncPath + "Version":          ScopeNone,
 }
 
 // CheckAccessToken verifies the authenticity of a token and
 // that the token contains the required scope for the requested API
 // The Access Token contains uid, scopes, and a random value
 // this token has to be integrity protected (e.g. by an HMAC)
-func (au *AuthService) CheckAccessToken(ctx context.Context) (context.Context, error) {
+func (au *AuthnService) CheckAccessToken(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {
@@ -104,4 +98,41 @@ func (au *AuthService) CheckAccessToken(ctx context.Context) (context.Context, e
 	log.Info(newCtx, "AuthenticateUser: User authenticated")
 
 	return newCtx, nil
+}
+
+// CreateAdminCommand creates a new admin users with random credentials
+// This function is intended to be used for cli operation
+func (au *AuthnService) CreateAdminCommand() error {
+	ctx := context.Background()
+
+	// Need to inject requestID manually, as these calls don't pass the usual middleware
+	requestID, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(ctx, "Could not generate uuid", err)
+	}
+	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+
+	authStoreTx, err := au.AuthStore.NewTransaction(ctx)
+	if err != nil {
+		log.Fatal(ctx, "Authstorage Begin failed", err)
+	}
+	defer func() {
+		err := authStoreTx.Rollback(ctx)
+		if err != nil {
+			log.Fatal(ctx, "Performing rollback", err)
+		}
+	}()
+
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	adminScope := ScopeUserManagement
+	userID, accessToken, err := au.CreateUserWrapper(ctx, adminScope)
+	if err != nil {
+		log.Fatal(ctx, "Create user failed", err)
+	}
+
+	log.Info(ctx, "Created admin user:")
+	log.Info(ctx, fmt.Sprintf("    User ID:      %v", userID))
+	log.Info(ctx, fmt.Sprintf("    Access Token: %v", accessToken))
+
+	return nil
 }

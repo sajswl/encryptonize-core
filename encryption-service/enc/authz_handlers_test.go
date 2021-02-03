@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -41,7 +41,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes authn.ScopeType) (string, error) {
-	authenticator := &authn.AuthService{
+	authenticator := &authn.AuthnService{
 		MessageAuthenticator: m,
 	}
 

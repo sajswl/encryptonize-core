@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -42,19 +42,17 @@ func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte
 
 var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 
-var config = &Config{
-	KEK: []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
-}
+var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
 	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
-	app := App{
+	enc := EncService{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		KEK: KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -71,7 +69,7 @@ func TestStoreRetrieve(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := app.Store(
+	storeResponse, err := enc.Store(
 		ctx,
 		&StoreRequest{Object: object},
 	)
@@ -79,7 +77,7 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Storing object failed: %v", err)
 	}
 
-	retrieveResponse, err := app.Retrieve(
+	retrieveResponse, err := enc.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: storeResponse.ObjectId,
@@ -99,10 +97,10 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
-	app := App{
+	enc := EncService{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		KEK: KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -114,7 +112,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	retrieveResponse, err := app.Retrieve(
+	retrieveResponse, err := enc.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: uuid.Must(uuid.NewV4()).String(),
@@ -138,10 +136,10 @@ func TestStoreFail(t *testing.T) {
 			return nil
 		},
 	}
-	app := App{
+	enc := EncService{
 		ObjectStore:          objectStore,
 		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		KEK: KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -158,7 +156,7 @@ func TestStoreFail(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := app.Store(
+	storeResponse, err := enc.Store(
 		ctx,
 		&StoreRequest{Object: object},
 	)
@@ -177,10 +175,10 @@ func TestStoreFailAuth(t *testing.T) {
 			return fmt.Errorf("")
 		},
 	}
-	app := App{
+	enc := EncService{
 		ObjectStore:          objectstorage.NewMemoryObjectStore(),
 		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		KEK: KEK,
 		Crypter:              &crypt.AESCrypter{},
 	}
 
@@ -197,7 +195,7 @@ func TestStoreFailAuth(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := app.Store(
+	storeResponse, err := enc.Store(
 		ctx,
 		&StoreRequest{Object: object},
 	)

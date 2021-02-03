@@ -35,7 +35,7 @@ var (
 	}
 
 	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK)
-	authenticator           = &AuthService{
+	authenticator           = &AuthnService{
 		MessageAuthenticator: messageAuthenticator,
 	}
 
@@ -113,7 +113,7 @@ func TestVerifyModifiedASK(t *testing.T) {
 	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	authenticator := &AuthService{
+	authenticator := &AuthnService{
 		MessageAuthenticator: ma,
 	}
 

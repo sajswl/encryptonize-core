@@ -18,6 +18,8 @@ import (
 	"sync"
 
 	"github.com/gofrs/uuid"
+
+	"encryption-service/interfaces"
 )
 
 // TODO: we haven't found a better way to export testing structs yet
@@ -72,7 +74,7 @@ func NewMemoryAuthStore() *MemoryAuthStore {
 	}
 }
 
-func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (AuthStoreTxInterface, error) {
+func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
 	return &MemoryAuthStoreTx{data: &store.data}, nil
 }
 

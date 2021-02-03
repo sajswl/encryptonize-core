@@ -22,14 +22,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
-func (au *AuthService) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
+func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
 	usertype := ScopeNone
 	for _, us := range request.UserScopes {
 		switch us {
@@ -63,8 +63,8 @@ func (au *AuthService) CreateUser(ctx context.Context, request *CreateUserReques
 }
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (au *AuthService) CreateUserWrapper(ctx context.Context, userscopes ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+func (au *AuthnService) CreateUserWrapper(ctx context.Context, userscopes ScopeType) (*uuid.UUID, string, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}

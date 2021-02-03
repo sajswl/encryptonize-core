@@ -1,4 +1,4 @@
-// Copyright 2020 CYBERCRYPT
+// Copyright 2021 CYBERCRYPT
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,13 +11,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
-import "context"
+import (
+	"encryption-service/crypt"
+	"encryption-service/interfaces"
+)
 
-func (app *App) Version(ctx context.Context, request *VersionRequest) (*VersionResponse, error) {
-	return &VersionResponse{
-		Commit: GitCommit,
-		Tag:    GitTag,
-	}, nil
+var GitCommit string
+var GitTag string
+
+type EncService struct {
+	KEK									 []byte // TODO: Fix with new crypter interface
+	MessageAuthenticator *crypt.MessageAuthenticator
+	AuthStore            interfaces.AuthStoreInterface
+	ObjectStore          interfaces.ObjectStoreInterface
+	Crypter              interfaces.CrypterInterface
+	UnimplementedEncryptonizeServer
 }

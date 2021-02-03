@@ -11,34 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-syntax = "proto3";
+package enc
 
-package authn;
-option go_package = ".;authn";
+import "context"
 
-service Encryptonize{
-  // Creates a new user on the service
-  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse){}
-}
-
-enum UserScope{
-  READ = 0;
-  CREATE = 1;
-  INDEX = 2;
-  OBJECTPERMISSIONS = 3;
-  USERMANAGEMENT = 4;
-}
-
-message CreateUserRequest{
-  repeated UserScope user_scopes = 1;
-}
-
-message CreateUserResponse{
-  string user_id = 1;
-  string access_token = 2;
-}
-
-message AccessTokenClient{
-  bytes user_id = 1;
-  repeated UserScope user_scopes = 2;
+func (enc *EncService) Version(ctx context.Context, request *VersionRequest) (*VersionResponse, error) {
+	return &VersionResponse{
+		Commit: GitCommit,
+		Tag:    GitTag,
+	}, nil
 }

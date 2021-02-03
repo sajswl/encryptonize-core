@@ -20,6 +20,7 @@ import (
 	"encryption-service/authn"
 	"encryption-service/buildtag"
 	"encryption-service/crypt"
+	"encryption-service/enc"
 	log "encryption-service/logger"
 )
 
@@ -52,17 +53,23 @@ func main() {
 		log.Fatal(ctx, "Objectstorage connect failed", err)
 	}
 
-	authService := &authn.AuthService{
+	encService := &enc.EncService{
+		KEK: config.KEK,
 		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authStore,
+		ObjectStore:          objectStore,
+		Crypter:              &crypt.AESCrypter{},
+	}
+
+	authnService := &authn.AuthnService{
+		MessageAuthenticator: messageAuthenticator,
+		AuthStore:            authStore,
 	}
 
 	app := &app.App{
-		Config:               config,
-		MessageAuthenticator: messageAuthenticator,
-		AuthStore:            authStore,
-		AuthService:          authService,
-		ObjectStore:          objectStore,
-		Crypter:              &crypt.AESCrypter{},
+		Config:       config,
+		EncService:   encService,
+		AuthnService: authnService,
 	}
 
 	app.StartServer()

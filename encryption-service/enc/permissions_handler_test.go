@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -34,7 +34,7 @@ var authorizer = &authz.Authorizer{
 	MessageAuthenticator: ma,
 }
 
-var app = App{
+var enc = EncService{
 	MessageAuthenticator: ma,
 }
 
@@ -81,7 +81,7 @@ func TestGetPermissions(t *testing.T) {
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 	expected := []string{userID.String()}
 
-	getPermissionsResponse, err := app.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
+	getPermissionsResponse, err := enc.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
 	if err != nil {
 		t.Fatalf("Couldn't get user: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestGetPermissionsMissingOID(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.GetPermissions(ctx, &GetPermissionsRequest{})
+	_, err = enc.GetPermissions(ctx, &GetPermissionsRequest{})
 	if err == nil {
 		t.Fatalf("No object id given, should have failed")
 	}
@@ -115,7 +115,7 @@ func TestGetPermissionUnauthorized(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
+	_, err = enc.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
 	if err == nil {
 		t.Fatalf("User should not be authorized")
 	}
@@ -128,7 +128,7 @@ func TestAddPermission(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
+	_, err = enc.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err != nil {
 		t.Fatalf("Couldn't add user: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestAddPermissionNoTargetUser(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
+	_, err = enc.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 
 	// Restore the original GetTag function for the other tests
 	authnStorageTxMock.GetUserTagFunc = oldGetTag
@@ -169,7 +169,7 @@ func TestAddPermissionUnauthorized(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
+	_, err = enc.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err == nil {
 		t.Fatalf("User should not be authorized")
 	}
@@ -182,7 +182,7 @@ func TestAddPermissionMissingOID(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.AddPermission(ctx, &AddPermissionRequest{Target: targetID.String()})
+	_, err = enc.AddPermission(ctx, &AddPermissionRequest{Target: targetID.String()})
 	if err == nil {
 		t.Fatalf("No object id given, should have failed")
 	}
@@ -192,7 +192,7 @@ func TestAddPermissionMissingTarget(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String()})
+	_, err = enc.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String()})
 	if err == nil {
 		t.Fatalf("No target id given, should have failed")
 	}
@@ -202,7 +202,7 @@ func TestRemovePermission(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
+	_, err = enc.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err != nil {
 		t.Fatalf("Couldn't remove user: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestRemovePermissionUnauthorized(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
+	_, err = enc.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
 	if err == nil {
 		t.Fatalf("User should not be authorized")
 	}
@@ -235,7 +235,7 @@ func TestRemovePermissionMissingTarget(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String()})
+	_, err = enc.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String()})
 	if err == nil {
 		t.Fatalf("No target id given, should have failed")
 	}
@@ -245,7 +245,7 @@ func TestRemovePermissionMissingOID(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	_, err = app.RemovePermission(ctx, &RemovePermissionRequest{Target: targetID.String()})
+	_, err = enc.RemovePermission(ctx, &RemovePermissionRequest{Target: targetID.String()})
 	if err == nil {
 		t.Fatalf("No object id given, should have failed")
 	}

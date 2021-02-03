@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -20,9 +20,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/authstorage"
 	"encryption-service/authz"
 	"encryption-service/contextkeys"
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
@@ -32,7 +32,7 @@ const CiphertextStoreSuffix = "_data"
 // API exposed function, encrypts data and stores it in the object store
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
-func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
+func (enc *EncService) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
@@ -48,7 +48,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err = status.Errorf(codes.Internal, "error encountered while storing object")
 		log.Error(ctx, "Store: Could not typecast authstorage to AuthStoreTxInterface ", err)
@@ -56,28 +56,29 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	}
 
 	authorizer := &authz.Authorizer{
-		MessageAuthenticator: app.MessageAuthenticator,
+		MessageAuthenticator: enc.MessageAuthenticator,
 		AuthStoreTx:          authStorageTx,
 	}
 
-	oek, err := authorizer.CreateObject(ctx, objectID, userID, app.Config.KEK)
+	// TODO: Fix with new crypter interface
+	oek, err := authorizer.CreateObject(ctx, objectID, userID, enc.KEK)
 	if err != nil {
 		log.Error(ctx, "Store: Failed to create new access object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	ciphertext, err := app.Crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
+	ciphertext, err := enc.Crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
 	if err != nil {
 		log.Error(ctx, "Store: Failed to encrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := app.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
+	if err := enc.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
 		log.Error(ctx, "Store: Failed to store associated data", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := app.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
+	if err := enc.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
 		log.Error(ctx, "Store: Failed to store object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
@@ -97,33 +98,34 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 // API exposed function, retrieves a package from storage solution
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication, authorization, or retrieving the object fails
-func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
+func (enc *EncService) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	_, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, objectIDString)
+	_, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
 	}
 
-	oek, err := accessObject.UnwrapWOEK(app.Config.KEK)
+	// TODO: Fix with new crypter interface
+	oek, err := accessObject.UnwrapWOEK(enc.KEK)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to unwrap OEK", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	aad, err := app.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
+	aad, err := enc.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to retrieve associated data", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	ciphertext, err := app.ObjectStore.Retrieve(ctx, objectIDString+CiphertextStoreSuffix)
+	ciphertext, err := enc.ObjectStore.Retrieve(ctx, objectIDString+CiphertextStoreSuffix)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to retrieve object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	plaintext, err := app.Crypter.Decrypt(ciphertext, aad, oek)
+	plaintext, err := enc.Crypter.Decrypt(ciphertext, aad, oek)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")

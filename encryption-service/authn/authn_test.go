@@ -41,7 +41,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes ScopeType) (string, error) {
-	authenticator := &AuthService{
+	authenticator := &AuthnService{
 		MessageAuthenticator: m,
 	}
 
@@ -73,11 +73,11 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 	failOnError("SerializeAccessToken errored", err, t)
 
 	var md = metadata.Pairs("authorization", token)
-	au := &AuthService{
+	au := &AuthnService{
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = au.CheckAccessToken(ctx)
 	failOnError("Auth failed", err, t)
@@ -96,7 +96,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 
 	goodTokenParts := strings.Split(goodToken, ".")
 
-	au := &AuthService{
+	au := &AuthnService{
 		MessageAuthenticator: m,
 	}
 
@@ -115,7 +115,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 		token := strings.Join(tokenParts, ".")
 
 		var md = metadata.Pairs("authorization", token)
-		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = au.CheckAccessToken(ctx)
 		failOnSuccess("Auth should have errored", err, t)
@@ -139,7 +139,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	firstTokenParts := strings.Split(tokenFirst, ".")
 	secondTokenParts := strings.Split(tokenSecond, ".")
 
-	au := &AuthService{
+	au := &AuthnService{
 		MessageAuthenticator: m,
 	}
 
@@ -158,7 +158,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 		token := strings.Join(tokenParts, ".")
 
 		var md = metadata.Pairs("authorization", token)
-		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = au.CheckAccessToken(ctx)
 		failOnSuccess("Auth should have errored", err, t)
@@ -179,11 +179,11 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 
 	token = "notBearer" + token[6:]
 	var md = metadata.Pairs("authorization", token)
-	au := &AuthService{
+	au := &AuthnService{
 		MessageAuthenticator: m,
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = au.CheckAccessToken(ctx)
 	failOnSuccess("Auth should have failed", err, t)
@@ -191,14 +191,14 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 
 // Tests that accesstoken thats not hex gets rejected
 func TestCheckAccessTokenInvalidATformat(t *testing.T) {
-	au := &AuthService{}
+	au := &AuthnService{}
 
 	// Test wrong format AT
 	// User credentials
 	AT := "bearer thisIsANonHexaDecimalSentenceThatsAtLeastSixtyFourCharactersLong"
 	var md = metadata.Pairs("authorization", AT)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/app.Encryptonize/Store")
+	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
 	_, err := au.CheckAccessToken(ctx)
 	failOnSuccess("Invalid Auth Passed", err, t)
 
@@ -214,7 +214,7 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	m, err := crypt.NewMessageAuthenticator(ASK)
 	failOnError("Error creating MessageAuthenticator", err, t)
 
-	au := &AuthService{
+	au := &AuthnService{
 		MessageAuthenticator: m,
 	}
 

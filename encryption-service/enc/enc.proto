@@ -13,8 +13,8 @@
 // limitations under the License.
 syntax = "proto3";
 
-package app;
-option go_package = ".;app";
+package enc;
+option go_package = ".;enc";
 
 
 service Encryptonize{

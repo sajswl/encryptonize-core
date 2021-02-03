@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -23,12 +23,13 @@ import (
 
 	"encryption-service/authstorage"
 	"encryption-service/contextkeys"
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
-func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	_, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+func (enc *EncService) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
+	_, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -57,15 +58,15 @@ func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsReque
 
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
-func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+func (enc *EncService) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
 		log.Error(ctx, "AddPermission: Could not typecast authstorage to AuthStoreTxInterface", err)
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -118,15 +119,15 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
-func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
+func (enc *EncService) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
 		log.Error(ctx, "RemovePermission: Could not typecast authstorage to AuthStoreTxInterface", err)
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.MessageAuthenticator, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

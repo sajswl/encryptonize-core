@@ -36,14 +36,6 @@ type ObjectStore struct {
 	bucket string
 }
 
-type ObjectStoreInterface interface {
-	// Store an object under a given object ID
-	Store(ctx context.Context, objectID string, object []byte) error
-
-	// Retrieve an object with a given object ID
-	Retrieve(ctx context.Context, objectID string) ([]byte, error)
-}
-
 // Create a new object store defined by an endpoint and a bucket, authenticating with an access ID
 // and key.
 // Errors if the S3 session cannot be created.

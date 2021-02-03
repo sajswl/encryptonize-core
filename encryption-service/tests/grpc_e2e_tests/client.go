@@ -21,14 +21,14 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
-	"encryption-service/app"
+	"encryption-service/enc"
 	"encryption-service/authn"
 )
 
 // Client for making test gRPC calls to the encryption service
 type Client struct {
 	connection *grpc.ClientConn
-	appClient  app.EncryptonizeClient
+	encClient  enc.EncryptonizeClient
 	authClient authn.EncryptonizeClient
 	ctx        context.Context
 }
@@ -53,14 +53,14 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 		return nil, err
 	}
 
-	appClient := app.NewEncryptonizeClient(connection)
+	encClient := enc.NewEncryptonizeClient(connection)
 	authClient := authn.NewEncryptonizeClient(connection)
 	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
 	return &Client{
 		connection: connection,
-		appClient:  appClient,
+		encClient:  encClient,
 		authClient: authClient,
 		ctx:        ctx,
 	}, nil
@@ -73,15 +73,15 @@ func (c *Client) Close() error {
 }
 
 // Perform a `Store` request.
-func (c *Client) Store(plaintext, associatedData []byte) (*app.StoreResponse, error) {
-	storeRequest := &app.StoreRequest{
-		Object: &app.Object{
+func (c *Client) Store(plaintext, associatedData []byte) (*enc.StoreResponse, error) {
+	storeRequest := &enc.StoreRequest{
+		Object: &enc.Object{
 			Plaintext:      plaintext,
 			AssociatedData: associatedData,
 		},
 	}
 
-	storeResponse, err := c.appClient.Store(c.ctx, storeRequest)
+	storeResponse, err := c.encClient.Store(c.ctx, storeRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Store failed: %v", err)
 	}
@@ -89,10 +89,10 @@ func (c *Client) Store(plaintext, associatedData []byte) (*app.StoreResponse, er
 }
 
 // Perform a `Retrieve` request.
-func (c *Client) Retrieve(oid string) (*app.RetrieveResponse, error) {
-	retrieveRequest := &app.RetrieveRequest{ObjectId: oid}
+func (c *Client) Retrieve(oid string) (*enc.RetrieveResponse, error) {
+	retrieveRequest := &enc.RetrieveRequest{ObjectId: oid}
 
-	retrieveResponse, err := c.appClient.Retrieve(c.ctx, retrieveRequest)
+	retrieveResponse, err := c.encClient.Retrieve(c.ctx, retrieveRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Retrieve failed: %v", err)
 	}
@@ -100,10 +100,10 @@ func (c *Client) Retrieve(oid string) (*app.RetrieveResponse, error) {
 }
 
 // Perform a `GetPermissions` request.
-func (c *Client) GetPermissions(oid string) (*app.GetPermissionsResponse, error) {
-	getPermissionsRequest := &app.GetPermissionsRequest{ObjectId: oid}
+func (c *Client) GetPermissions(oid string) (*enc.GetPermissionsResponse, error) {
+	getPermissionsRequest := &enc.GetPermissionsRequest{ObjectId: oid}
 
-	getPermissionsResponse, err := c.appClient.GetPermissions(c.ctx, getPermissionsRequest)
+	getPermissionsResponse, err := c.encClient.GetPermissions(c.ctx, getPermissionsRequest)
 	if err != nil {
 		return nil, fmt.Errorf("GetPermissions failed: %v", err)
 	}
@@ -111,13 +111,13 @@ func (c *Client) GetPermissions(oid string) (*app.GetPermissionsResponse, error)
 }
 
 // Perform a `AddPermission` request.
-func (c *Client) AddPermission(oid, target string) (*app.AddPermissionResponse, error) {
-	addPermissionRequest := &app.AddPermissionRequest{
+func (c *Client) AddPermission(oid, target string) (*enc.AddPermissionResponse, error) {
+	addPermissionRequest := &enc.AddPermissionRequest{
 		ObjectId: oid,
 		Target:   target,
 	}
 
-	addPermissionResponse, err := c.appClient.AddPermission(c.ctx, addPermissionRequest)
+	addPermissionResponse, err := c.encClient.AddPermission(c.ctx, addPermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("AddPermission failed: %v", err)
 	}
@@ -125,13 +125,13 @@ func (c *Client) AddPermission(oid, target string) (*app.AddPermissionResponse, 
 }
 
 // Perform a `RemovePermission` request.
-func (c *Client) RemovePermission(oid, target string) (*app.RemovePermissionResponse, error) {
-	removePermissionRequest := &app.RemovePermissionRequest{
+func (c *Client) RemovePermission(oid, target string) (*enc.RemovePermissionResponse, error) {
+	removePermissionRequest := &enc.RemovePermissionRequest{
 		ObjectId: oid,
 		Target:   target,
 	}
 
-	removePermissionResponse, err := c.appClient.RemovePermission(c.ctx, removePermissionRequest)
+	removePermissionResponse, err := c.encClient.RemovePermission(c.ctx, removePermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("RemovePermission failed: %v", err)
 	}
@@ -152,8 +152,8 @@ func (c *Client) CreateUser(userscopes []authn.UserScope) (*authn.CreateUserResp
 }
 
 // Perform a `Version` request.
-func (c *Client) GetVersion() (*app.VersionResponse, error) {
-	versionResponse, err := c.appClient.Version(c.ctx, &app.VersionRequest{})
+func (c *Client) GetVersion() (*enc.VersionResponse, error) {
+	versionResponse, err := c.encClient.Version(c.ctx, &enc.VersionRequest{})
 
 	if err != nil {
 		return nil, fmt.Errorf("Get version failed: %v", err)

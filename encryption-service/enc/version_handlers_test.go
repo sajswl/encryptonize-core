@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package enc
 
 import (
 	"context"
@@ -22,9 +22,9 @@ func TestVersion(t *testing.T) {
 	GitCommit = "3c9c1080d50ffd306213c3ea320e7856088d3ad8"
 	GitTag = "v2.0"
 
-	app := App{}
+	enc := EncService{}
 
-	versionResponse, err := app.Version(context.Background(), &VersionRequest{})
+	versionResponse, err := enc.Version(context.Background(), &VersionRequest{})
 
 	if err != nil {
 		t.Fatalf("Failed to retrieve version: %v", err)

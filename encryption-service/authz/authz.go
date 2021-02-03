@@ -20,14 +20,14 @@ import (
 	"github.com/gofrs/uuid"
 	"google.golang.org/protobuf/proto"
 
-	"encryption-service/authstorage"
 	"encryption-service/crypt"
+	"encryption-service/interfaces"
 )
 
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
 	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthStoreTx          authstorage.AuthStoreTxInterface
+	AuthStoreTx          interfaces.AuthStoreTxInterface
 }
 
 // serializeAccessObject serializes and signs an Object ID + Access Object into data + tag
