@@ -18,14 +18,9 @@ import (
 	"context"
 
 	"github.com/gofrs/uuid"
-	"google.golang.org/grpc"
-)
 
-// Interface representing the Auth Service
-type AuthServiceInterface interface {
-	RegisterService(srv grpc.ServiceRegistrar)
-	CheckAccessToken(ctx context.Context) (context.Context, error)
-}
+	"encryption-service/scopes"
+)
 
 // Interface representing a connection to the Auth Store
 type AuthStoreInterface interface {
@@ -60,4 +55,20 @@ type ObjectStoreInterface interface {
 type CrypterInterface interface {
 	Encrypt(plaintext, aad, key []byte) ([]byte, error)
 	Decrypt(ciphertext, aad, key []byte) ([]byte, error)
+}
+
+type UserAuthenticatorInterface interface {
+	NewUser(ctx context.Context, userscopes scopes.ScopeType, authenticator MessageAuthenticatorInterface) (*uuid.UUID, string, error)
+	NewAdminUser(authStore AuthStoreInterface, authenticator MessageAuthenticatorInterface) error
+	ParseAccessToken(token string, authenticator MessageAuthenticatorInterface) (AccessTokenInterface, error)
+}
+
+type MessageAuthenticatorInterface interface {
+	Tag(domain uint64, msg []byte) ([]byte, error)
+	Verify(domain uint64, msg, msgTag []byte) (bool, error)
+}
+
+type AccessTokenInterface interface {
+	UserID() uuid.UUID
+	HasScopes(tar scopes.ScopeType) bool
 }

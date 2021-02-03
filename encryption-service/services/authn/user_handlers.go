@@ -18,31 +18,29 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
-	"encryption-service/interfaces"
 	log "encryption-service/logger"
+	"encryption-service/scopes"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	usertype := ScopeNone
+	usertype := scopes.ScopeNone
 	for _, us := range request.UserScopes {
 		switch us {
 		case UserScope_READ:
-			usertype |= ScopeRead
+			usertype |= scopes.ScopeRead
 		case UserScope_CREATE:
-			usertype |= ScopeCreate
+			usertype |= scopes.ScopeCreate
 		case UserScope_INDEX:
-			usertype |= ScopeIndex
+			usertype |= scopes.ScopeIndex
 		case UserScope_OBJECTPERMISSIONS:
-			usertype |= ScopeObjectPermissions
+			usertype |= scopes.ScopeObjectPermissions
 		case UserScope_USERMANAGEMENT:
-			usertype |= ScopeUserManagement
+			usertype |= scopes.ScopeUserManagement
 		default:
 			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)
 			log.Error(ctx, msg, errors.New("CreateUser: Invalid scope"))
@@ -50,7 +48,7 @@ func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserReque
 		}
 	}
 
-	userID, token, err := au.CreateUserWrapper(ctx, usertype)
+	userID, token, err := au.UserAuthenticator.NewUser(ctx, usertype, au.MessageAuthenticator)
 	if err != nil {
 		log.Error(ctx, "CreateUser: Couldn't create new user", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
@@ -60,41 +58,4 @@ func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserReque
 		UserId:      userID.String(),
 		AccessToken: token,
 	}, nil
-}
-
-// createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (au *AuthnService) CreateUserWrapper(ctx context.Context, userscopes ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
-	if !ok {
-		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
-	}
-	userID, err := uuid.NewV4()
-	if err != nil {
-		return nil, "", err
-	}
-
-	accessToken := &AccessToken{
-		UserID:     userID,
-		UserScopes: userscopes,
-	}
-
-	token, err := au.SerializeAccessToken(accessToken)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// insert user for compatibility with the check in permissions_handler
-	// we only need to know if a user exists there, thus it is only important
-	// that a row exists
-	err = authStorageTx.UpsertUser(ctx, userID, []byte{})
-	if err != nil {
-		return nil, "", err
-	}
-
-	err = authStorageTx.Commit(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return &userID, token, nil
 }

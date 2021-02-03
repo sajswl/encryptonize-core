@@ -23,37 +23,24 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"encryption-service/impl/crypt"
+	"encryption-service/interfaces"
+	"encryption-service/scopes"
+	authnsvc "encryption-service/services/authn"
 )
-
-// ScopeType represents the different scopes a user could be granted
-type ScopeType uint64
-
-const ScopeNone ScopeType = 0
-const (
-	ScopeRead ScopeType = 1 << iota
-	ScopeCreate
-	ScopeIndex
-	ScopeObjectPermissions
-	ScopeUserManagement
-	ScopeEnd
-)
-
-func (us ScopeType) isValid() error {
-	if us < ScopeEnd {
-		return nil
-	}
-	return errors.New("invalid combination of scopes")
-}
-
-func (us ScopeType) HasScopes(tar ScopeType) bool {
-	return (us & tar) == tar
-}
 
 type AccessToken struct {
 	UserID uuid.UUID
 	// this field is not exported to prevent other parts
 	// of the encryption service to depend on its implementation
-	UserScopes ScopeType
+	UserScopes scopes.ScopeType
+}
+
+func (at *AccessToken) UseID() uuid.UUID {
+	return at.UserID
+}
+
+func (at *AccessToken) HasScopes(tar scopes.ScopeType) bool {
+	return at.UserScopes.HasScopes(tar)
 }
 
 // serializes an access token together with a random value. The random
@@ -66,44 +53,44 @@ type AccessToken struct {
 // the first part (data) is a serialized protobuf message containing
 // the user ID and a set of scopes. The structure of the assembled token is
 // <data>.<nonce>.HMAC(nonce||data)
-func (a *AuthnService) SerializeAccessToken(accessToken *AccessToken) (string, error) {
+func (at *AccessToken) SerializeAccessToken(authenticator interfaces.MessageAuthenticatorInterface) (string, error) {
 	nonce, err := crypt.Random(16)
 	if err != nil {
 		return "", err
 	}
 
-	if accessToken.UserScopes.isValid() != nil {
+	if at.UserScopes.IsValid() != nil {
 		return "", errors.New("Invalid scopes")
 	}
 
-	if accessToken.UserID.Version() != 4 || accessToken.UserID.Variant() != uuid.VariantRFC4122 {
+	if at.UserID.Version() != 4 || at.UserID.Variant() != uuid.VariantRFC4122 {
 		return "", errors.New("Invalid userID UUID")
 	}
 
-	userScope := []UserScope{}
+	userScope := []authnsvc.UserScope{}
 	// scopes is a bitmap. This checks each bit individually
-	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
-		if !accessToken.UserScopes.HasScopes(i) {
+	for i := scopes.ScopeType(1); i < scopes.ScopeEnd; i <<= 1 {
+		if !at.HasScopes(i) {
 			continue
 		}
 		switch i {
-		case ScopeRead:
-			userScope = append(userScope, UserScope_READ)
-		case ScopeCreate:
-			userScope = append(userScope, UserScope_CREATE)
-		case ScopeIndex:
-			userScope = append(userScope, UserScope_INDEX)
-		case ScopeObjectPermissions:
-			userScope = append(userScope, UserScope_OBJECTPERMISSIONS)
-		case ScopeUserManagement:
-			userScope = append(userScope, UserScope_USERMANAGEMENT)
+		case scopes.ScopeRead:
+			userScope = append(userScope, authnsvc.UserScope_READ)
+		case scopes.ScopeCreate:
+			userScope = append(userScope, authnsvc.UserScope_CREATE)
+		case scopes.ScopeIndex:
+			userScope = append(userScope, authnsvc.UserScope_INDEX)
+		case scopes.ScopeObjectPermissions:
+			userScope = append(userScope, authnsvc.UserScope_OBJECTPERMISSIONS)
+		case scopes.ScopeUserManagement:
+			userScope = append(userScope, authnsvc.UserScope_USERMANAGEMENT)
 		default:
 			return "", errors.New("Invalid scopes")
 		}
 	}
 
-	accessTokenClient := &AccessTokenClient{
-		UserId:     accessToken.UserID.Bytes(),
+	accessTokenClient := &authnsvc.AccessTokenClient{
+		UserId:     at.UserID.Bytes(),
 		UserScopes: userScope,
 	}
 
@@ -113,7 +100,7 @@ func (a *AuthnService) SerializeAccessToken(accessToken *AccessToken) (string, e
 	}
 
 	msg := append(nonce, data...)
-	tag, err := a.MessageAuthenticator.Tag(crypt.TokenDomain, msg)
+	tag, err := authenticator.Tag(crypt.TokenDomain, msg)
 	if err != nil {
 		return "", err
 	}
@@ -128,7 +115,7 @@ func (a *AuthnService) SerializeAccessToken(accessToken *AccessToken) (string, e
 // this function takes a user facing token and parses it into the internal
 // access token format. It assumes that if the mac is valid the token information
 // also is.
-func (a *AuthnService) ParseAccessToken(token string) (*AccessToken, error) {
+func (at *AccessToken) ParseAccessToken(token string, authenticator interfaces.MessageAuthenticatorInterface) (*AccessToken, error) {
 	tokenParts := strings.Split(token, ".")
 	if len(tokenParts) != 3 {
 		return nil, errors.New("invalid token format")
@@ -150,7 +137,7 @@ func (a *AuthnService) ParseAccessToken(token string) (*AccessToken, error) {
 	}
 
 	msg := append(nonce, data...)
-	valid, err := a.MessageAuthenticator.Verify(crypt.TokenDomain, msg, tag)
+	valid, err := authenticator.Verify(crypt.TokenDomain, msg, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +146,7 @@ func (a *AuthnService) ParseAccessToken(token string) (*AccessToken, error) {
 		return nil, errors.New("invalid token")
 	}
 
-	accessTokenClient := &AccessTokenClient{}
+	accessTokenClient := &authnsvc.AccessTokenClient{}
 	err = proto.Unmarshal(data, accessTokenClient)
 	if err != nil {
 		return nil, err
@@ -170,19 +157,19 @@ func (a *AuthnService) ParseAccessToken(token string) (*AccessToken, error) {
 		return nil, err
 	}
 
-	var userScopes ScopeType
+	var userScopes scopes.ScopeType
 	for _, scope := range accessTokenClient.UserScopes {
 		switch scope {
-		case UserScope_READ:
-			userScopes |= ScopeRead
-		case UserScope_CREATE:
-			userScopes |= ScopeCreate
-		case UserScope_INDEX:
-			userScopes |= ScopeIndex
-		case UserScope_OBJECTPERMISSIONS:
-			userScopes |= ScopeObjectPermissions
-		case UserScope_USERMANAGEMENT:
-			userScopes |= ScopeUserManagement
+		case authnsvc.UserScope_READ:
+			userScopes |= scopes.ScopeRead
+		case authnsvc.UserScope_CREATE:
+			userScopes |= scopes.ScopeCreate
+		case authnsvc.UserScope_INDEX:
+			userScopes |= scopes.ScopeIndex
+		case authnsvc.UserScope_OBJECTPERMISSIONS:
+			userScopes |= scopes.ScopeObjectPermissions
+		case authnsvc.UserScope_USERMANAGEMENT:
+			userScopes |= scopes.ScopeUserManagement
 		default:
 			return nil, errors.New("Invalid Scopes in Token")
 		}
