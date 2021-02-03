@@ -42,8 +42,8 @@ type AuthStoreTxInterface interface {
 	Commit(ctx context.Context) error
 
 	// User handling
-	GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error)
-	UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error
+	GetUser(ctx context.Context, userID uuid.UUID) ([]byte, error)
+	UpsertUser(ctx context.Context, userID uuid.UUID) error
 
 	// Access Object handling
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
@@ -165,26 +165,26 @@ func (storeTx *AuthStoreTx) NewQuery(query string) string {
 	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storeTx.requestID.String(), query)
 }
 
-// Fetches a tag from the database
+// Fetches a user from the database
 // If no user is found it returns the ErrNoRows error
-func (storeTx *AuthStoreTx) GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-	var storedTag []byte
+func (storeTx *AuthStoreTx) GetUser(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+	var fetchedID []byte
 
-	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT tag FROM users WHERE id = $1"), userID)
-	err := row.Scan(&storedTag)
+	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT * FROM users WHERE id = $1"), userID)
+	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRows
 	}
 	if err != nil {
 		return nil, err
 	}
-	return storedTag, nil
+	return fetchedID, nil
 }
 
 // Creates a user with a tag, updates the tag if the user exists
 // Returns an error if SQL query fails to execute in authstorage DB
-func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, tag) VALUES ($1, $2)"), userID, tag)
+func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id) VALUES ($1)"), userID)
 	return err
 }
 
