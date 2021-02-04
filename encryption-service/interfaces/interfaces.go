@@ -63,9 +63,9 @@ type CrypterInterface interface {
 }
 
 type UserAuthenticatorInterface interface {
-	NewUser(ctx context.Context, userscopes scopes.ScopeType, authenticator MessageAuthenticatorInterface) (*uuid.UUID, string, error)
-	NewAdminUser(authStore AuthStoreInterface, authenticator MessageAuthenticatorInterface) error
-	ParseAccessToken(token string, authenticator MessageAuthenticatorInterface) (AccessTokenInterface, error)
+	NewUser(ctx context.Context, userscopes scopes.ScopeType) (*uuid.UUID, string, error)
+	NewAdminUser(authStore AuthStoreInterface) error
+	ParseAccessToken(token string) (AccessTokenInterface, error)
 }
 
 type MessageAuthenticatorInterface interface {

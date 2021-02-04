@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"encryption-service/buildtags"
+	authnimpl "encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
 	log "encryption-service/logger"
 	"encryption-service/services/app"
@@ -50,6 +51,7 @@ func main() {
 	if err != nil {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
+	userAuthenticator := &authnimpl.UserAuthenticator{Authenticator: tokenMAC}
 
 	objectStore, err := buildtag.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
@@ -67,8 +69,8 @@ func main() {
 	}
 
 	authnService := &authn.AuthnService{
-		TokenMAC:  tokenMAC,
 		AuthStore: authStore,
+		UserAuthenticator: userAuthenticator,
 	}
 
 	app := &app.App{

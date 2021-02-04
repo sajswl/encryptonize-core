@@ -30,10 +30,11 @@ import (
 )
 
 type UserAuthenticator struct {
+	Authenticator interfaces.MessageAuthenticatorInterface
 }
 
 // createUserWrapper creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.ScopeType, authenticator interfaces.MessageAuthenticatorInterface) (*uuid.UUID, string, error) {
+func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
@@ -48,7 +49,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 		userScopes: userscopes,
 	}
 
-	token, err := accessToken.SerializeAccessToken(authenticator)
+	token, err := accessToken.SerializeAccessToken(ua.Authenticator)
 	if err != nil {
 		return nil, "", err
 	}
@@ -71,7 +72,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 
 // NewAdminUser creates a new admin users with random credentials
 // This function is intended to be used for cli operation
-func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterface, authenticator interfaces.MessageAuthenticatorInterface) error {
+func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterface) error {
 	ctx := context.Background()
 
 	// Need to inject requestID manually, as these calls don't pass the usual middleware
@@ -94,7 +95,7 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
 	adminScope := scopes.ScopeUserManagement
-	userID, accessToken, err := ua.NewUser(ctx, adminScope, authenticator)
+	userID, accessToken, err := ua.NewUser(ctx, adminScope)
 	if err != nil {
 		log.Fatal(ctx, "Create user failed", err)
 	}
@@ -109,7 +110,7 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 // this function takes a user facing token and parses it into the internal
 // access token format. It assumes that if the mac is valid the token information
 // also is.
-func (ua *UserAuthenticator) ParseAccessToken(token string, authenticator interfaces.MessageAuthenticatorInterface) (interfaces.AccessTokenInterface, error) {
+func (ua *UserAuthenticator) ParseAccessToken(token string) (interfaces.AccessTokenInterface, error) {
 	tokenParts := strings.Split(token, ".")
 	if len(tokenParts) != 3 {
 		return nil, errors.New("invalid token format")
@@ -131,7 +132,7 @@ func (ua *UserAuthenticator) ParseAccessToken(token string, authenticator interf
 	}
 
 	msg := append(nonce, data...)
-	valid, err := authenticator.Verify(msg, tag)
+	valid, err := ua.Authenticator.Verify(msg, tag)
 	if err != nil {
 		return nil, err
 	}

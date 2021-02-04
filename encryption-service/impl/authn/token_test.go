@@ -23,7 +23,6 @@ import (
 
 	"encryption-service/impl/crypt"
 	"encryption-service/scopes"
-	"encryption-service/services/authn"
 )
 
 var (
@@ -37,9 +36,6 @@ var (
 	}
 
 	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
-	authenticator           = &authn.AuthnService{
-		TokenMAC: messageAuthenticator,
-	}
 
 	expectedSerialized = "ChAAAAAAAABAAIAAAAAAAAACEgEE"
 	expectedMessage, _ = base64.RawURLEncoding.DecodeString(expectedSerialized)
@@ -80,8 +76,10 @@ func TestSerializeParseIdentity(t *testing.T) {
 		t.Fatalf("SerializeAccessToken errored: %v", err)
 	}
 
-	ua := UserAuthenticator{}
-	AT2, err := ua.ParseAccessToken(token, messageAuthenticator)
+	ua := UserAuthenticator{
+		Authenticator: messageAuthenticator,
+	}
+	AT2, err := ua.ParseAccessToken(token)
 	failOnError("Parsing serialized access token failed", err, t)
 	if AT2.UserID() != AT.UserID() || AT2.UserScopes() != AT.UserScopes() {
 		t.Errorf("Serialize parse identity violated")
@@ -113,8 +111,10 @@ func TestSerializeBadUserID(t *testing.T) {
 }
 
 func TestParseAccessToken(t *testing.T) {
-	ua := UserAuthenticator{}
-	AT, err := ua.ParseAccessToken(expectedToken, messageAuthenticator)
+	ua := UserAuthenticator{
+		Authenticator: messageAuthenticator,
+	}
+	AT, err := ua.ParseAccessToken(expectedToken)
 	failOnError("ParseAccessToken did fail", err, t)
 
 	if AT.UserID() != userID || AT.UserScopes() != userScope {
@@ -129,8 +129,10 @@ func TestVerifyModifiedASK(t *testing.T) {
 	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	ua := UserAuthenticator{}
-	_, err = ua.ParseAccessToken(expectedToken, ma)
+	ua := UserAuthenticator{
+		Authenticator: ma,
+	}
+	_, err = ua.ParseAccessToken(expectedToken)
 	failOnSuccess("ParseAccessToken should have failed with modified ASK", err, t)
 	if err.Error() != "invalid token" {
 		t.Errorf("ParseAccessToken failed with different error. Expected \"invalid token\" but go %v", err)

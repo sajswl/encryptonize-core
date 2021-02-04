@@ -249,7 +249,7 @@ func (app *App) StartServer() {
 		case "create-admin":
 			msg := fmt.Sprintf("AuthenticatorInterface is of dynamic type: %v", reflect.TypeOf(app.AuthnService))
 			log.Info(ctx, msg)
-			if err := app.AuthnService.UserAuthenticator.NewAdminUser(app.AuthnService.AuthStore, app.AuthnService.TokenMAC); err != nil {
+			if err := app.AuthnService.UserAuthenticator.NewAdminUser(app.AuthnService.AuthStore); err != nil {
 				log.Fatal(ctx, "CreateAdminCommand", err)
 			}
 		default:
