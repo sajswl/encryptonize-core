@@ -29,7 +29,7 @@ import (
 
 // AuthService represents a MessageAuthenticator used for signing and checking the access token
 type AuthService struct {
-	MessageAuthenticator *crypt.MessageAuthenticator
+	TokenMAC *crypt.MessageAuthenticator
 	UnimplementedEncryptonizeServer
 }
 

@@ -27,9 +27,9 @@ import (
 
 // TODO: accessObject comes from access_object_test.go this is not nice
 
-var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.TokenDomain)
 var authorizer = &Authorizer{
-	MessageAuthenticator: messageAuthenticator,
+	AccessObjectMAC: messageAuthenticator,
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
@@ -74,7 +74,7 @@ func TestParseBadObjectID(t *testing.T) {
 func TestParseBadSignedData(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	data := []byte("parsers hate this string")
-	tag, err := authorizer.MessageAuthenticator.Tag(crypt.TokenDomain, append(userID.Bytes(), data...))
+	tag, err := authorizer.AccessObjectMAC.Tag(append(userID.Bytes(), data...))
 	if err != nil {
 		t.Fatalf("tag failed: %v", err)
 	}
