@@ -170,6 +170,9 @@ func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
 	err := row.Scan(&data, &tag)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, interfaces.ErrNotFound
+	}
 	if err != nil {
 		return nil, nil, err
 	}

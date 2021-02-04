@@ -16,11 +16,14 @@ package interfaces
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
 
 	"encryption-service/scopes"
 )
+
+var ErrNotFound = errors.New("not found")
 
 // Interface representing a connection to the Auth Store
 type AuthStoreInterface interface {

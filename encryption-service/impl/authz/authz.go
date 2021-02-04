@@ -89,6 +89,9 @@ func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUI
 func (a *Authorizer) Authorize(ctx context.Context, objectID, userID uuid.UUID) (*AccessObject, bool, error) {
 	// TODO: add single row special case?
 	data, tag, err := a.AuthStoreTx.GetAccessObject(ctx, objectID)
+	if errors.Is(err, interfaces.ErrNotFound) {
+		return nil, false, nil
+	}
 	if err != nil {
 		return nil, false, err
 	}
