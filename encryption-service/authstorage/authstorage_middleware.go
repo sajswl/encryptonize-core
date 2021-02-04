@@ -41,7 +41,7 @@ func (as *AuthStore) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterce
 
 		// Don't start DB transaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
-		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch {
+		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
 			return handler(ctx, req)
 		}
 
@@ -67,6 +67,19 @@ func (as *AuthStore) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterce
 func (as *AuthStore) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := stream.Context()
+
+		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+		if !ok {
+			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
+			log.Error(ctx, "Could not typecast methodName to string", err)
+			return err
+		}
+
+		// Don't start DB transaction on health checks
+		// IMPORTANT! This check MUST stay at the top of this function
+		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
+			return handler(srv, stream)
+		}
 
 		authStoreTx, err := as.NewTransaction(ctx)
 		if err != nil {
