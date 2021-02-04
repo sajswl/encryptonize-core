@@ -46,7 +46,6 @@ import (
 )
 
 type App struct {
-	Config       *Config
 	EncService   *enc.Enc
 	AuthnService *authn.Authn
 	UnimplementedEncryptonizeServer

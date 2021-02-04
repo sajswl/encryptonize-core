@@ -78,7 +78,6 @@ func main() {
 	}
 
 	app := &app.App{
-		Config:       config,
 		EncService:   encService,
 		AuthnService: authnService,
 	}

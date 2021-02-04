@@ -148,6 +148,9 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT * FROM users WHERE id = $1"), userID)
 	err := row.Scan(&fetchedID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}
