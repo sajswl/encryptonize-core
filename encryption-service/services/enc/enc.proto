@@ -14,7 +14,7 @@
 syntax = "proto3";
 
 package enc;
-option go_package = ".;enc";
+option go_package = "encryption-service/enc";
 
 
 service Encryptonize{

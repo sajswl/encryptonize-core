@@ -14,7 +14,7 @@
 syntax = "proto3";
 
 package authz;
-option go_package = ".;authz";
+option go_package = "encryption-service/authz";
 
 message AccessObject{
   repeated bytes user_ids = 1;

@@ -19,8 +19,10 @@ help:  ## Display this help
 
 ##### Files #####
 binary = encryption-service
-protobufs = services/enc/enc_grpc.pb.go services/enc/enc.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go
-protosource = services/enc/enc.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto
+protobufs = services/enc/enc_grpc.pb.go services/enc/enc.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go scopes/scopes.pb.go
+protosource = services/enc/enc.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto scopes/scopes.proto
+protocopts = --go_opt=paths=source_relative --go_out=.
+grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
 coverage = coverage-unit.html coverage-e2e.html coverage-all.html
 
@@ -33,10 +35,11 @@ build: $(protobufs)  ## Build the Encryption Service binary
 	CGO_ENABLED=0 go build -v -tags "$(tags)" .
 
 $(protobufs): $(protosource)
-	protoc --go-grpc_out=services/enc --go_out=services/enc services/enc/enc.proto
-	protoc --go-grpc_out=services/authn --go_out=services/authn services/authn/authn.proto
-	protoc --go-grpc_out=services/app --go_out=services/app services/app/app.proto
-	protoc --go_out=impl/authz impl/authz/access_object.proto
+	protoc $(grpcopts) services/enc/enc.proto
+	protoc $(grpcopts) services/authn/authn.proto
+	protoc $(grpcopts) services/app/app.proto
+	protoc $(protocopts) impl/authz/access_object.proto
+	protoc $(protocopts) scopes/scopes.proto
 
 .PHONY: docker-build
 docker-build:  ## Build the Encryption Service docker image

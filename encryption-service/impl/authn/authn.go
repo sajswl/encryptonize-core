@@ -15,10 +15,13 @@ package authn
 
 import (
 	context "context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gofrs/uuid"
+	"google.golang.org/protobuf/proto"
 
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
@@ -41,8 +44,8 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 	}
 
 	accessToken := &AccessToken{
-		UserID:     userID,
-		UserScopes: userscopes,
+		userID:     userID,
+		userScopes: userscopes,
 	}
 
 	token, err := accessToken.SerializeAccessToken(authenticator)
@@ -66,9 +69,9 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 	return &userID, token, nil
 }
 
-// CreateAdminCommand creates a new admin users with random credentials
+// NewAdminUser creates a new admin users with random credentials
 // This function is intended to be used for cli operation
-func (ua *UserAuthenticator) CreateAdminCommand(authStore interfaces.AuthStoreInterface, authenticator interfaces.MessageAuthenticatorInterface) error {
+func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterface, authenticator interfaces.MessageAuthenticatorInterface) error {
 	ctx := context.Background()
 
 	// Need to inject requestID manually, as these calls don't pass the usual middleware
@@ -101,4 +104,72 @@ func (ua *UserAuthenticator) CreateAdminCommand(authStore interfaces.AuthStoreIn
 	log.Info(ctx, fmt.Sprintf("    Access Token: %v", accessToken))
 
 	return nil
+}
+
+// this function takes a user facing token and parses it into the internal
+// access token format. It assumes that if the mac is valid the token information
+// also is.
+func (ua *UserAuthenticator) ParseAccessToken(token string, authenticator interfaces.MessageAuthenticatorInterface) (interfaces.AccessTokenInterface, error) {
+	tokenParts := strings.Split(token, ".")
+	if len(tokenParts) != 3 {
+		return nil, errors.New("invalid token format")
+	}
+
+	data, err := base64.RawURLEncoding.DecodeString(tokenParts[0])
+	if err != nil {
+		return nil, errors.New("invalid data portion of token")
+	}
+
+	nonce, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	if err != nil {
+		return nil, errors.New("invalid nonce portion of token")
+	}
+
+	tag, err := base64.RawURLEncoding.DecodeString(tokenParts[2])
+	if err != nil {
+		return nil, errors.New("invalid tag portion of token")
+	}
+
+	msg := append(nonce, data...)
+	valid, err := authenticator.Verify(msg, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	if !valid {
+		return nil, errors.New("invalid token")
+	}
+
+	accessTokenClient := &scopes.AccessTokenClient{}
+	err = proto.Unmarshal(data, accessTokenClient)
+	if err != nil {
+		return nil, err
+	}
+
+	uuid, err := uuid.FromBytes(accessTokenClient.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	var userScopes scopes.ScopeType
+	for _, scope := range accessTokenClient.UserScopes {
+		switch scope {
+		case scopes.UserScope_READ:
+			userScopes |= scopes.ScopeRead
+		case scopes.UserScope_CREATE:
+			userScopes |= scopes.ScopeCreate
+		case scopes.UserScope_INDEX:
+			userScopes |= scopes.ScopeIndex
+		case scopes.UserScope_OBJECTPERMISSIONS:
+			userScopes |= scopes.ScopeObjectPermissions
+		case scopes.UserScope_USERMANAGEMENT:
+			userScopes |= scopes.ScopeUserManagement
+		default:
+			return nil, errors.New("Invalid Scopes in Token")
+		}
+	}
+	return &AccessToken{
+		userID:     uuid,
+		userScopes: userScopes,
+	}, nil
 }

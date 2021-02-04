@@ -31,15 +31,15 @@ func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserReque
 	usertype := scopes.ScopeNone
 	for _, us := range request.UserScopes {
 		switch us {
-		case UserScope_READ:
+		case scopes.UserScope_READ:
 			usertype |= scopes.ScopeRead
-		case UserScope_CREATE:
+		case scopes.UserScope_CREATE:
 			usertype |= scopes.ScopeCreate
-		case UserScope_INDEX:
+		case scopes.UserScope_INDEX:
 			usertype |= scopes.ScopeIndex
-		case UserScope_OBJECTPERMISSIONS:
+		case scopes.UserScope_OBJECTPERMISSIONS:
 			usertype |= scopes.ScopeObjectPermissions
-		case UserScope_USERMANAGEMENT:
+		case scopes.UserScope_USERMANAGEMENT:
 			usertype |= scopes.ScopeUserManagement
 		default:
 			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)

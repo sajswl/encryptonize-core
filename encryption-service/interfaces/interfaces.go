@@ -75,5 +75,6 @@ type MessageAuthenticatorInterface interface {
 
 type AccessTokenInterface interface {
 	UserID() uuid.UUID
+	UserScopes() scopes.ScopeType
 	HasScopes(tar scopes.ScopeType) bool
 }

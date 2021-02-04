@@ -22,20 +22,22 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/impl/crypt"
+	"encryption-service/scopes"
+	"encryption-service/services/authn"
 )
 
 var (
 	ASK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
 	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
 	nonce, _  = hex.DecodeString("00000000000000000000000000000002")
-	userScope = ScopeUserManagement
+	userScope = scopes.ScopeUserManagement
 	AT        = &AccessToken{
-		UserID:     userID,
-		UserScopes: userScope,
+		userID:     userID,
+		userScopes: userScope,
 	}
 
 	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
-	authenticator           = &AuthnService{
+	authenticator           = &authn.AuthnService{
 		TokenMAC: messageAuthenticator,
 	}
 
@@ -45,8 +47,20 @@ var (
 	expectedToken      = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg." + base64.RawURLEncoding.EncodeToString(expectedTag)
 )
 
+func failOnError(message string, err error, t *testing.T) {
+	if err != nil {
+		t.Fatalf(message+": %v", err)
+	}
+}
+
+func failOnSuccess(message string, err error, t *testing.T) {
+	if err == nil {
+		t.Fatalf("Test expected to fail: %v", message)
+	}
+}
+
 func TestSerialize(t *testing.T) {
-	token, err := authenticator.SerializeAccessToken(AT)
+	token, err := AT.SerializeAccessToken(messageAuthenticator)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)
 	}
@@ -61,25 +75,26 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestSerializeParseIdentity(t *testing.T) {
-	token, err := authenticator.SerializeAccessToken(AT)
+	token, err := AT.SerializeAccessToken(messageAuthenticator)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)
 	}
 
-	AT2, err := authenticator.ParseAccessToken(token)
+	ua := UserAuthenticator{}
+	AT2, err := ua.ParseAccessToken(token, messageAuthenticator)
 	failOnError("Parsing serialized access token failed", err, t)
-	if AT2.UserID != AT.UserID || AT2.UserScopes != AT.UserScopes {
+	if AT2.UserID() != AT.UserID() || AT2.UserScopes() != AT.UserScopes() {
 		t.Errorf("Serialize parse identity violated")
 	}
 }
 
 func TestSerializeBaduserScope(t *testing.T) {
 	BadScopeAT := &AccessToken{
-		UserID:     userID,
-		UserScopes: ScopeType(0xff),
+		userID:     userID,
+		userScopes: scopes.ScopeType(0xff),
 	}
 
-	token, err := authenticator.SerializeAccessToken(BadScopeAT)
+	token, err := BadScopeAT.SerializeAccessToken(messageAuthenticator)
 	if (err == nil && err.Error() != "Invalid scopes") || token != "" {
 		t.Errorf("formatMessage should have errored")
 	}
@@ -87,21 +102,22 @@ func TestSerializeBaduserScope(t *testing.T) {
 
 func TestSerializeBadUserID(t *testing.T) {
 	BadUUIDAT := &AccessToken{
-		UserID:     uuid.Nil,
-		UserScopes: userScope,
+		userID:     uuid.Nil,
+		userScopes: userScope,
 	}
 
-	token, err := authenticator.SerializeAccessToken(BadUUIDAT)
+	token, err := BadUUIDAT.SerializeAccessToken(messageAuthenticator)
 	if (err == nil && err.Error() != "Invalid userID UUID") || token != "" {
 		t.Errorf("formatMessage should have errored")
 	}
 }
 
 func TestParseAccessToken(t *testing.T) {
-	AT, err := authenticator.ParseAccessToken(expectedToken)
+	ua := UserAuthenticator{}
+	AT, err := ua.ParseAccessToken(expectedToken, messageAuthenticator)
 	failOnError("ParseAccessToken did fail", err, t)
 
-	if AT.UserID != userID || AT.UserScopes != userScope {
+	if AT.UserID() != userID || AT.UserScopes() != userScope {
 		t.Errorf("Parsed Access Token contained different data!")
 	}
 }
@@ -113,11 +129,8 @@ func TestVerifyModifiedASK(t *testing.T) {
 	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.TokenDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	authenticator := &AuthnService{
-		TokenMAC: ma,
-	}
-
-	_, err = authenticator.ParseAccessToken(expectedToken)
+	ua := UserAuthenticator{}
+	_, err = ua.ParseAccessToken(expectedToken, ma)
 	failOnSuccess("ParseAccessToken should have failed with modified ASK", err, t)
 	if err.Error() != "invalid token" {
 		t.Errorf("ParseAccessToken failed with different error. Expected \"invalid token\" but go %v", err)
@@ -127,13 +140,13 @@ func TestVerifyModifiedASK(t *testing.T) {
 func TestSerializeAccessTokenAnyScopes(t *testing.T) {
 	// try to create a use for every valid combination of scopes
 	// even the empty set
-	for i := uint64(0); i < uint64(ScopeEnd); i++ {
-		uScope := ScopeType(i)
+	for i := uint64(0); i < uint64(scopes.ScopeEnd); i++ {
+		uScope := scopes.ScopeType(i)
 		tAT := &AccessToken{
-			UserID:     userID,
-			UserScopes: uScope,
+			userID:     userID,
+			userScopes: uScope,
 		}
-		_, err := authenticator.SerializeAccessToken(tAT)
+		_, err := tAT.SerializeAccessToken(messageAuthenticator)
 		if err != nil {
 			t.Fatalf("Failed to create/update user with scopes %v: %v", uScope, err)
 		}

@@ -25,7 +25,10 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
+	"encryption-service/impl/authn"
+	authnimpl "encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
+	"encryption-service/scopes"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -40,17 +43,10 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
-func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes ScopeType) (string, error) {
-	authenticator := &AuthnService{
-		TokenMAC: m,
-	}
+func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes scopes.ScopeType) (string, error) {
+	accessToken := authnimpl.NewAccessToken(userID, scopes)
 
-	accessToken := &AccessToken{
-		UserID:     userID,
-		UserScopes: scopes,
-	}
-
-	token, err := authenticator.SerializeAccessToken(accessToken)
+	token, err := accessToken.SerializeAccessToken(m)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +59,7 @@ func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes 
 // It ONLY tests the middleware and assumes that the LoginUser works as intended
 func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
 	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
@@ -75,6 +71,7 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 	var md = metadata.Pairs("authorization", token)
 	au := &AuthnService{
 		TokenMAC: m,
+		UserAuthenticator: &authn.UserAuthenticator{},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -85,7 +82,7 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 
 func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
 	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
@@ -98,6 +95,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 
 	au := &AuthnService{
 		TokenMAC: m,
+		UserAuthenticator: &authn.UserAuthenticator{},
 	}
 
 	// for each position of the split token
@@ -125,7 +123,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userIDFirst := uuid.Must(uuid.NewV4())
 	userIDSecond := uuid.Must(uuid.NewV4())
-	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
 	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
@@ -141,6 +139,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 
 	au := &AuthnService{
 		TokenMAC: m,
+		UserAuthenticator: &authn.UserAuthenticator{},
 	}
 
 	// for each position of the split token
@@ -168,7 +167,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 // Tests that accesstoken of wrong type gets rejected
 func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := ScopeRead | ScopeCreate | ScopeIndex | ScopeObjectPermissions
+	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
 	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
@@ -181,6 +180,7 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	var md = metadata.Pairs("authorization", token)
 	au := &AuthnService{
 		TokenMAC: m,
+		UserAuthenticator: &authn.UserAuthenticator{},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -191,7 +191,9 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 
 // Tests that accesstoken thats not hex gets rejected
 func TestCheckAccessTokenInvalidATformat(t *testing.T) {
-	au := &AuthnService{}
+	au := &AuthnService{
+		UserAuthenticator: &authn.UserAuthenticator{},
+	}
 
 	// Test wrong format AT
 	// User credentials
@@ -216,15 +218,16 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 
 	au := &AuthnService{
 		TokenMAC: m,
+		UserAuthenticator: &authn.UserAuthenticator{},
 	}
 
 	for endpoint, rscope := range methodScopeMap {
-		if rscope == ScopeNone {
+		if rscope == scopes.ScopeNone {
 			// endpoints that only require logged in users are already covered
 			// by tests that check if authentication works
 			continue
 		}
-		tscopes := (ScopeEnd - 1) &^ rscope
+		tscopes := (scopes.ScopeEnd - 1) &^ rscope
 		tuid := uuid.Must(uuid.NewV4())
 		token, err := CreateUserForTests(m, tuid, tscopes)
 		failOnError("Error Creating User", err, t)
