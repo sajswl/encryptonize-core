@@ -72,8 +72,7 @@ func main() {
 		AuthStore:       authStore,
 		AuthService:     authService,
 		ObjectStore:     objectStore,
-		DataCryptor:          dataCryptor,
-
+		DataCryptor:     dataCryptor,
 	}
 
 	app.StartServer()

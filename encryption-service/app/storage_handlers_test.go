@@ -60,7 +60,7 @@ func TestStoreRetrieve(t *testing.T) {
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
 		Config:          config,
-		DataCryptor:          dataCryptor,
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
@@ -113,7 +113,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
 		Config:          config,
-		DataCryptor:          dataCryptor,
+		DataCryptor:     dataCryptor,
 	}
 
 	userID, err := uuid.NewV4()
@@ -157,7 +157,7 @@ func TestStoreFail(t *testing.T) {
 		ObjectStore:     objectStore,
 		AccessObjectMAC: messageAuthenticator,
 		Config:          config,
-		DataCryptor:          dataCryptor,
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
@@ -201,8 +201,7 @@ func TestStoreFailAuth(t *testing.T) {
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
 		Config:          config,
-		DataCryptor:          dataCryptor,
-
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
