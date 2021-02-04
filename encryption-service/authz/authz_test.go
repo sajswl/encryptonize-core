@@ -95,7 +95,7 @@ func TestParseBadTag(t *testing.T) {
 func TestCreateObject(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
 	userID := uuid.Must(uuid.NewV4())
-	kek, err := crypt.Random(32)
+	woek, err := crypt.Random(32)
 	if err != nil {
 		t.Fatalf("Random errored: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestCreateObject(t *testing.T) {
 		},
 	}
 
-	_, err = authorizer.CreateObject(context.Background(), objectID, userID, kek)
+	err = authorizer.CreateObject(context.Background(), objectID, userID, woek)
 	if err != nil {
 		t.Error("CreateObject errored")
 	}
@@ -137,8 +137,8 @@ func TestCreateObjectFail(t *testing.T) {
 		},
 	}
 
-	oek, err := authorizer.CreateObject(context.Background(), objectID, userID, woek)
-	if oek != nil || err == nil || err.Error() != "mock error" {
+	err = authorizer.CreateObject(context.Background(), objectID, userID, woek)
+	if err == nil || err.Error() != "mock error" {
 		t.Error("CreateObject should have errored")
 	}
 }
