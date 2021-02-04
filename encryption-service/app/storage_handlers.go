@@ -56,8 +56,8 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	}
 
 	authorizer := &authz.Authorizer{
-		MessageAuthenticator: app.MessageAuthenticator,
-		AuthStoreTx:          authStorageTx,
+		AccessObjectMAC: app.AccessObjectMAC,
+		AuthStoreTx:     authStorageTx,
 	}
 
 	oek, err := authorizer.CreateObject(ctx, objectID, userID, app.Config.KEK)
@@ -99,7 +99,7 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 // Errors if authentication, authorization, or retrieving the object fails
 func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	_, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, objectIDString)
+	_, accessObject, err := AuthorizeWrapper(ctx, app.AccessObjectMAC, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
