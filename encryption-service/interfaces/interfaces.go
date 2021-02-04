@@ -16,7 +16,6 @@ package interfaces
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gofrs/uuid"
 
@@ -25,35 +24,44 @@ import (
 
 // Interface representing a connection to the Auth Store
 type AuthStoreInterface interface {
-	NewTransaction(ctx context.Context) (AuthStoreTxInterface, error)
+	// Creates a new transaction
+	NewTransaction(ctx context.Context) (authStoreTx AuthStoreTxInterface, err error)
+
+	// Closes the connection
 	Close()
 }
 
 // Interface representing a transaction on the Auth Store
 type AuthStoreTxInterface interface {
-	Rollback(ctx context.Context) error
-	Commit(ctx context.Context) error
+	// Rollback any changes
+	Rollback(ctx context.Context) (err error)
 
-	// User handling
-	UserExists(ctx context.Context, userID uuid.UUID) (bool, error)
-	UpsertUser(ctx context.Context, userID uuid.UUID) error
+	// Commit any changes
+	Commit(ctx context.Context) (err error)
 
-	// Access Object handling
-	GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
-	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
-	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
+	// Check if a user exists in the auth store
+	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
+
+	// Update or insert a user
+	UpsertUser(ctx context.Context, userID uuid.UUID) (err error)
+
+	//  Retrieve an existing access object
+	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
+
+	// Insert a new access object
+	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+
+	// Update an existing access object
+	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
 }
 
-// ErrNoRows : Return this error when an empty record set is returned for the DB
-// e.g. when a users isn't found
-var ErrNoRows = errors.New("no rows in result set")
-
+// Interface representing a connection to the object store
 type ObjectStoreInterface interface {
 	// Store an object under a given object ID
-	Store(ctx context.Context, objectID string, object []byte) error
+	Store(ctx context.Context, objectID string, object []byte) (err error)
 
 	// Retrieve an object with a given object ID
-	Retrieve(ctx context.Context, objectID string) ([]byte, error)
+	Retrieve(ctx context.Context, objectID string) (object []byte, err error)
 }
 
 // CryptorInterface offers an API to encrypt / decrypt data and additional associated data with a (wrapped) random key
@@ -65,19 +73,35 @@ type CryptorInterface interface {
 	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
 }
 
+// Interface for authenticating and creating users
 type UserAuthenticatorInterface interface {
-	NewUser(ctx context.Context, userscopes scopes.ScopeType) (*uuid.UUID, string, error)
-	NewAdminUser(authStore AuthStoreInterface) error
-	ParseAccessToken(token string) (AccessTokenInterface, error)
+	// Create a new user with the requested scopes
+	NewUser(ctx context.Context, userscopes scopes.ScopeType) (userID *uuid.UUID, token string, err error)
+
+	// Create a new user with admin rights
+	NewAdminUser(authStore AuthStoreInterface) (err error)
+
+	// Parses a token string into the internal data type
+	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
 }
 
+// Interface for authentication of data
 type MessageAuthenticatorInterface interface {
-	Tag(msg []byte) ([]byte, error)
-	Verify(msg, msgTag []byte) (bool, error)
+	// Create a tag for the given message
+	Tag(msg []byte) (tag []byte, err error)
+
+	// Check whether a tag matches the given message
+	Verify(msg, msgTag []byte) (res bool, err error)
 }
 
+// Interface representing an access token
 type AccessTokenInterface interface {
-	UserID() uuid.UUID
-	UserScopes() scopes.ScopeType
-	HasScopes(tar scopes.ScopeType) bool
+	// Get the user ID contained in the token
+	UserID() (userID uuid.UUID)
+
+	// Get the scopes contained in the token
+	UserScopes() (scopes scopes.ScopeType)
+
+	// Check if the token contains specific scopes
+	HasScopes(tar scopes.ScopeType) (res bool)
 }

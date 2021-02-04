@@ -143,15 +143,11 @@ func (storeTx *AuthStoreTx) NewQuery(query string) string {
 }
 
 // Fetches a user from the database
-// If no user is found it returns the ErrNoRows error
 func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	var fetchedID []byte
 
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT * FROM users WHERE id = $1"), userID)
 	err := row.Scan(&fetchedID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
-	}
 	if err != nil {
 		return false, err
 	}
@@ -171,9 +167,6 @@ func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
 	err := row.Scan(&data, &tag)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil, interfaces.ErrNoRows
-	}
 	if err != nil {
 		return nil, nil, err
 	}

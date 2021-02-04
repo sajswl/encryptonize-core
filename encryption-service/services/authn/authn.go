@@ -17,7 +17,7 @@ import (
 	"encryption-service/interfaces"
 )
 
-// Authn represents a MessageAuthenticator used for signing and checking the access token
+// The Encryptonize Authentication Service
 type Authn struct {
 	AuthStore         interfaces.AuthStoreInterface
 	UserAuthenticator interfaces.UserAuthenticatorInterface

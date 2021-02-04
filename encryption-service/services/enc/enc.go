@@ -17,8 +17,8 @@ import (
 	"encryption-service/interfaces"
 )
 
+// The Encryptonize Encryption Service
 type Enc struct {
-	KEK             []byte // TODO: Fix with new crypter interface
 	AccessObjectMAC interfaces.MessageAuthenticatorInterface
 	AuthStore       interfaces.AuthStoreInterface
 	ObjectStore     interfaces.ObjectStoreInterface
