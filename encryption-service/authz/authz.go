@@ -26,8 +26,8 @@ import (
 
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
-	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthStoreTx          authstorage.AuthStoreTxInterface
+	AccessObjectMAC *crypt.MessageAuthenticator
+	AuthStoreTx     authstorage.AuthStoreTxInterface
 }
 
 // serializeAccessObject serializes and signs an Object ID + Access Object into data + tag
@@ -38,7 +38,7 @@ func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *Acc
 	}
 
 	msg := append(objectID.Bytes(), data...) // TODO: move linking to MessageAuthenticator?
-	tag, err := a.MessageAuthenticator.Tag(crypt.AccessObjectsDomain, msg)
+	tag, err := a.AccessObjectMAC.Tag(msg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,7 +49,7 @@ func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *Acc
 // parseAccessObject verifies and parses an Object ID + data + tag into an Access Object
 func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*AccessObject, error) {
 	msg := append(objectID.Bytes(), data...) // TODO: move linking to MessageAuthenticator?
-	valid, err := a.MessageAuthenticator.Verify(crypt.AccessObjectsDomain, msg, tag)
+	valid, err := a.AccessObjectMAC.Verify(msg, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -69,25 +69,21 @@ func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*A
 
 // Use cases for authorizer:
 
-// CreateObject creates a new object with given parameters and inserts it into the Auth Store,
-// returning the associated OEK.
-func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUID, kek []byte) ([]byte, error) {
-	accessObject, oek, err := NewAccessObject(userID, kek)
-	if err != nil {
-		return nil, err
-	}
+// CreateObject creates a new object with given parameters and inserts it into the Auth Store.
+func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) error {
+	accessObject := NewAccessObject(userID, woek)
 
 	data, tag, err := a.SerializeAccessObject(objectID, accessObject)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = a.AuthStoreTx.InsertAcccessObject(ctx, objectID, data, tag)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return oek, nil
+	return nil
 }
 
 // Authorize checks if a userID is allowed to access the objectID

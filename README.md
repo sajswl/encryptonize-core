@@ -2,7 +2,7 @@
 
 ![es build](https://github.com/cyber-crypt-com/encryptonize-core/workflows/Encryption%20service%20build/badge.svg)
 ![es deploy](https://github.com/cyber-crypt-com/encryptonize-core/workflows/Encryption%20service%20deploy/badge.svg)
--[![Go Report Card](https://goreportcard.com/badge/github.com/cyber-crypt-com/encryptonize-core)](https://goreportcard.com/report/github.com/cyber-crypt-com/encryptonize-core)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cyber-crypt-com/encryptonize-core)](https://goreportcard.com/report/github.com/cyber-crypt-com/encryptonize-core)
 
 <img src="documentation/imgs/rook-hex.png" alt="Encryptonize" width="250"/>
 
@@ -23,7 +23,7 @@ of a multi cloud setup. It is designed to not only encrypt and authenticate your
 cryptographic standards, but also to cryptographically enforce user authentication and
 authorization.
 
-## Achitecture overview
+## Architecture overview
 
 At the core, Enryptonize&reg; consists of an Encryption Service (ES). In future releases of
 Enryptonize&reg; a Key Service will be added to automatically handle distribution of key material to
@@ -64,8 +64,8 @@ For more details, see the [Encryption Service README](encryption-service/README.
 # Deploying Encryptonize&reg; Core
 
 We supply Kubernetes files for deploying the full Encryptonize&reg; setup in a basic configuration.
-The files can be found in the [`kubernetes`](kubernetes) folder. For instructions on how to deploy, see that
-[deployment README](kubernetes/README.md)
+The files can be found in the [`kubernetes`](kubernetes) folder. For instructions on how to deploy,
+see the [deployment README](kubernetes/README.md)
 
 
 # Repository overview

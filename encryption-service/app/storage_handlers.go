@@ -56,19 +56,19 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	}
 
 	authorizer := &authz.Authorizer{
-		MessageAuthenticator: app.MessageAuthenticator,
-		AuthStoreTx:          authStorageTx,
+		AccessObjectMAC: app.AccessObjectMAC,
+		AuthStoreTx:     authStorageTx,
 	}
 
-	oek, err := authorizer.CreateObject(ctx, objectID, userID, app.Config.KEK)
+	woek, ciphertext, err := app.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
 	if err != nil {
-		log.Error(ctx, "Store: Failed to create new access object", err)
+		log.Error(ctx, "Store: Failed to encrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	ciphertext, err := app.Crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
+	err = authorizer.CreateObject(ctx, objectID, userID, woek)
 	if err != nil {
-		log.Error(ctx, "Store: Failed to encrypt object", err)
+		log.Error(ctx, "Store: Failed to create new access object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
@@ -99,16 +99,10 @@ func (app *App) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 // Errors if authentication, authorization, or retrieving the object fails
 func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	_, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, objectIDString)
+	_, accessObject, err := AuthorizeWrapper(ctx, app.AccessObjectMAC, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
-	}
-
-	oek, err := accessObject.UnwrapWOEK(app.Config.KEK)
-	if err != nil {
-		log.Error(ctx, "Retrieve: Failed to unwrap OEK", err)
-		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
 	aad, err := app.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
@@ -123,7 +117,7 @@ func (app *App) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	plaintext, err := app.Crypter.Decrypt(ciphertext, aad, oek)
+	plaintext, err := app.DataCryptor.Decrypt(accessObject.Woek, ciphertext, aad)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")

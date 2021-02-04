@@ -40,7 +40,7 @@ func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte
 	return o.RetrieveFunc(ctx, objectID)
 }
 
-var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 
 var config = &Config{
 	KEK: []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
@@ -51,11 +51,16 @@ func TestStoreRetrieve(t *testing.T) {
 	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
@@ -99,11 +104,16 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		DataCryptor:     dataCryptor,
 	}
 
 	userID, err := uuid.NewV4()
@@ -138,11 +148,16 @@ func TestStoreFail(t *testing.T) {
 			return nil
 		},
 	}
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	app := App{
-		ObjectStore:          objectStore,
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectStore,
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
@@ -177,11 +192,16 @@ func TestStoreFailAuth(t *testing.T) {
 			return fmt.Errorf("")
 		},
 	}
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{

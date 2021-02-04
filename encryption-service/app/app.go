@@ -50,12 +50,12 @@ var GitCommit string
 var GitTag string
 
 type App struct {
-	Config               *Config
-	MessageAuthenticator *crypt.MessageAuthenticator
-	AuthService          authn.AuthServiceInterface
-	AuthStore            authstorage.AuthStoreInterface
-	ObjectStore          objectstorage.ObjectStoreInterface
-	Crypter              crypt.CrypterInterface
+	Config          *Config
+	AccessObjectMAC *crypt.MessageAuthenticator
+	AuthService     authn.AuthServiceInterface
+	AuthStore       authstorage.AuthStoreInterface
+	ObjectStore     objectstorage.ObjectStoreInterface
+	DataCryptor     crypt.CryptorInterface
 	UnimplementedEncryptonizeServer
 }
 
