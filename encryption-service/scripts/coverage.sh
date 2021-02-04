@@ -65,7 +65,7 @@ export COMMIT=$(git rev-list -1 HEAD)
 export TAG=$(git tag --points-at HEAD)
 go test -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" -coverpkg=./... -coverprofile=coverage-e2e.out -v &
 
-until $(grpc-health-probe -addr=:9000); do
+until $(docker run --net=host --rm amothic/grpc-health-probe@sha256:c56a6e93c199cf35a555655de2710528e2f37e50de9f95e3dfb66534803f6155 -addr=:9000); do
     echo '[*] waiting for the server to be up'
     sleep 1
 done
