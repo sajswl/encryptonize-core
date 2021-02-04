@@ -33,7 +33,7 @@ type UserAuthenticator struct {
 	Authenticator interfaces.MessageAuthenticatorInterface
 }
 
-// createUserWrapper creates an user of specified kind with random credentials in the authStorage
+// NewUser creates an user of specified kind with random credentials in the authStorage
 func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
@@ -57,7 +57,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorageTx.UpsertUser(ctx, userID, []byte{})
+	err = authStorageTx.UpsertUser(ctx, userID)
 	if err != nil {
 		return nil, "", err
 	}

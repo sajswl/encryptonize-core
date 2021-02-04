@@ -35,8 +35,8 @@ type AuthStoreTxInterface interface {
 	Commit(ctx context.Context) error
 
 	// User handling
-	GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error)
-	UpsertUser(ctx context.Context, userID uuid.UUID, tag []byte) error
+	UserExists(ctx context.Context, userID uuid.UUID) (bool, error)
+	UpsertUser(ctx context.Context, userID uuid.UUID) error
 
 	// Access Object handling
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)

@@ -1,8 +1,7 @@
 -- Auth Storage schema for CockroachDB / PostgreSQL
 
 CREATE TABLE IF NOT EXISTS users  (
-    id UUID PRIMARY KEY,
-    tag BYTES NOT NULL
+    id UUID PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS access_objects  (
