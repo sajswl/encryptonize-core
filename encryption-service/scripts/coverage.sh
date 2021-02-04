@@ -63,7 +63,7 @@ go test -count=1 -coverprofile coverage-unit.out -v $TEST_FOLDERS
 echo '[*] starting server in test mode'
 export COMMIT=$(git rev-list -1 HEAD)
 export TAG=$(git tag --points-at HEAD)
-go test -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT' -X 'encryption-service/app.GitTag=$TAG'" -coverpkg=./... -coverprofile=coverage-e2e.out -v &
+go test -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" -coverpkg=./... -coverprofile=coverage-e2e.out -v &
 
 until $(grpc-health-probe -addr=:9000); do
     echo '[*] waiting for the server to be up'

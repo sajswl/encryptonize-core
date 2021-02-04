@@ -15,6 +15,9 @@ package app
 
 import "context"
 
+var GitCommit string
+var GitTag string
+
 func (app *App) Version(ctx context.Context, request *VersionRequest) (*VersionResponse, error) {
 	return &VersionResponse{
 		Commit: GitCommit,

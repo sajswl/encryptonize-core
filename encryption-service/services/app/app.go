@@ -45,9 +45,6 @@ import (
 	"encryption-service/services/health"
 )
 
-var GitCommit string
-var GitTag string
-
 type App struct {
 	Config       *Config
 	EncService   *enc.Enc

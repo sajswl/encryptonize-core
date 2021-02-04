@@ -26,22 +26,22 @@ jobs:
     - name: Build
       run: make build
 
+  esb-eccs-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyber-crypt-com/github-runner:1.1
+      credentials:
+        username: USERNAME
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+    defaults:
+      run:
+        working-directory: applications/ECCS
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
   # TODO: Fix this after interface refactoring
-  # esb-eccs-build:
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: ghcr.io/cyber-crypt-com/github-runner:1.1
-  #     credentials:
-  #       username: USERNAME
-  #       password: ${{ secrets.GHCR_PULL_TOKEN }}
-  #   defaults:
-  #     run:
-  #       working-directory: applications/ECCS
-
-  #   steps:
-  #   - name: Check out repository
-  #     uses: actions/checkout@v2
-
   #   - name: Lint
   #     run: make lint
 

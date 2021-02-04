@@ -20,16 +20,15 @@ import (
 	"context"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/objectstorage"
-	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
-func SetupAuthStore(ctx context.Context, URL string) (interfaces.AuthStoreInterface, error) {
+func SetupAuthStore(ctx context.Context, URL string) (*authstorage.AuthStore, error) {
 	log.Info(ctx, "Setup AuthStore")
 	return authstorage.NewAuthStore(context.Background(), URL)
 }
 
-func SetupObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (interfaces.ObjectStoreInterface, error) {
+func SetupObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (*objectstorage.ObjectStore, error) {
 	log.Info(context.TODO(), "Setup ObjectStore")
 	return objectstorage.NewObjectStore(endpoint, bucket, accessID, accessKey, cert)
 }
