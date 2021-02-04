@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -35,6 +36,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
 	log "encryption-service/logger"
@@ -191,7 +193,10 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	// make gprc_recovery log panics and return generic errors to the caller
 	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, p interface{}) error {
-			log.Error(ctx, "panic recovered", fmt.Errorf("panic: %v", p))
+			stack := make([]byte, 4096)
+			runtime.Stack(stack, false)
+			msg := fmt.Sprintf("panic recoverd: \n\n%s\n", stack)
+			log.Error(ctx, msg, fmt.Errorf("panic: %v", p))
 			return status.Errorf(codes.Internal, "internal error")
 		},
 	)
@@ -235,6 +240,9 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	// Register health checker to grpc server
 	healthService := health.NewHealthChecker()
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthService)
+
+	// Register grpc reflection handler
+	reflection.Register(grpcServer)
 
 	return grpcServer, lis
 }
