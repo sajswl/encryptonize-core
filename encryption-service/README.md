@@ -13,7 +13,6 @@ You will need the following tools:
 * gocovmerge - `go get github.com/wadey/gocovmerge`
 * Docker (version 19+) - [Install instructions](https://docs.docker.com/engine/install/)
 * Docker Compose (version 1.27+)- [Install instructions](https://docs.docker.com/compose/install/)
-* gRPC health probe (version 0.3.4+) - [Install instructions](https://github.com/grpc-ecosystem/grpc-health-probe)
 
 Additionally you need to add `$(go env GOPATH)/bin` to your `PATH`, i.e. by adding
 ```bash
