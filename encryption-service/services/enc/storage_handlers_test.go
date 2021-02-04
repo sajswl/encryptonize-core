@@ -49,11 +49,15 @@ func TestStoreRetrieve(t *testing.T) {
 	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	enc := EncService{
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
-		KEK:             KEK,
-		Crypter:         &crypt.AESCrypter{},
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
@@ -97,11 +101,15 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	enc := EncService{
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
-		KEK:             KEK,
-		Crypter:         &crypt.AESCrypter{},
+		DataCryptor:     dataCryptor,
 	}
 
 	userID, err := uuid.NewV4()
@@ -136,11 +144,15 @@ func TestStoreFail(t *testing.T) {
 			return nil
 		},
 	}
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	enc := EncService{
 		ObjectStore:     objectStore,
 		AccessObjectMAC: messageAuthenticator,
-		KEK:             KEK,
-		Crypter:         &crypt.AESCrypter{},
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{
@@ -175,11 +187,15 @@ func TestStoreFailAuth(t *testing.T) {
 			return fmt.Errorf("")
 		},
 	}
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
 	enc := EncService{
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
-		KEK:             KEK,
-		Crypter:         &crypt.AESCrypter{},
+		DataCryptor:     dataCryptor,
 	}
 
 	object := &Object{

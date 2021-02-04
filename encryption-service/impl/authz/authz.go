@@ -68,25 +68,21 @@ func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*A
 
 // Use cases for authorizer:
 
-// CreateObject creates a new object with given parameters and inserts it into the Auth Store,
-// returning the associated OEK.
-func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUID, kek []byte) ([]byte, error) {
-	accessObject, oek, err := NewAccessObject(userID, kek)
-	if err != nil {
-		return nil, err
-	}
+// CreateObject creates a new object with given parameters and inserts it into the Auth Store.
+func (a *Authorizer) CreateObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) error {
+	accessObject := NewAccessObject(userID, woek)
 
 	data, tag, err := a.SerializeAccessObject(objectID, accessObject)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = a.AuthStoreTx.InsertAcccessObject(ctx, objectID, data, tag)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return oek, nil
+	return nil
 }
 
 // Authorize checks if a userID is allowed to access the objectID

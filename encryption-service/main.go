@@ -60,12 +60,16 @@ func main() {
 		log.Fatal(ctx, "Objectstorage connect failed", err)
 	}
 
+	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
+	if err != nil {
+		log.Fatal(ctx, "NewAESCryptor failed", err)
+	}
+
 	encService := &enc.EncService{
-		KEK:             config.KEK,
 		AccessObjectMAC: accessObjectMAC,
 		AuthStore:       authStore,
 		ObjectStore:     objectStore,
-		Crypter:         &crypt.AESCrypter{},
+		DataCryptor:     dataCryptor,
 	}
 
 	authnService := &authn.AuthnService{

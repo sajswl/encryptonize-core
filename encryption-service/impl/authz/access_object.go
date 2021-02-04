@@ -1,4 +1,4 @@
-// Copyright 2020 CYBERCRYPT
+// Copyright 2021 CYBERCRYPT
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,52 +18,18 @@ import (
 	"sort"
 
 	"github.com/gofrs/uuid"
-
-	"encryption-service/impl/crypt"
 )
 
 // Extensions for the generated AccessObject:
 // UsersIds are inserted in a sorted order (insertion sort) to allow for binary search
 
-// NewAccessObject instantiates a new Access Object with given userID and KEK. The Access Object is
-// returned along with the generated OEK. A new object starts with Version: 0
-func NewAccessObject(userID uuid.UUID, kek []byte) (*AccessObject, []byte, error) {
-	oek, err := crypt.Random(32)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	keywrap, err := crypt.NewKWP(kek)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	woek, err := keywrap.Wrap(oek)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	accessObject := &AccessObject{
+// NewAccessObject instantiates a new Access Object with given userID and WOEK.
+// A new object starts with Version: 0
+func NewAccessObject(userID uuid.UUID, woek []byte) *AccessObject {
+	return &AccessObject{
 		UserIds: [][]byte{userID.Bytes()},
 		Woek:    woek,
 	}
-
-	return accessObject, oek, nil
-}
-
-// UnwrapWOEK unwraps the WOEK of the Access Object to extract the OEK
-func (a *AccessObject) UnwrapWOEK(kek []byte) ([]byte, error) {
-	keywrap, err := crypt.NewKWP(kek)
-	if err != nil {
-		return nil, err
-	}
-
-	oek, err := keywrap.Unwrap(a.Woek)
-	if err != nil {
-		return nil, err
-	}
-
-	return oek, nil
 }
 
 // AddUser adds a new userID to an Access Object

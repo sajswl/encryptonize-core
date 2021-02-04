@@ -22,6 +22,6 @@ type EncService struct {
 	AccessObjectMAC interfaces.MessageAuthenticatorInterface
 	AuthStore       interfaces.AuthStoreInterface
 	ObjectStore     interfaces.ObjectStoreInterface
-	Crypter         interfaces.CrypterInterface
+	DataCryptor     interfaces.CryptorInterface
 	UnimplementedEncryptonizeServer
 }

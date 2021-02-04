@@ -56,10 +56,13 @@ type ObjectStoreInterface interface {
 	Retrieve(ctx context.Context, objectID string) ([]byte, error)
 }
 
-// Interface representing crypto functionality
-type CrypterInterface interface {
-	Encrypt(plaintext, aad, key []byte) ([]byte, error)
-	Decrypt(ciphertext, aad, key []byte) ([]byte, error)
+// CryptorInterface offers an API to encrypt / decrypt data and additional associated data with a (wrapped) random key
+type CryptorInterface interface {
+	// Encrypt encrypts data + aad with a random key and return the wrapped key and the ciphertext
+	Encrypt(data, aad []byte) (wrappedKey, ciphertext []byte, err error)
+
+	// Decrypt decrypts a ciphertext + aad with a wrapped key
+	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
 }
 
 type UserAuthenticatorInterface interface {

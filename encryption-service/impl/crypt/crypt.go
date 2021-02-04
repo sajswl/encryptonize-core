@@ -20,6 +20,12 @@ import (
 	"fmt"
 )
 
+// Interface representing crypto functionality
+type CrypterInterface interface {
+	Encrypt(plaintext, aad, key []byte) ([]byte, error)
+	Decrypt(ciphertext, aad, key []byte) ([]byte, error)
+}
+
 type AESCrypter struct {
 }
 

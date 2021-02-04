@@ -110,71 +110,26 @@ func TestAddDuplicate(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	kek, err := crypt.Random(32)
+	woek, err := crypt.Random(32)
 	if err != nil {
 		t.Fatalf("Random errored: %v", err)
 	}
 
-	keywrap, err := crypt.NewKWP(kek)
-	if err != nil {
-		t.Fatalf("NewKWP errored: %v", err)
-	}
-
-	accessObject, oek, err := NewAccessObject(userID, kek)
+	accessObject := NewAccessObject(userID, woek)
 	if err != nil {
 		t.Fatalf("NewAccessObject errored: %v", err)
-	}
-
-	expectedWoek, err := keywrap.Wrap(oek)
-	if err != nil {
-		t.Fatalf("Wrap errored: %v", err)
 	}
 
 	expected := &AccessObject{
 		UserIds: [][]byte{
 			userID.Bytes(),
 		},
-		Woek:    expectedWoek,
+		Woek:    woek,
 		Version: 0,
 	}
 
 	if !reflect.DeepEqual(expected, accessObject) {
 		t.Error("New failed")
-	}
-}
-
-func TestUnwrapOEK(t *testing.T) {
-	expectedOek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Random errored: %v", err)
-	}
-
-	kek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Random errored: %v", err)
-	}
-
-	keywrap, err := crypt.NewKWP(kek)
-	if err != nil {
-		t.Fatalf("NewKWP errored: %v", err)
-	}
-
-	woek, err := keywrap.Wrap(expectedOek)
-	if err != nil {
-		t.Fatalf("Wrap errored: %v", err)
-	}
-
-	a := &AccessObject{
-		Woek: woek,
-	}
-
-	oek, err := a.UnwrapWOEK(kek)
-	if err != nil {
-		t.Fatalf("UnwrapWOEK errored: %v", err)
-	}
-
-	if !reflect.DeepEqual(expectedOek, oek) {
-		t.Error("UnwrapWOEK failed")
 	}
 }
 

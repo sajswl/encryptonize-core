@@ -60,16 +60,15 @@ func (enc *EncService) Store(ctx context.Context, request *StoreRequest) (*Store
 		AuthStoreTx:     authStorageTx,
 	}
 
-	// TODO: Fix with new crypter interface
-	oek, err := authorizer.CreateObject(ctx, objectID, userID, enc.KEK)
+	woek, ciphertext, err := enc.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
 	if err != nil {
-		log.Error(ctx, "Store: Failed to create new access object", err)
+		log.Error(ctx, "Store: Failed to encrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	ciphertext, err := enc.Crypter.Encrypt(request.Object.Plaintext, request.Object.AssociatedData, oek)
+	err = authorizer.CreateObject(ctx, objectID, userID, woek)
 	if err != nil {
-		log.Error(ctx, "Store: Failed to encrypt object", err)
+		log.Error(ctx, "Store: Failed to create new access object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
@@ -106,13 +105,6 @@ func (enc *EncService) Retrieve(ctx context.Context, request *RetrieveRequest) (
 		return nil, err
 	}
 
-	// TODO: Fix with new crypter interface
-	oek, err := accessObject.UnwrapWOEK(enc.KEK)
-	if err != nil {
-		log.Error(ctx, "Retrieve: Failed to unwrap OEK", err)
-		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
-	}
-
 	aad, err := enc.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to retrieve associated data", err)
@@ -125,7 +117,7 @@ func (enc *EncService) Retrieve(ctx context.Context, request *RetrieveRequest) (
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	plaintext, err := enc.Crypter.Decrypt(ciphertext, aad, oek)
+	plaintext, err := enc.DataCryptor.Decrypt(accessObject.Woek, ciphertext, aad)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
