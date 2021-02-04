@@ -50,9 +50,6 @@ func initCircuitBreaker() *gobreaker.CircuitBreaker {
 	return gobreaker.NewCircuitBreaker(st)
 }
 
-// ErrNoRows : Return this error when an empty record set is returned for the DB
-// e.g. when a users isn't found
-var ErrNoRows = errors.New("no rows in result set")
 var cb *gobreaker.CircuitBreaker = initCircuitBreaker()
 
 // Implementation of the AuthStoreInterface
@@ -153,7 +150,7 @@ func (storeTx *AuthStoreTx) GetUserTag(ctx context.Context, userID uuid.UUID) ([
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT tag FROM users WHERE id = $1"), userID)
 	err := row.Scan(&storedTag)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNoRows
+		return nil, interfaces.ErrNoRows
 	}
 	if err != nil {
 		return nil, err
@@ -175,7 +172,7 @@ func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
 	err := row.Scan(&data, &tag)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil, ErrNoRows
+		return nil, nil, interfaces.ErrNoRows
 	}
 	if err != nil {
 		return nil, nil, err

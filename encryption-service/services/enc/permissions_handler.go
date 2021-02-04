@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
-	"encryption-service/impl/authstorage"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
@@ -90,7 +89,7 @@ func (enc *EncService) AddPermission(ctx context.Context, request *AddPermission
 		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
 		log.Error(ctx, msg, err)
 
-		if err == authstorage.ErrNoRows {
+		if err == interfaces.ErrNoRows {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 		}
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve target user")

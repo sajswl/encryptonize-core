@@ -23,7 +23,6 @@ import (
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authz"
-	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )

@@ -16,6 +16,7 @@ package interfaces
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
 
@@ -42,6 +43,10 @@ type AuthStoreTxInterface interface {
 	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
 	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
 }
+
+// ErrNoRows : Return this error when an empty record set is returned for the DB
+// e.g. when a users isn't found
+var ErrNoRows = errors.New("no rows in result set")
 
 type ObjectStoreInterface interface {
 	// Store an object under a given object ID

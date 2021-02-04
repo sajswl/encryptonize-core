@@ -94,7 +94,7 @@ func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 func (m *MemoryAuthStoreTx) GetUserTag(ctx context.Context, userID uuid.UUID) ([]byte, error) {
 	t, ok := m.data.Load(userID)
 	if !ok {
-		return nil, ErrNoRows
+		return nil, interfaces.ErrNoRows
 	}
 
 	tag := make([]byte, len(t.([][]byte)[1]))
@@ -113,7 +113,7 @@ func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID, ta
 func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	t, ok := m.data.Load(objectID)
 	if !ok {
-		return nil, nil, ErrNoRows
+		return nil, nil, interfaces.ErrNoRows
 	}
 
 	data := make([]byte, len(t.([][]byte)[0]))
