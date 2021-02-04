@@ -15,7 +15,6 @@ package authstorage
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/gofrs/uuid"
@@ -109,7 +108,7 @@ func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID) er
 func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	t, ok := m.data.Load(objectID)
 	if !ok {
-		return nil, nil, errors.New("Load error")
+		return nil, nil, interfaces.ErrNotFound
 	}
 
 	data := make([]byte, len(t.([][]byte)[0]))
