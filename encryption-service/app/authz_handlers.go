@@ -31,7 +31,7 @@ import (
 // Wraps the Authorize call
 // Fails if uid or oid are wrongly formatted
 // or if a user isn't authorized to edit the accessObject
-func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
+func AuthorizeWrapper(ctx context.Context, accessObjectMAC *crypt.MessageAuthenticator, objectIDString string) (*authz.Authorizer, *authz.AccessObject, error) {
 	//Define authorizer struct
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(authstorage.AuthStoreTxInterface)
 	if !ok {
@@ -41,8 +41,8 @@ func AuthorizeWrapper(ctx context.Context, messageAuthenticator *crypt.MessageAu
 	}
 
 	authorizer := &authz.Authorizer{
-		MessageAuthenticator: messageAuthenticator,
-		AuthStoreTx:          authStorageTx,
+		AccessObjectMAC: accessObjectMAC,
+		AuthStoreTx:     authStorageTx,
 	}
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {

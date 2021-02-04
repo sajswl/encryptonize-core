@@ -40,7 +40,7 @@ func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte
 	return o.RetrieveFunc(ctx, objectID)
 }
 
-var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 
 var config = &Config{
 	KEK: []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
@@ -57,9 +57,9 @@ func TestStoreRetrieve(t *testing.T) {
 	}
 
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
 		DataCryptor:          dataCryptor,
 	}
 
@@ -110,9 +110,9 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	}
 
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
 		DataCryptor:          dataCryptor,
 	}
 
@@ -154,9 +154,9 @@ func TestStoreFail(t *testing.T) {
 	}
 
 	app := App{
-		ObjectStore:          objectStore,
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		ObjectStore:     objectStore,
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
 		DataCryptor:          dataCryptor,
 	}
 
@@ -198,10 +198,11 @@ func TestStoreFailAuth(t *testing.T) {
 	}
 
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
 		DataCryptor:          dataCryptor,
+
 	}
 
 	object := &Object{
