@@ -188,6 +188,12 @@ func StreamLogInterceptor() grpc.StreamServerInterceptor {
 
 		err := handler(srv, stream)
 
+		status := "success"
+		if err != nil {
+			status = "failure"
+		}
+
+		ctx = context.WithValue(stream.Context(), contextkeys.StatusCtxKey, status)
 		Info(ctx, "Request completed")
 		return err
 	}

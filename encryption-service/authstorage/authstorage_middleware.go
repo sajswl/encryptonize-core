@@ -78,7 +78,7 @@ func (as *AuthStore) AuthStorageStreamingInterceptor() grpc.StreamServerIntercep
 		// Don't start DB transaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
 		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
-			return handler(ctx, stream)
+			return handler(srv, stream)
 		}
 
 		authStoreTx, err := as.NewTransaction(ctx)
