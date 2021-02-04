@@ -40,7 +40,7 @@ func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte
 	return o.RetrieveFunc(ctx, objectID)
 }
 
-var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 
 var config = &Config{
 	KEK: []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
@@ -52,10 +52,10 @@ func TestStoreRetrieve(t *testing.T) {
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		Crypter:         &crypt.AESCrypter{},
 	}
 
 	object := &Object{
@@ -100,10 +100,10 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		Crypter:         &crypt.AESCrypter{},
 	}
 
 	userID, err := uuid.NewV4()
@@ -139,10 +139,10 @@ func TestStoreFail(t *testing.T) {
 		},
 	}
 	app := App{
-		ObjectStore:          objectStore,
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectStore,
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		Crypter:         &crypt.AESCrypter{},
 	}
 
 	object := &Object{
@@ -178,10 +178,10 @@ func TestStoreFailAuth(t *testing.T) {
 		},
 	}
 	app := App{
-		ObjectStore:          objectstorage.NewMemoryObjectStore(),
-		MessageAuthenticator: messageAuthenticator,
-		Config:               config,
-		Crypter:              &crypt.AESCrypter{},
+		ObjectStore:     objectstorage.NewMemoryObjectStore(),
+		AccessObjectMAC: messageAuthenticator,
+		Config:          config,
+		Crypter:         &crypt.AESCrypter{},
 	}
 
 	object := &Object{

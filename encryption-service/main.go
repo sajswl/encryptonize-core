@@ -40,7 +40,12 @@ func main() {
 	}
 	defer authStore.Close()
 
-	messageAuthenticator, err := crypt.NewMessageAuthenticator(config.ASK)
+	accessObjectMAC, err := crypt.NewMessageAuthenticator(config.ASK, crypt.AccessObjectsDomain)
+	if err != nil {
+		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
+	}
+
+	tokenMAC, err := crypt.NewMessageAuthenticator(config.ASK, crypt.TokenDomain)
 	if err != nil {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
@@ -53,16 +58,16 @@ func main() {
 	}
 
 	authService := &authn.AuthService{
-		MessageAuthenticator: messageAuthenticator,
+		TokenMAC: tokenMAC,
 	}
 
 	app := &app.App{
-		Config:               config,
-		MessageAuthenticator: messageAuthenticator,
-		AuthStore:            authStore,
-		AuthService:          authService,
-		ObjectStore:          objectStore,
-		Crypter:              &crypt.AESCrypter{},
+		Config:          config,
+		AccessObjectMAC: accessObjectMAC,
+		AuthStore:       authStore,
+		AuthService:     authService,
+		ObjectStore:     objectStore,
+		Crypter:         &crypt.AESCrypter{},
 	}
 
 	app.StartServer()
