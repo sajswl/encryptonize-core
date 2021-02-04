@@ -25,7 +25,6 @@ import (
 
 // MessageAuthenticator encapsulates a symmetric key used for tagging msgs and verifying msgs + tags
 type MessageAuthenticator struct {
-	domain    MessageAuthenticatorDomainType
 	domainKey []byte
 }
 
@@ -54,7 +53,6 @@ func NewMessageAuthenticator(ask []byte, domain MessageAuthenticatorDomainType) 
 	}
 
 	return &MessageAuthenticator{
-		domain:    domain,
 		domainKey: domainKey,
 	}, nil
 }
