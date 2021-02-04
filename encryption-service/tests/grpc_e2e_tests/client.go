@@ -24,6 +24,7 @@ import (
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
 	"encryption-service/services/enc"
+	"encryption-service/scopes"
 )
 
 // Client for making test gRPC calls to the encryption service
@@ -143,7 +144,7 @@ func (c *Client) RemovePermission(oid, target string) (*enc.RemovePermissionResp
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(userscopes []authn.UserScope) (*authn.CreateUserResponse, error) {
+func (c *Client) CreateUser(userscopes []scopes.UserScope) (*authn.CreateUserResponse, error) {
 	createUserRequest := &authn.CreateUserRequest{
 		UserScopes: userscopes,
 	}

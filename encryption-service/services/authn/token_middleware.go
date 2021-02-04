@@ -26,6 +26,7 @@ import (
 	"encryption-service/services/health"
 )
 
+const baseAppPath string = "/app.Encryptonize/"
 const baseEncPath string = "/enc.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
 
@@ -36,7 +37,7 @@ var methodScopeMap = map[string]scopes.ScopeType{
 	baseEncPath + "RemovePermission": scopes.ScopeObjectPermissions,
 	baseEncPath + "Store":            scopes.ScopeCreate,
 	baseEncPath + "Retrieve":         scopes.ScopeRead,
-	baseEncPath + "Version":          scopes.ScopeNone,
+	baseAppPath + "Version":          scopes.ScopeNone,
 }
 
 // CheckAccessToken verifies the authenticity of a token and

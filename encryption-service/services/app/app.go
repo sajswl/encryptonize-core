@@ -50,6 +50,7 @@ type App struct {
 	Config       *Config
 	EncService   *enc.EncService
 	AuthnService *authn.AuthnService
+	UnimplementedEncryptonizeServer
 }
 
 type Config struct {
@@ -229,6 +230,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 
 	enc.RegisterEncryptonizeServer(grpcServer, app.EncService)
 	authn.RegisterEncryptonizeServer(grpcServer, app.AuthnService)
+	RegisterEncryptonizeServer(grpcServer, app)
 
 	// Register health checker to grpc server
 	healthService := health.NewHealthChecker()

@@ -18,15 +18,15 @@ import (
 	"os"
 	"testing"
 
-	"encryption-service/services/authn"
+	"encryption-service/scopes"
 )
 
 var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
 var adminAT = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
-var protoUserScopes = []authn.UserScope{authn.UserScope_READ, authn.UserScope_CREATE, authn.UserScope_INDEX, authn.UserScope_OBJECTPERMISSIONS}
-var protoAdminScopes = []authn.UserScope{authn.UserScope_USERMANAGEMENT}
+var protoUserScopes = []scopes.UserScope{scopes.UserScope_READ, scopes.UserScope_CREATE, scopes.UserScope_INDEX, scopes.UserScope_OBJECTPERMISSIONS}
+var protoAdminScopes = []scopes.UserScope{scopes.UserScope_USERMANAGEMENT}
 var https = false
 
 /**************************/

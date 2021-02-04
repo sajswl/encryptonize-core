@@ -21,15 +21,19 @@ COPY go.mod go.sum /encryption-service/
 RUN go mod download -x
 
 # Generate protobuf
-COPY app/app.proto /encryption-service/app/
-COPY authz/access_object.proto /encryption-service/authz/
-COPY authn/authn.proto /encryption-service/authn/
+COPY services/enc/enc.proto /encryption-service/services/enc/
+COPY services/authn/authn.proto /encryption-service/services/authn/
+COPY services/app/app.proto /encryption-service/services/app/
+COPY impl/authz/access_object.proto /encryption-service/impl/authz/
+COPY scopes/scopes.proto /encryption-service/scopes/
 RUN apt-get update \
     && apt-get install -y protobuf-compiler \
     && go get google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
-RUN protoc --go-grpc_out=app --go_out=app app/app.proto \
-    && protoc --go_out=authz authz/access_object.proto \
-    && protoc --go-grpc_out=authn --go_out=authn authn/authn.proto
+RUN protoc --go_opt=paths=source_relative --go_out=. --go-grpc_opt=paths=source_relative --go-grpc_out=. services/enc/enc.proto \
+    && protoc --go_opt=paths=source_relative --go_out=. --go-grpc_opt=paths=source_relative --go-grpc_out=. services/authn/authn.proto \
+    && protoc --go_opt=paths=source_relative --go_out=. --go-grpc_opt=paths=source_relative --go-grpc_out=. services/app/app.proto \
+    && protoc --go_opt=paths=source_relative --go_out=. impl/authz/access_object.proto \
+    && protoc --go_opt=paths=source_relative --go_out=. scopes/scopes.proto
 
 # Build dependencies
 COPY . /encryption-service
@@ -38,7 +42,7 @@ COPY . /encryption-service
 ARG COMMIT
 ARG TAG
 ENV CGO_ENABLED=0
-RUN go build -v -ldflags "-X 'encryption-service/app.GitCommit=$COMMIT' -X 'encryption-service/app.GitTag=$TAG'" -o /go/bin/es
+RUN go build -v -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" -o /go/bin/es
 
 # Adding the grpc_health_probe
 RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \
