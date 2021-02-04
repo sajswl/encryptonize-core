@@ -21,10 +21,10 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
+	"encryption-service/scopes"
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
 	"encryption-service/services/enc"
-	"encryption-service/scopes"
 )
 
 // Client for making test gRPC calls to the encryption service

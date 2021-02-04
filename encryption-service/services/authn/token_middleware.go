@@ -53,7 +53,7 @@ func (au *AuthnService) CheckAccessToken(ctx context.Context) (context.Context, 
 		return nil, err
 	}
 
-	// Don't authenticate service/health checks
+	// Don't authenticate health checks
 	// IMPORTANT! This check MUST stay at the top of this function
 	if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch {
 		return ctx, nil

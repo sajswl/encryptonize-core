@@ -22,11 +22,11 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
-	"encryption-service/scopes"
+	"encryption-service/impl/authn"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/authz"
-	"encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
+	"encryption-service/scopes"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -42,7 +42,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes scopes.ScopeType) (string, error) {
-	accessToken := authn.NewAccessToken(userID,scopes)
+	accessToken := authn.NewAccessToken(userID, scopes)
 
 	token, err := accessToken.SerializeAccessToken(m)
 	if err != nil {

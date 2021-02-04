@@ -34,8 +34,8 @@ type AccessToken struct {
 }
 
 func NewAccessToken(userID uuid.UUID, userScopes scopes.ScopeType) AccessToken {
-	return AccessToken {
-		userID: userID,
+	return AccessToken{
+		userID:     userID,
 		userScopes: userScopes,
 	}
 }

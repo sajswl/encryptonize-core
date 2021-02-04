@@ -69,7 +69,7 @@ func main() {
 	}
 
 	authnService := &authn.AuthnService{
-		AuthStore: authStore,
+		AuthStore:         authStore,
 		UserAuthenticator: userAuthenticator,
 	}
 
