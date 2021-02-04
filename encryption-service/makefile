@@ -19,8 +19,10 @@ help:  ## Display this help
 
 ##### Files #####
 binary = encryption-service
-protobufs = app/app_grpc.pb.go app/app.pb.go authn/authn_grpc.pb.go authn/authn.pb.go authz/access_object.pb.go
-protosource = app/app.proto authn/authn.proto authz/access_object.proto
+protobufs = services/enc/enc_grpc.pb.go services/enc/enc.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go scopes/scopes.pb.go
+protosource = services/enc/enc.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto scopes/scopes.proto
+protocopts = --go_opt=paths=source_relative --go_out=.
+grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
 coverage = coverage-unit.html coverage-e2e.html coverage-all.html
 
@@ -33,9 +35,11 @@ build: $(protobufs)  ## Build the Encryption Service binary
 	CGO_ENABLED=0 go build -v -tags "$(tags)" .
 
 $(protobufs): $(protosource)
-	protoc --go-grpc_out=app --go_out=app app/app.proto
-	protoc --go-grpc_out=authn --go_out=authn authn/authn.proto
-	protoc --go_out=authz authz/access_object.proto
+	protoc $(grpcopts) services/enc/enc.proto
+	protoc $(grpcopts) services/authn/authn.proto
+	protoc $(grpcopts) services/app/app.proto
+	protoc $(protocopts) impl/authz/access_object.proto
+	protoc $(protocopts) scopes/scopes.proto
 
 .PHONY: docker-build
 docker-build:  ## Build the Encryption Service docker image
@@ -86,6 +90,11 @@ run-in-mem: build  ## Start a local instance of the Encryption Service with mock
 
 .PHONY: create-admin
 create-admin: build  ## Creates an admin for the local instance of the Encryption Service
+	./scripts/run.sh create-admin
+
+.PHONY: create-admin-mem
+create-admin-mem: tags += storage_mocked
+create-admin-mem: build  ## Creates an admin for the local instance of the Encryption Service
 	./scripts/run.sh create-admin
 
 .PHONY: docker-up

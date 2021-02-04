@@ -16,11 +16,13 @@ package main
 import (
 	"context"
 
-	"encryption-service/app"
-	"encryption-service/authn"
-	"encryption-service/buildtag"
-	"encryption-service/crypt"
+	"encryption-service/buildtags"
+	authnimpl "encryption-service/impl/authn"
+	"encryption-service/impl/crypt"
 	log "encryption-service/logger"
+	"encryption-service/services/app"
+	"encryption-service/services/authn"
+	"encryption-service/services/enc"
 )
 
 func main() {
@@ -49,6 +51,7 @@ func main() {
 	if err != nil {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
+	userAuthenticator := &authnimpl.UserAuthenticator{Authenticator: tokenMAC}
 
 	objectStore, err := buildtag.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
@@ -57,22 +60,26 @@ func main() {
 		log.Fatal(ctx, "Objectstorage connect failed", err)
 	}
 
-	authService := &authn.AuthService{
-		TokenMAC: tokenMAC,
-	}
-
 	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
 	if err != nil {
 		log.Fatal(ctx, "NewAESCryptor failed", err)
 	}
 
-	app := &app.App{
-		Config:          config,
+	encService := &enc.Enc{
 		AccessObjectMAC: accessObjectMAC,
 		AuthStore:       authStore,
-		AuthService:     authService,
 		ObjectStore:     objectStore,
 		DataCryptor:     dataCryptor,
+	}
+
+	authnService := &authn.Authn{
+		AuthStore:         authStore,
+		UserAuthenticator: userAuthenticator,
+	}
+
+	app := &app.App{
+		EncService:   encService,
+		AuthnService: authnService,
 	}
 
 	app.StartServer()
