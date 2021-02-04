@@ -42,7 +42,7 @@ type AuthStoreTxInterface interface {
 	Commit(ctx context.Context) error
 
 	// User handling
-	GetUser(ctx context.Context, userID uuid.UUID) ([]byte, error)
+	UserExists(ctx context.Context, userID uuid.UUID) (bool, error)
 	UpsertUser(ctx context.Context, userID uuid.UUID) error
 
 	// Access Object handling
@@ -167,18 +167,18 @@ func (storeTx *AuthStoreTx) NewQuery(query string) string {
 
 // Fetches a user from the database
 // If no user is found it returns the ErrNoRows error
-func (storeTx *AuthStoreTx) GetUser(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	var fetchedID []byte
 
 	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT * FROM users WHERE id = $1"), userID)
 	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNoRows
+		return false, nil
 	}
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return fetchedID, nil
+	return true, nil
 }
 
 // Creates a user with a tag, updates the tag if the user exists

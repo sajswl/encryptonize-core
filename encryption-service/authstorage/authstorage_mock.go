@@ -27,7 +27,7 @@ type AuthStoreTxMock struct {
 	CommitFunc   func(ctx context.Context) error
 	RollbackFunc func(ctx context.Context) error
 
-	GetUserFunc    func(ctx context.Context, userID uuid.UUID) ([]byte, error)
+	UserExistsFunc func(ctx context.Context, userID uuid.UUID) (bool, error)
 	UpsertUserFunc func(ctx context.Context, userID uuid.UUID) error
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
@@ -42,8 +42,8 @@ func (db *AuthStoreTxMock) Rollback(ctx context.Context) error {
 	return db.RollbackFunc(ctx)
 }
 
-func (db *AuthStoreTxMock) GetUser(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-	return db.GetUserFunc(ctx, userID)
+func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return db.UserExistsFunc(ctx, userID)
 }
 func (db *AuthStoreTxMock) UpsertUser(ctx context.Context, userID uuid.UUID) error {
 	return db.UpsertUserFunc(ctx, userID)
@@ -89,17 +89,17 @@ func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) GetUser(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-	u, ok := m.data.Load(userID)
+func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
+	_, ok := m.data.Load(userID)
 	if !ok {
-		return nil, ErrNoRows
+		return false, nil
 	}
 
-	return u.([]byte), nil
+	return true, nil
 }
 
 func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID) error {
-	m.data.Store(userID, userID)
+	m.data.Store(userID, true)
 	return nil
 }
 
