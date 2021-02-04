@@ -86,7 +86,7 @@ func (au *AuthService) CreateUserWrapper(ctx context.Context, userscopes ScopeTy
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorageTx.UpsertUser(ctx, userID, []byte{})
+	err = authStorageTx.UpsertUser(ctx, userID)
 	if err != nil {
 		return nil, "", err
 	}
