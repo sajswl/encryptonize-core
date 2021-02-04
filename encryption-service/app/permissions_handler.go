@@ -86,17 +86,17 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 	// Check if user exists (returns error on empty rows)
 	exists, err := authStorageTx.UserExists(ctx, target)
 
-	if !exists {
-		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
-		err = status.Errorf(codes.InvalidArgument, "invalid target user ID")
-		log.Error(ctx, msg, err)
-		return nil, err
-	}
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
 		log.Error(ctx, msg, err)
 
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve target user")
+	}
+	if !exists {
+		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
+		err = status.Errorf(codes.InvalidArgument, "invalid target user ID")
+		log.Error(ctx, msg, err)
+		return nil, err
 	}
 
 	// Add the permission to the access object
