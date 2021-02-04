@@ -65,14 +65,14 @@ func main() {
 		log.Fatal(ctx, "NewAESCryptor failed", err)
 	}
 
-	encService := &enc.EncService{
+	encService := &enc.Enc{
 		AccessObjectMAC: accessObjectMAC,
 		AuthStore:       authStore,
 		ObjectStore:     objectStore,
 		DataCryptor:     dataCryptor,
 	}
 
-	authnService := &authn.AuthnService{
+	authnService := &authn.Authn{
 		AuthStore:         authStore,
 		UserAuthenticator: userAuthenticator,
 	}

@@ -33,7 +33,7 @@ var authorizer = &authz.Authorizer{
 	AccessObjectMAC: ma,
 }
 
-var enc = EncService{
+var enc = Enc{
 	AccessObjectMAC: ma,
 }
 

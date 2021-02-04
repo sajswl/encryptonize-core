@@ -27,7 +27,7 @@ import (
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
-func (au *AuthnService) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
+func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
 	usertype := scopes.ScopeNone
 	for _, us := range request.UserScopes {
 		switch us {

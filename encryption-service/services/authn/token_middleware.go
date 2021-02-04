@@ -44,7 +44,7 @@ var methodScopeMap = map[string]scopes.ScopeType{
 // that the token contains the required scope for the requested API
 // The Access Token contains uid, scopes, and a random value
 // this token has to be integrity protected (e.g. by an HMAC)
-func (au *AuthnService) CheckAccessToken(ctx context.Context) (context.Context, error) {
+func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) {
 	// Grab method name
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {

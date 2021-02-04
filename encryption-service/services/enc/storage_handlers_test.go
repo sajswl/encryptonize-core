@@ -54,7 +54,7 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := EncService{
+	enc := Enc{
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
 		DataCryptor:     dataCryptor,
@@ -106,7 +106,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := EncService{
+	enc := Enc{
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
 		DataCryptor:     dataCryptor,
@@ -149,7 +149,7 @@ func TestStoreFail(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := EncService{
+	enc := Enc{
 		ObjectStore:     objectStore,
 		AccessObjectMAC: messageAuthenticator,
 		DataCryptor:     dataCryptor,
@@ -192,7 +192,7 @@ func TestStoreFailAuth(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := EncService{
+	enc := Enc{
 		ObjectStore:     objectstorage.NewMemoryObjectStore(),
 		AccessObjectMAC: messageAuthenticator,
 		DataCryptor:     dataCryptor,

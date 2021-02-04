@@ -50,8 +50,8 @@ var GitTag string
 
 type App struct {
 	Config       *Config
-	EncService   *enc.EncService
-	AuthnService *authn.AuthnService
+	EncService   *enc.Enc
+	AuthnService *authn.Authn
 	UnimplementedEncryptonizeServer
 }
 

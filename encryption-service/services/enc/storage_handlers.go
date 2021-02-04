@@ -32,7 +32,7 @@ const CiphertextStoreSuffix = "_data"
 // API exposed function, encrypts data and stores it in the object store
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
-func (enc *EncService) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
+func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
@@ -97,7 +97,7 @@ func (enc *EncService) Store(ctx context.Context, request *StoreRequest) (*Store
 // API exposed function, retrieves a package from storage solution
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication, authorization, or retrieving the object fails
-func (enc *EncService) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
+func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
 	_, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, objectIDString)
 	if err != nil {

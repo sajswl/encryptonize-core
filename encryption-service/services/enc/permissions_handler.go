@@ -27,7 +27,7 @@ import (
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
-func (enc *EncService) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
+func (enc *Enc) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
 	_, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
@@ -57,7 +57,7 @@ func (enc *EncService) GetPermissions(ctx context.Context, request *GetPermissio
 
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
-func (enc *EncService) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
+func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
@@ -122,7 +122,7 @@ func (enc *EncService) AddPermission(ctx context.Context, request *AddPermission
 
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
-func (enc *EncService) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
+func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")

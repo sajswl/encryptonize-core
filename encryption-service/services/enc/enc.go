@@ -17,7 +17,7 @@ import (
 	"encryption-service/interfaces"
 )
 
-type EncService struct {
+type Enc struct {
 	KEK             []byte // TODO: Fix with new crypter interface
 	AccessObjectMAC interfaces.MessageAuthenticatorInterface
 	AuthStore       interfaces.AuthStoreInterface

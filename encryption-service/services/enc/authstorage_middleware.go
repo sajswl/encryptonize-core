@@ -28,7 +28,7 @@ import (
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (enc *EncService) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
+func (enc *Enc) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
 		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
@@ -63,7 +63,7 @@ func (enc *EncService) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInter
 
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (enc *EncService) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
+func (enc *Enc) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := stream.Context()
 
