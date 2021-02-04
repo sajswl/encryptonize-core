@@ -28,7 +28,7 @@ import (
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (app *App) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	_, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+	_, accessObject, err := AuthorizeWrapper(ctx, app.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -65,7 +65,7 @@ func (app *App) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -126,7 +126,7 @@ func (app *App) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.MessageAuthenticator, request.ObjectId)
+	authorizer, accessObject, err := AuthorizeWrapper(ctx, app.AccessObjectMAC, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

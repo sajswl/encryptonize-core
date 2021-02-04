@@ -29,13 +29,13 @@ import (
 	"encryption-service/crypt"
 )
 
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 var authorizer = &authz.Authorizer{
-	MessageAuthenticator: ma,
+	AccessObjectMAC: ma,
 }
 
 var app = App{
-	MessageAuthenticator: ma,
+	AccessObjectMAC: ma,
 }
 
 var targetID = uuid.Must(uuid.NewV4())
