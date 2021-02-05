@@ -16,24 +16,13 @@ FROM golang:1.15-buster as build-env
 
 WORKDIR /encryption-service
 
-# Fetch dependencies
-COPY go.mod go.sum /encryption-service/
-RUN go mod download -x
-
-# Generate protobuf
-COPY services/enc/enc.proto /encryption-service/services/enc/
-COPY services/authn/authn.proto /encryption-service/services/authn/
-COPY services/app/app.proto /encryption-service/services/app/
-COPY impl/authz/access_object.proto /encryption-service/impl/authz/
-COPY scopes/scopes.proto /encryption-service/scopes/
 RUN apt-get update \
     && apt-get install -y protobuf-compiler \
     && go get google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
-RUN protoc --go_opt=paths=source_relative --go_out=. --go-grpc_opt=paths=source_relative --go-grpc_out=. services/enc/enc.proto \
-    && protoc --go_opt=paths=source_relative --go_out=. --go-grpc_opt=paths=source_relative --go-grpc_out=. services/authn/authn.proto \
-    && protoc --go_opt=paths=source_relative --go_out=. --go-grpc_opt=paths=source_relative --go-grpc_out=. services/app/app.proto \
-    && protoc --go_opt=paths=source_relative --go_out=. impl/authz/access_object.proto \
-    && protoc --go_opt=paths=source_relative --go_out=. scopes/scopes.proto
+
+# Fetch dependencies
+COPY go.mod go.sum /encryption-service/
+RUN go mod download -x
 
 # Build dependencies
 COPY . /encryption-service
@@ -42,7 +31,7 @@ COPY . /encryption-service
 ARG COMMIT
 ARG TAG
 ENV CGO_ENABLED=0
-RUN go build -v -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" -o /go/bin/es
+RUN make ldflags="-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" build
 
 # Adding the grpc_health_probe
 RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \
@@ -58,9 +47,9 @@ ARG TAG
 LABEL git-commit=${COMMIT}
 LABEL git-tag=${TAG}
 
-COPY --from=build-env /go/bin/es /
+COPY --from=build-env /encryption-service/encryption-service /
 COPY --from=build-env /bin/grpc_health_probe /grpc_health_probe
 
 USER 5000:5000
 
-ENTRYPOINT ["/es"]
+ENTRYPOINT ["/encryption-service"]

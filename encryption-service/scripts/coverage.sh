@@ -54,7 +54,7 @@ MIIBpjCCAVigAwIBAgIUQ3byU/Dxv0eA11bPDYVC4xD36dwwBQYDK2VwMGUxCzAJBgNVBAYTAkRLMQow
 
 export ENCRYPTION_SERVICE_INSECURE=1
 
-export TEST_FOLDERS=$(go list ./... | grep -vE '^encryption-service$|e2e_tests|metrics')
+export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|e2e_tests')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'
@@ -70,7 +70,7 @@ until $(docker run --net=host --rm amothic/grpc-health-probe@sha256:c56a6e93c199
     sleep 1
 done
 
-go test -count=1 -v ./tests/grpc_e2e_tests/...
+go test -count=1 -v ./tests/...
 
 while pkill -x -SIGINT main.test; do
   echo '[*] waiting for the server to shut down'

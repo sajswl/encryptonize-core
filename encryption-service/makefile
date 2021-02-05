@@ -29,10 +29,13 @@ coverage = coverage-unit.html coverage-e2e.html coverage-all.html
 # Build Tags variable
 tags =
 
+# Linker flags variable
+ldflags =
+
 ##### Build targets #####
 .PHONY: build
 build: $(protobufs)  ## Build the Encryption Service binary
-	CGO_ENABLED=0 go build -v -tags "$(tags)" .
+	CGO_ENABLED=0 go build -v -ldflags "$(ldflags)" -tags "$(tags)" .
 
 $(protobufs): $(protosource)
 	protoc $(grpcopts) services/enc/enc.proto

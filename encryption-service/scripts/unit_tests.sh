@@ -24,7 +24,7 @@ export CGO_ENABLED=0
 
 export ENCRYPTION_SERVICE_INSECURE=1
 
-export TEST_FOLDERS=$(go list ./... | grep -vE '^encryption-service$|e2e_tests|metrics')
+export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|e2e_tests')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'

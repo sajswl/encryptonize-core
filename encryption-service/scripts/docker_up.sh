@@ -21,6 +21,11 @@
 
 set -euo pipefail
 
+# Required to make <dockerfile>.dockerignore work, which we need since we need
+# the build context to be `../..` in encryptonize-premium
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 # Start the docker containers
 docker-compose build --build-arg COMMIT="$(git rev-list -1 HEAD)" --build-arg TAG="$(git tag --points-at HEAD)"
 docker-compose up $@

@@ -16,6 +16,9 @@
 
 set -euo pipefail
 
+# Nicer docker builds
+export DOCKER_BUILDKIT=1
+
 COMMIT=$(git rev-list -1 HEAD)
 TAG=$(git tag --points-at HEAD)
 docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t encryptonize -f encryption-service.dockerfile .
