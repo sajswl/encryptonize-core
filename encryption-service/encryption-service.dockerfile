@@ -16,6 +16,10 @@ FROM golang:1.15-buster as build-env
 
 WORKDIR /encryption-service
 
+# Fetch dependencies
+COPY go.mod go.sum /encryption-service/
+RUN go mod download -x
+
 # Build dependencies
 COPY . /encryption-service
 RUN apt-get update \
