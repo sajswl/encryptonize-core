@@ -19,22 +19,15 @@ help:  ## Display this help
 
 ##### Files #####
 binary = eccs
-protobufs = app/app.pb.go app/app_grpc.pb.go authn/authn.pb.go authn/authn_grpc.pb.go
-protosource = ../../encryption-service/app/app.proto
 
 ##### Build targets #####
 .PHONY: build
-build: $(protobufs)  ## Build the Encryptonize Core Cloud Storage app
+build: ## Build the Encryptonize Core Cloud Storage app
 	go get -v ./...
 	go build -v .
 
-$(protobufs): $(protosource)
-	mkdir -p authn
-	protoc --go_out=app --go-grpc_out=app --proto_path=../../encryption-service/app app.proto
-	protoc --go_out=authn --go-grpc_out=authn --proto_path=../../encryption-service/authn authn.proto
-
 .PHONY: lint
-lint: $(protobufs)  ## Lint the codebase
+lint: ## Lint the codebase
 	./scripts/lint.sh
 
 ##### Test targets #####

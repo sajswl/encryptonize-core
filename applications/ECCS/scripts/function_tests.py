@@ -61,13 +61,13 @@ def create_user(token, flags=None):
 
 	uid = None
 	at = None
-	for match in re.finditer(r"user_id:\"([^\"]+)\"", res.stderr):
+	for match in re.finditer(r"UID: \"([^\"]+)\"", res.stderr):
 		if uid is not None:
 			print(f"multiple matches for the UID, aborting")
 			sys.exit(1)
 		uid = match.group(1)
 
-	for match in re.finditer(r"access_token:\"([^\"]+)", res.stderr):
+	for match in re.finditer(r"AT: \"([^\"]+)", res.stderr):
 		if at is not None:
 			print(f"multiple matches for the AT, aborting")
 			print(at)

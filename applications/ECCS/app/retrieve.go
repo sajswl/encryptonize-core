@@ -29,13 +29,13 @@ func Retrieve(userAT, oid string) error {
 	}
 
 	// Call Encryptonize and retrieve object
-	out, err := client.Retrieve(oid)
+	m, aad, err := client.Retrieve(oid)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Retrieve failed"), err)
 	}
 
 	// Print object back to user
-	log.Printf("%vObject: %v", utils.Pass("Successfully retrieved object!\n"), out)
+	log.Printf("%vObject: m=\"%s\", aad=\"%s\"", utils.Pass("Successfully retrieved object!\n"), string(m), string(aad))
 
 	return nil
 }

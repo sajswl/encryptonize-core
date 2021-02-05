@@ -63,7 +63,7 @@ func Store(userAT, filename, associatedData string, stdin bool) error {
 	}
 
 	// Give back the object id to the user
-	log.Printf("%vObjectID: %v", utils.Pass("Successfully stored object!\n"), out.ObjectId)
+	log.Printf("%vObjectID: %v", utils.Pass("Successfully stored object!\n"), out)
 
 	return nil
 }

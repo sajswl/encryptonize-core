@@ -18,22 +18,30 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"eccs/utils"
-	"eccs/authn"
 
+	"google.golang.org/protobuf/types/descriptorpb"
+	"github.com/jhump/protoreflect/grpcreflect"
+	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/dynamic"
+	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+	grpc_reflection "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
+
+
 
 // Client for making test gRPC calls to the Encryptonize service
 type Client struct {
 	connection *grpc.ClientConn
-	appClient  EncryptonizeClient
-	authClient authn.EncryptonizeClient
+	refClient  *grpcreflect.Client
 	ctx        context.Context
 }
 
@@ -83,100 +91,280 @@ func NewClient(userAT string) (*Client, error) {
 		return nil, err
 	}
 
-	// Create client
-	appClient := NewEncryptonizeClient(connection)
-	authClient := authn.NewEncryptonizeClient(connection)
+	client := grpcreflect.NewClient(context.Background(), grpc_reflection.NewServerReflectionClient(connection))
 
 	// Add metadata/credetials to context
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
+
 	return &Client{
 		connection: connection, // The grpc connection
-		appClient:  appClient,  // The client generated to the grpc stubs
-		authClient: authClient, 
+		refClient:  client,
 		ctx:        ctx,        // The request context
 	}, nil
 }
 
 // Store calls the Encryptonize Store endpoint
-func (c *Client) Store(plaintext, associatedData []byte) (*StoreResponse, error) {
-	// Define request struct
-	storeRequest := &StoreRequest{
-		Object: &Object{
-			Plaintext:      plaintext,      // The plaintext to be encrypted and afterwards stored
-			AssociatedData: associatedData, // Some associated data to be stored along with the encrypted plain text, note that this isn't encrypted
-		},
+func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
+	mth, err := c.findMethod("app.Encryptonize", "Store")
+
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
+	}
+	if !sanitize(inType, inExp) {
+		return "", errors.New("Unexpected input type of Store method")
 	}
 
-	// Make the actual gRPC call
-	storeResponse, err := c.appClient.Store(c.ctx, storeRequest)
-	if err != nil {
-		return nil, fmt.Errorf("Store failed: %v", err)
+	objType := inType.FindFieldByName("object").GetMessageType()
+	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"plaintext": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 	}
-	return storeResponse, nil
+	if !sanitize(objType, objExp) {
+		return "", errors.New("Unexpected object type")
+	}
+
+	outType := mth.GetOutputType()
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(outType, outExp) {
+		return "", errors.New("Unexpected output type of Retrieve method")	
+	}
+
+	obj := dynamic.NewMessage(objType)
+	obj.SetFieldByName("plaintext", plaintext)
+	obj.SetFieldByName("associated_data", associatedData)
+
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object", obj)
+
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return "", err
+	}
+
+	objID := res.GetFieldByName("object_id").(string)
+
+	return objID, nil
+}
+
+func sanitize(mt *desc.MessageDescriptor, ex map[string]descriptorpb.FieldDescriptorProto_Type) bool {
+	fields := mt.GetFields()
+
+	if len(fields) != len(ex) {
+		return false
+	}
+
+	for name, exType := range ex {
+		if fd := mt.FindFieldByName(name); fd == nil {
+			return false
+		} else {
+			if fd.GetType() != exType {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // Retrieve calls the Encryptonize Retrieve endpoint
-func (c *Client) Retrieve(oid string) (*RetrieveResponse, error) {
-	// Define request struct
-	retrieveRequest := &RetrieveRequest{ObjectId: oid} // Construct the retrieve request. This only requires the object id of the object to be fetched from storage.
+func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
+	mth, err := c.findMethod("app.Encryptonize", "Retrieve")
 
-	// Make the actual gRPC call
-	retrieveResponse, err := c.appClient.Retrieve(c.ctx, retrieveRequest)
-	if err != nil {
-		return nil, fmt.Errorf("Retrieve failed: %v", err)
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
-	return retrieveResponse, nil
+	if !sanitize(inType, inExp) {
+		return nil, nil, errors.New("Unexpected input type of Retrieve method")
+	}
+
+	outType := mth.GetOutputType()
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
+	}
+	if !sanitize(outType, outExp) {
+		return nil, nil, errors.New("Unexpected output type of Retrieve method")	
+	}
+
+	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"plaintext": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	}
+	if !sanitize(outType.FindFieldByName("object").GetMessageType(), objExp) {
+		return nil, nil, errors.New("Unexpected object type")
+	}
+
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object_id", oid)
+
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	obj := res.GetFieldByName("object").(*dynamic.Message)
+	m := obj.GetFieldByName("plaintext").([]byte)
+	aad := obj.GetFieldByName("associated_data").([]byte)
+
+	return m, aad, nil
 }
 
 // GetPermissions calls the Encryptonize GetPermissions endpoint
-func (c *Client) GetPermissions(oid string) (*GetPermissionsResponse, error) {
-	// Define request struct
-	getPermissionsRequest := &GetPermissionsRequest{ObjectId: oid} // Construct the GetPermissions request. This only requires the object id of the object.
+func (c *Client) GetPermissions(oid string) ([]string, error) {
+	mth, err := c.findMethod("app.Encryptonize", "GetPermissions")
 
-	// Make the actual gRPC call
-	getPermissionsResponse, err := c.appClient.GetPermissions(c.ctx, getPermissionsRequest)
-	if err != nil {
-		return nil, fmt.Errorf("GetPermissions failed: %v", err)
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
-	return getPermissionsResponse, nil
+	if !sanitize(inType, inExp) {
+		return nil, errors.New("Unexpected input type of Retrieve method")
+	}
+
+	outType := mth.GetOutputType()
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"user_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(outType, outExp) {
+		return nil, errors.New("Unexpected output type of Retrieve method")	
+	}
+
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object_id", oid)
+
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return nil, err
+	}
+
+	idsField := outType.FindFieldByName("user_ids")
+	numIds := res.FieldLength(idsField)
+	var ids = []string{}
+	for i := 0; i < numIds; i++ {
+		ids = append(ids, res.GetRepeatedField(idsField, i).(string))
+	}
+
+	return ids, nil
 }
 
-// AddPermission calls the Encryptonize AddPermission endpoint
-func (c *Client) AddPermission(oid, target string) (*AddPermissionResponse, error) {
-	// Define request struct
-	addPermissionRequest := &AddPermissionRequest{ObjectId: oid, Target: target} // Construct the AddPermission request.
-
-	// Make the actual gRPC call
-	addPermissionResponse, err := c.appClient.AddPermission(c.ctx, addPermissionRequest)
-	if err != nil {
-		return nil, fmt.Errorf("AddPermission failed: %v", err)
+func (c *Client) UpdatePermission(oid, target string, add bool) error {
+	method := "RemovePermission"
+	if add {
+		method = "AddPermission"
 	}
-	return addPermissionResponse, nil
+	mth, err := c.findMethod("app.Encryptonize", method)
+
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"target": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(inType, inExp) {
+		return errors.New("Unexpected input type of Retrieve method")
+	}
+
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	}
+	if !sanitize(mth.GetOutputType(), outExp) {
+		return errors.New("Unexpected output type of Retrieve method")	
+	}
+
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object_id", oid)
+	msg.SetFieldByName("target", target)
+
+	stub := grpcdynamic.NewStub(c.connection)
+	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// RemovePermission calls the Encryptonize RemovePermission endpoint
-func (c *Client) RemovePermission(oid, target string) (*RemovePermissionResponse, error) {
-	// Define request struct
-	removePermissionRequest := &RemovePermissionRequest{ObjectId: oid, Target: target} // Construct the RemovePermission request.
-
-	// Make the actual gRPC call
-	removePermissionResponse, err := c.appClient.RemovePermission(c.ctx, removePermissionRequest)
+func (c *Client) findMethod(service, method string) (*desc.MethodDescriptor, error) {
+	srvDes, err := c.refClient.ResolveService(service)
 	if err != nil {
-		return nil, fmt.Errorf("RemovePermission failed: %v", err)
+		return nil, err
 	}
-	return removePermissionResponse, nil
+
+	methDes := srvDes.FindMethodByName(method)
+	if methDes == nil {
+		errMsg := fmt.Sprintf("Service %s has no method named %s", service, method)
+		return nil, errors.New(errMsg)
+	}
+
+	return methDes, nil
 }
 
 // CreateUser calls the Encryptonize CreateUser endpoint
-func (c *Client) CreateUser(scopes []authn.UserScope) (*authn.CreateUserResponse, error) {
-	// Define request struct
-	createUserRequest := &authn.CreateUserRequest{UserScopes: scopes} // Construct the CreateUser request. This only requires the user list of scopes the user is granted.
+func (c *Client) CreateUser(scopes []string) (string, string, error) {
+	mth, err := c.findMethod("authn.Encryptonize", "CreateUser")
 
-	// Make the actual gRPC call
-	createUserResponse, err := c.authClient.CreateUser(c.ctx, createUserRequest)
-	if err != nil {
-		return nil, fmt.Errorf("CreateUser failed: %v", err)
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"user_scopes": descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 	}
-	return createUserResponse, nil
+	if !sanitize(inType, inExp) {
+		return "", "", errors.New("Unexpected input type of Retrieve method")
+	}
+
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+		"user_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"access_token": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(mth.GetOutputType(), outExp) {
+		return "", "", errors.New("Unexpected output type of Retrieve method")	
+	}
+
+	msg := dynamic.NewMessage(inType)
+
+	scopeField := inType.FindFieldByName("user_scopes")
+	scopeMap := make(map[string]int32)
+	for _, e := range scopeField.GetEnumType().GetValues() {
+		scopeMap[e.GetName()] = e.GetNumber()
+		log.Printf("%s: %v", e.GetName(), e.GetNumber())
+	}
+
+	for _, scope := range scopes{
+		msg.AddRepeatedField(scopeField, scopeMap[scope])
+	}
+
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return "", "", err
+	}
+
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return "", "", err
+	}
+
+	uid := res.GetFieldByName("user_id").(string)
+	at := res.GetFieldByName("access_token").(string)
+
+	return uid, at, nil
 }
