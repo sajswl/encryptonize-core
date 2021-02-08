@@ -16,7 +16,8 @@ package main
 import (
 	"context"
 
-	"encryption-service/buildtags"
+	buildtag "encryption-service/buildtags"
+	"encryption-service/config"
 	authnimpl "encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
 	log "encryption-service/logger"
@@ -29,7 +30,7 @@ func main() {
 	ctx := context.TODO()
 	log.Info(ctx, "Encryption Server started")
 
-	config, err := app.ParseConfig()
+	config, err := config.ParseConfig()
 	if err != nil {
 		log.Fatal(ctx, "Config parse failed", err)
 	}
