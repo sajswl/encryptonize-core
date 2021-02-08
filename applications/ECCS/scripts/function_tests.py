@@ -110,7 +110,7 @@ if __name__ == "__main__":
 	uid2, at2 = create_user(at)
 	print(f"[+] created second user: UID {uid2}, AT {at2}")
 	oid = create_object(at1, "no one has the intention to store bytes here.")
-	print("[+] object created")
+	print(f"[+] object created:      OID {oid}")
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
