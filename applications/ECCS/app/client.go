@@ -23,8 +23,6 @@ import (
 	"log"
 	"os"
 
-	"eccs/utils"
-
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
@@ -34,6 +32,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	grpc_reflection "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"eccs/utils"
 )
 
 // Client for making test gRPC calls to the Encryptonize service
@@ -308,14 +308,27 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 	return ids, nil
 }
 
+type UpdateType int
+
+const (
+	UpdateKindAdd = iota
+	UpdateKindRemove
+)
+
 // UpdatePermissions either Adds a user to or Removes a user from the Access Object
 // AddPermission and RemovePermission share the same signature so they are only
 // distinguished by their name
-func (c *Client) UpdatePermission(oid, target string, add bool) error {
-	method := "RemovePermission"
-	if add {
+func (c *Client) UpdatePermission(oid, target string, kind UpdateType) error {
+	var method string
+	switch kind {
+	case UpdateKindAdd:
 		method = "AddPermission"
+	case UpdateKindRemove:
+		method = "RemovePermission"
+	default:
+		return errors.New("Unknown update kind")
 	}
+
 	mth, err := c.findMethod("enc.Encryptonize", method)
 	if err != nil {
 		return err
