@@ -25,18 +25,16 @@ import (
 
 	"eccs/utils"
 
-	"google.golang.org/protobuf/types/descriptorpb"
-	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
+	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	grpc_reflection "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
-
-
 
 // Client for making test gRPC calls to the Encryptonize service
 type Client struct {
@@ -96,7 +94,6 @@ func NewClient(userAT string) (*Client, error) {
 	// Add metadata/credetials to context
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-
 	return &Client{
 		connection: connection, // The grpc connection
 		refClient:  client,     // The reflection client
@@ -133,19 +130,15 @@ func sanitize(mt *desc.MessageDescriptor, ex map[string]descriptorpb.FieldDescri
 
 	// look for each field we are expecting
 	for name, exType := range ex {
-		if fd := mt.FindFieldByName(name); fd == nil {
+		fd := mt.FindFieldByName(name)
+		// assert it has the type we are expecting
+		if fd == nil || fd.GetType() != exType {
 			return false
-		} else {
-			// assert it has the type we are expecting
-			if fd.GetType() != exType {
-				return false
-			}
 		}
 	}
 
 	return true
 }
-
 
 // Store calls the Encryptonize Store endpoint
 func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
@@ -156,7 +149,7 @@ func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
 
 	// sanitize in and output
 	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
 	}
 	if !sanitize(inType, inExp) {
@@ -164,8 +157,8 @@ func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
 	}
 
 	objType := inType.FindFieldByName("object").GetMessageType()
-	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type {
-		"plaintext": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 	}
 	if !sanitize(objType, objExp) {
@@ -173,11 +166,11 @@ func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
 	}
 
 	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(outType, outExp) {
-		return "", errors.New("Unexpected type of the object message")	
+		return "", errors.New("Unexpected type of the object message")
 	}
 
 	// create the object to be stored
@@ -216,7 +209,7 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 
 	// sanitize input and output
 	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(inType, inExp) {
@@ -224,15 +217,15 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 	}
 
 	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
 	}
 	if !sanitize(outType, outExp) {
-		return nil, nil, errors.New("Unexpected output type of Retrieve method")	
+		return nil, nil, errors.New("Unexpected output type of Retrieve method")
 	}
 
-	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type {
-		"plaintext": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 	}
 	if !sanitize(outType.FindFieldByName("object").GetMessageType(), objExp) {
@@ -272,7 +265,7 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 
 	// sanitzie input and output
 	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(inType, inExp) {
@@ -280,11 +273,11 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 	}
 
 	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"user_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(outType, outExp) {
-		return nil, errors.New("Unexpected output type of GetPermissions method")	
+		return nil, errors.New("Unexpected output type of GetPermissions method")
 	}
 
 	// create argument
@@ -330,18 +323,17 @@ func (c *Client) UpdatePermission(oid, target string, add bool) error {
 
 	// sanitize input and output
 	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"target": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"target":    descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(inType, inExp) {
 		return errors.New("Unexpected input type of UpdatePermission method")
 	}
 
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
-	}
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
 	if !sanitize(mth.GetOutputType(), outExp) {
-		return errors.New("Unexpected output type of UpdatePermission method")	
+		return errors.New("Unexpected output type of UpdatePermission method")
 	}
 
 	// create argument
@@ -368,19 +360,19 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 
 	// sanitize input and output
 	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"user_scopes": descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 	}
 	if !sanitize(inType, inExp) {
 		return "", "", errors.New("Unexpected input type of CreateUser method")
 	}
 
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
-		"user_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"user_id":      descriptorpb.FieldDescriptorProto_TYPE_STRING,
 		"access_token": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(mth.GetOutputType(), outExp) {
-		return "", "", errors.New("Unexpected output type of CreateUser method")	
+		return "", "", errors.New("Unexpected output type of CreateUser method")
 	}
 
 	// create a map to translate the scope names to the enum
@@ -393,7 +385,7 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 
 	// create argument
 	msg := dynamic.NewMessage(inType)
-	for _, scope := range scopes{
+	for _, scope := range scopes {
 		msg.AddRepeatedField(scopeField, scopeMap[scope])
 	}
 
