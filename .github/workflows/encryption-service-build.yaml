@@ -41,11 +41,11 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
 
-     - name: Lint
-       run: make lint
+    - name: Lint
+      run: make lint
 
-     - name: Build
-       run: make build
+    - name: Build
+      run: make build
 
   esb-unit-test:
     needs: esb-build
@@ -79,13 +79,13 @@ jobs:
     - name: Start docker containers
       run: make docker-up
 
-     - name: Run eccs tests
-       # Small hack to get docker-compose next to docker to work. We cannot attach to the host
-       # network due to the way the workflow container is started, so we fetch the ip of the docker0
-       # interface instead. See https://stackoverflow.com/a/31328031 for more information.
-       run: |
-         export ECCS_ENDPOINT=$(ip route show | awk '/default/ {print $3}'):9000
-         make eccs-tests
+    - name: Run eccs tests
+      # Small hack to get docker-compose next to docker to work. We cannot attach to the host
+      # network due to the way the workflow container is started, so we fetch the ip of the docker0
+      # interface instead. See https://stackoverflow.com/a/31328031 for more information.
+      run: |
+        export ECCS_ENDPOINT=$(ip route show | awk '/default/ {print $3}'):9000
+        make eccs-tests
 
     - name: Run end-to-end tests
       run: |
