@@ -99,15 +99,62 @@ func NewClient(userAT string) (*Client, error) {
 
 	return &Client{
 		connection: connection, // The grpc connection
-		refClient:  client,
+		refClient:  client,     // The reflection client
 		ctx:        ctx,        // The request context
 	}, nil
 }
 
+// findMethod queries the grpc server via reflection to get a descriptor for some method
+func (c *Client) findMethod(service, method string) (*desc.MethodDescriptor, error) {
+	// resolve the service by name
+	srvDes, err := c.refClient.ResolveService(service)
+	if err != nil {
+		return nil, err
+	}
+
+	// resolve the method of the service
+	methDes := srvDes.FindMethodByName(method)
+	if methDes == nil {
+		errMsg := fmt.Sprintf("Service %s has no method named %s", service, method)
+		return nil, errors.New(errMsg)
+	}
+
+	return methDes, nil
+}
+
+// sanitize asserts that a message has the specified fields
+func sanitize(mt *desc.MessageDescriptor, ex map[string]descriptorpb.FieldDescriptorProto_Type) bool {
+	fields := mt.GetFields()
+
+	// make sure the message has exactly the number of fields we are expecting
+	if len(fields) != len(ex) {
+		return false
+	}
+
+	// look for each field we are expecting
+	for name, exType := range ex {
+		if fd := mt.FindFieldByName(name); fd == nil {
+			return false
+		} else {
+			// assert it has the type we are expecting
+			if fd.GetType() != exType {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+
 // Store calls the Encryptonize Store endpoint
 func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
-	mth, err := c.findMethod("app.Encryptonize", "Store")
+	mth, err := c.findMethod("enc.Encryptonize", "Store")
+	if err != nil {
+		return "", err
+	}
 
+	// sanitize in and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
 		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
@@ -130,22 +177,26 @@ func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(outType, outExp) {
-		return "", errors.New("Unexpected output type of Retrieve method")	
+		return "", errors.New("Unexpected type of the object message")	
 	}
 
+	// create the object to be stored
 	obj := dynamic.NewMessage(objType)
 	obj.SetFieldByName("plaintext", plaintext)
 	obj.SetFieldByName("associated_data", associatedData)
 
+	// create the argument
 	msg := dynamic.NewMessage(inType)
 	msg.SetFieldByName("object", obj)
 
+	// invoke the RPC
 	stub := grpcdynamic.NewStub(c.connection)
 	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
 	if err != nil {
 		return "", err
 	}
 
+	// deconstruct the result
 	res, err := dynamic.AsDynamicMessage(pres)
 	if err != nil {
 		return "", err
@@ -156,30 +207,14 @@ func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
 	return objID, nil
 }
 
-func sanitize(mt *desc.MessageDescriptor, ex map[string]descriptorpb.FieldDescriptorProto_Type) bool {
-	fields := mt.GetFields()
-
-	if len(fields) != len(ex) {
-		return false
-	}
-
-	for name, exType := range ex {
-		if fd := mt.FindFieldByName(name); fd == nil {
-			return false
-		} else {
-			if fd.GetType() != exType {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
 // Retrieve calls the Encryptonize Retrieve endpoint
 func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
-	mth, err := c.findMethod("app.Encryptonize", "Retrieve")
+	mth, err := c.findMethod("enc.Encryptonize", "Retrieve")
+	if err != nil {
+		return nil, nil, err
+	}
 
+	// sanitize input and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
@@ -201,18 +236,21 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 	}
 	if !sanitize(outType.FindFieldByName("object").GetMessageType(), objExp) {
-		return nil, nil, errors.New("Unexpected object type")
+		return nil, nil, errors.New("Unexpected type of the object message")
 	}
 
+	// create argument
 	msg := dynamic.NewMessage(inType)
 	msg.SetFieldByName("object_id", oid)
 
+	// invoke RPC
 	stub := grpcdynamic.NewStub(c.connection)
 	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// deconstruct result
 	res, err := dynamic.AsDynamicMessage(pres)
 	if err != nil {
 		return nil, nil, err
@@ -227,14 +265,18 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 
 // GetPermissions calls the Encryptonize GetPermissions endpoint
 func (c *Client) GetPermissions(oid string) ([]string, error) {
-	mth, err := c.findMethod("app.Encryptonize", "GetPermissions")
+	mth, err := c.findMethod("enc.Encryptonize", "GetPermissions")
+	if err != nil {
+		return nil, err
+	}
 
+	// sanitzie input and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(inType, inExp) {
-		return nil, errors.New("Unexpected input type of Retrieve method")
+		return nil, errors.New("Unexpected input type of GetPermissions method")
 	}
 
 	outType := mth.GetOutputType()
@@ -242,23 +284,27 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 		"user_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(outType, outExp) {
-		return nil, errors.New("Unexpected output type of Retrieve method")	
+		return nil, errors.New("Unexpected output type of GetPermissions method")	
 	}
 
+	// create argument
 	msg := dynamic.NewMessage(inType)
 	msg.SetFieldByName("object_id", oid)
 
+	// invoke RPC
 	stub := grpcdynamic.NewStub(c.connection)
 	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
 	if err != nil {
 		return nil, err
 	}
 
+	// deconstruct result
 	res, err := dynamic.AsDynamicMessage(pres)
 	if err != nil {
 		return nil, err
 	}
 
+	// collect repeated user_ids field
 	idsField := outType.FindFieldByName("user_ids")
 	numIds := res.FieldLength(idsField)
 	var ids = []string{}
@@ -269,32 +315,41 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 	return ids, nil
 }
 
+// UpdatePermissions either Adds a user to or Removes a user from the Access Object
+// AddPermission and RemovePermission share the same signature so they are only
+// distinguished by their name
 func (c *Client) UpdatePermission(oid, target string, add bool) error {
 	method := "RemovePermission"
 	if add {
 		method = "AddPermission"
 	}
-	mth, err := c.findMethod("app.Encryptonize", method)
+	mth, err := c.findMethod("enc.Encryptonize", method)
+	if err != nil {
+		return err
+	}
 
+	// sanitize input and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
 		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 		"target": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(inType, inExp) {
-		return errors.New("Unexpected input type of Retrieve method")
+		return errors.New("Unexpected input type of UpdatePermission method")
 	}
 
 	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
 	}
 	if !sanitize(mth.GetOutputType(), outExp) {
-		return errors.New("Unexpected output type of Retrieve method")	
+		return errors.New("Unexpected output type of UpdatePermission method")	
 	}
 
+	// create argument
 	msg := dynamic.NewMessage(inType)
 	msg.SetFieldByName("object_id", oid)
 	msg.SetFieldByName("target", target)
 
+	// invoke RPC and disregard nonexisting return values
 	stub := grpcdynamic.NewStub(c.connection)
 	_, err = stub.InvokeRpc(c.ctx, mth, msg)
 	if err != nil {
@@ -304,31 +359,20 @@ func (c *Client) UpdatePermission(oid, target string, add bool) error {
 	return nil
 }
 
-func (c *Client) findMethod(service, method string) (*desc.MethodDescriptor, error) {
-	srvDes, err := c.refClient.ResolveService(service)
-	if err != nil {
-		return nil, err
-	}
-
-	methDes := srvDes.FindMethodByName(method)
-	if methDes == nil {
-		errMsg := fmt.Sprintf("Service %s has no method named %s", service, method)
-		return nil, errors.New(errMsg)
-	}
-
-	return methDes, nil
-}
-
 // CreateUser calls the Encryptonize CreateUser endpoint
 func (c *Client) CreateUser(scopes []string) (string, string, error) {
 	mth, err := c.findMethod("authn.Encryptonize", "CreateUser")
+	if err != nil {
+		return "", "", err
+	}
 
+	// sanitize input and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type {
 		"user_scopes": descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 	}
 	if !sanitize(inType, inExp) {
-		return "", "", errors.New("Unexpected input type of Retrieve method")
+		return "", "", errors.New("Unexpected input type of CreateUser method")
 	}
 
 	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type {
@@ -336,11 +380,10 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 		"access_token": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(mth.GetOutputType(), outExp) {
-		return "", "", errors.New("Unexpected output type of Retrieve method")	
+		return "", "", errors.New("Unexpected output type of CreateUser method")	
 	}
 
-	msg := dynamic.NewMessage(inType)
-
+	// create a map to translate the scope names to the enum
 	scopeField := inType.FindFieldByName("user_scopes")
 	scopeMap := make(map[string]int32)
 	for _, e := range scopeField.GetEnumType().GetValues() {
@@ -348,16 +391,20 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 		log.Printf("%s: %v", e.GetName(), e.GetNumber())
 	}
 
+	// create argument
+	msg := dynamic.NewMessage(inType)
 	for _, scope := range scopes{
 		msg.AddRepeatedField(scopeField, scopeMap[scope])
 	}
 
+	// invoke RPC
 	stub := grpcdynamic.NewStub(c.connection)
 	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
 	if err != nil {
 		return "", "", err
 	}
 
+	// deconstruct return value
 	res, err := dynamic.AsDynamicMessage(pres)
 	if err != nil {
 		return "", "", err

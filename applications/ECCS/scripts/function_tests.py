@@ -105,10 +105,10 @@ def create_object(token, data):
 
 if __name__ == "__main__":
 	at = init()
-	_, at1 = create_user(at, "-rcip")
-	print("[+] created first user")
-	uid2, _ = create_user(at)
-	print("[+] created second user")
+	uid1, at1 = create_user(at, "-rcip")
+	print(f"[+] created first user:  UID {uid1}, AT {at1}")
+	uid2, at2 = create_user(at)
+	print(f"[+] created second user: UID {uid2}, AT {at2}")
 	oid = create_object(at1, "no one has the intention to store bytes here.")
 	print("[+] object created")
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
