@@ -14,7 +14,7 @@
 
 // +build !storage_mocked
 
-package buildtag
+package buildtags
 
 import (
 	"context"
