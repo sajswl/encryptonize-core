@@ -16,7 +16,7 @@ package main
 import (
 	"context"
 
-	buildtag "encryption-service/buildtags"
+	"encryption-service/buildtags"
 	"encryption-service/config"
 	authnimpl "encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
@@ -37,7 +37,7 @@ func main() {
 	log.Info(ctx, "Config parsed")
 
 	// Setup authentication storage DB Pool connection
-	authStore, err := buildtag.SetupAuthStore(context.Background(), config.AuthStorageURL)
+	authStore, err := buildtags.SetupAuthStore(context.Background(), config.AuthStorageURL)
 	if err != nil {
 		log.Fatal(ctx, "Authstorage connect failed", err)
 	}
@@ -54,7 +54,7 @@ func main() {
 	}
 	userAuthenticator := &authnimpl.UserAuthenticator{Authenticator: tokenMAC}
 
-	objectStore, err := buildtag.SetupObjectStore(
+	objectStore, err := buildtags.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
 	)
 	if err != nil {
