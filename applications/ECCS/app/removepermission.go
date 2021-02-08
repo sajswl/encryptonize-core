@@ -29,7 +29,7 @@ func RemovePermission(userAT, oid, target string) error {
 	}
 
 	// Call Encryptonize and removes permission from object
-	_, err = client.RemovePermission(oid, target)
+	err = client.UpdatePermission(oid, target, UpdateKindRemove)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("RemovePermission failed"), err)
 	}

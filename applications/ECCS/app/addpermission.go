@@ -29,7 +29,7 @@ func AddPermission(userAT, oid, target string) error {
 	}
 
 	// Call Encryptonize and add permission to object
-	_, err = client.AddPermission(oid, target)
+	err = client.UpdatePermission(oid, target, UpdateKindAdd)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("AddPermission failed"), err)
 	}

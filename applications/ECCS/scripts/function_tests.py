@@ -61,13 +61,13 @@ def create_user(token, flags=None):
 
 	uid = None
 	at = None
-	for match in re.finditer(r"user_id:\"([^\"]+)\"", res.stderr):
+	for match in re.finditer(r"UID: \"([^\"]+)\"", res.stderr):
 		if uid is not None:
 			print(f"multiple matches for the UID, aborting")
 			sys.exit(1)
 		uid = match.group(1)
 
-	for match in re.finditer(r"access_token:\"([^\"]+)", res.stderr):
+	for match in re.finditer(r"AT: \"([^\"]+)", res.stderr):
 		if at is not None:
 			print(f"multiple matches for the AT, aborting")
 			print(at)
@@ -105,12 +105,12 @@ def create_object(token, data):
 
 if __name__ == "__main__":
 	at = init()
-	_, at1 = create_user(at, "-rcip")
-	print("[+] created first user")
-	uid2, _ = create_user(at)
-	print("[+] created second user")
+	uid1, at1 = create_user(at, "-rcip")
+	print(f"[+] created first user:  UID {uid1}, AT {at1}")
+	uid2, at2 = create_user(at)
+	print(f"[+] created second user: UID {uid2}, AT {at2}")
 	oid = create_object(at1, "no one has the intention to store bytes here.")
-	print("[+] object created")
+	print(f"[+] object created:      OID {oid}")
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)

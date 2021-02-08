@@ -18,28 +18,27 @@ import (
 	"log"
 
 	"eccs/utils"
-	"eccs/authn"
 )
 
 // CreateUser creates a new client and calls CreateUser through the client
 func CreateUser(userAT string, read, create, index, objectPermissions, userManagement bool) error {
 	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
-	var scopes = []authn.UserScope{}
+	var scopes = []string{}
 
 	if read {
-		scopes = append(scopes, authn.UserScope_READ)
+		scopes = append(scopes, "READ")
 	}
 	if create {
-		scopes = append(scopes, authn.UserScope_CREATE)
+		scopes = append(scopes, "CREATE")
 	}
 	if index {
-		scopes = append(scopes, authn.UserScope_INDEX)
+		scopes = append(scopes, "INDEX")
 	}
 	if objectPermissions {
-		scopes = append(scopes, authn.UserScope_OBJECTPERMISSIONS)
+		scopes = append(scopes, "OBJECTPERMISSIONS")
 	}
 	if userManagement {
-		scopes = append(scopes, authn.UserScope_USERMANAGEMENT)
+		scopes = append(scopes, "USERMANAGEMENT")
 	}
 
 	// Create client
@@ -49,13 +48,13 @@ func CreateUser(userAT string, read, create, index, objectPermissions, userManag
 	}
 
 	// Call Encryptonize and create a user
-	out, err := client.CreateUser(scopes)
+	uid, at, err := client.CreateUser(scopes)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
 
 	// Print create user credentials back to user
-	log.Printf("%vCredentials: %v", utils.Pass("Successfully created user!\n"), out)
+	log.Printf("%vUID: \"%s\" AT: \"%s\"", utils.Pass("Successfully created user!\n"), uid, at)
 
 	return nil
 }
