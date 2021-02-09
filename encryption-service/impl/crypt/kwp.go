@@ -45,7 +45,6 @@ import (
 	"math"
 )
 
-//TODO: fix to 32?
 const (
 	// MinWrapSize is the smallest key byte length that may be wrapped.
 	MinWrapSize = 16
