@@ -23,7 +23,6 @@
 # - ECCS_TEST_ADMIN_AT: Admin user access token. As default it uses the following token:
 #                         UUID   00000000-0000-4000-8000-000000000002
 #                         scopes [UserManagement]
-#                         nonce  00000000000000000000000000000002
 #                         TEK    0000000000000000000000000000000000000000000000000000000000000002
 #                         which is the same one as in the authn unit test
 # - ECCS_ENDPOINT:      Address of the server (e.g.: 127.0.0.1:9000)
