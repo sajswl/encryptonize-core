@@ -72,7 +72,7 @@ func TestSerializeParse(t *testing.T) {
 			t.Fatalf("ParseAccessToken errored: %v", err)
 		}
 
-		if !reflect.DeepEqual(&accessToken, parsedAccessToken) {
+		if !reflect.DeepEqual(accessToken, parsedAccessToken) {
 			t.Fatalf("accessToken doesn't match: %v != %v", accessToken, parsedAccessToken)
 		}
 	}

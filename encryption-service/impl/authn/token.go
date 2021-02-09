@@ -28,6 +28,7 @@ import (
 	"encryption-service/scopes"
 )
 
+// AccessToken is the internal representation of an access token
 type AccessToken struct {
 	userID uuid.UUID
 	// this field is not exported to prevent other parts
@@ -36,9 +37,10 @@ type AccessToken struct {
 	expiryTime int64
 }
 
-func NewAccessToken(userID uuid.UUID, userScopes scopes.ScopeType, expiryDuration time.Duration) AccessToken {
-	expiryTime := time.Now().Add(expiryDuration).Unix()
-	return AccessToken{
+// NewAccessToken instances a new access token with user ID, user scopes and validity period
+func NewAccessToken(userID uuid.UUID, userScopes scopes.ScopeType, validityPeriod time.Duration) *AccessToken {
+	expiryTime := time.Now().Add(validityPeriod).Unix()
+	return &AccessToken{
 		userID:     userID,
 		userScopes: userScopes,
 		expiryTime: expiryTime,
@@ -57,6 +59,7 @@ func (at *AccessToken) HasScopes(tar scopes.ScopeType) bool {
 	return at.UserScopes().HasScopes(tar)
 }
 
+// SerializeAccessToken encrypts and serializes an access token with a CryptorInterface
 func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface) (string, error) {
 	//TODO not sure about these checks
 	if at.UserScopes().IsValid() != nil {
@@ -108,6 +111,8 @@ func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface)
 	return base64.RawURLEncoding.EncodeToString(wrappedKey) + "." + base64.RawURLEncoding.EncodeToString(ciphertext), nil
 }
 
+// ParseAccessToken decrypts and unserializes an access token from a string.
+// Addtionally, it checks if the token hasn't expired.
 func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*AccessToken, error) {
 	tokenParts := strings.Split(token, ".")
 	if len(tokenParts) != 2 {
