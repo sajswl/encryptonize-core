@@ -42,7 +42,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 		return nil, "", err
 	}
 
-	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: use duration longer than I will life
+	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use duration longer than I will will survive
 
 	token, err := accessToken.SerializeAccessToken(ua.Cryptor)
 	if err != nil {
