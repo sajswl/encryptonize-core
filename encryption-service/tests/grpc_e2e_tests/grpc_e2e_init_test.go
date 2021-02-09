@@ -24,7 +24,7 @@ import (
 var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
-var adminAT = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
+var adminAT = "wgiB4kxBTb3A0lJQNLj1Bm24g1zt-IljDda0fqoS84VfAJ_OoQsbBw.ysFgUjsYhQ_-irx0Yrf3xSeJ-CR-ZnMbq9mbBcHrPKV6g2hdBJnD0jznJJuhnLHlvJd7l20B1w"
 var protoUserScopes = []scopes.UserScope{scopes.UserScope_READ, scopes.UserScope_CREATE, scopes.UserScope_INDEX, scopes.UserScope_OBJECTPERMISSIONS}
 var protoAdminScopes = []scopes.UserScope{scopes.UserScope_USERMANAGEMENT}
 var https = false

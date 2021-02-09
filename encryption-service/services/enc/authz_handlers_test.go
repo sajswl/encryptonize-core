@@ -22,11 +22,9 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
-	"encryption-service/impl/authn"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
-	"encryption-service/scopes"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -39,18 +37,6 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	if err == nil {
 		t.Fatalf("Test expected to fail: %v", message)
 	}
-}
-
-func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes scopes.ScopeType) (string, error) {
-	accessToken := authn.NewAccessToken(userID, scopes)
-
-	token, err := accessToken.SerializeAccessToken(m)
-	if err != nil {
-		return "", err
-	}
-
-	token = "bearer " + token
-	return token, nil
 }
 
 func TestAuthorizeWrapper(t *testing.T) {

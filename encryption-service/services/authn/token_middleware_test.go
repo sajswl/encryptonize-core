@@ -18,6 +18,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofrs/uuid"
 	codes "google.golang.org/grpc/codes"
@@ -27,6 +28,7 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
+	"encryption-service/interfaces"
 	"encryption-service/scopes"
 )
 
@@ -42,10 +44,10 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
-func CreateUserForTests(m *crypt.MessageAuthenticator, userID uuid.UUID, scopes scopes.ScopeType) (string, error) {
-	accessToken := authn.NewAccessToken(userID, scopes)
+func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes scopes.ScopeType) (string, error) {
+	accessToken := authn.NewAccessToken(userID, scopes, time.Minute*10)
 
-	token, err := accessToken.SerializeAccessToken(m)
+	token, err := accessToken.SerializeAccessToken(c)
 	if err != nil {
 		return "", err
 	}
@@ -61,15 +63,15 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
+	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	token, err := CreateUserForTests(m, userID, userScope)
+	token, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken errored", err, t)
 
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Authenticator: m},
+		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -83,16 +85,16 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
+	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("NewMessageAuthenticator errored %v", err, t)
 
-	goodToken, err := CreateUserForTests(m, userID, userScope)
+	goodToken, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
 
 	goodTokenParts := strings.Split(goodToken, ".")
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Authenticator: m},
+		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
 	}
 
 	// for each position of the split token
@@ -123,19 +125,19 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
+	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("NewMessageAuthenticator errored %v", err, t)
 
-	tokenFirst, err := CreateUserForTests(m, userIDFirst, userScope)
+	tokenFirst, err := CreateUserForTests(c, userIDFirst, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
-	tokenSecond, err := CreateUserForTests(m, userIDSecond, userScope)
+	tokenSecond, err := CreateUserForTests(c, userIDSecond, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
 
 	firstTokenParts := strings.Split(tokenFirst, ".")
 	secondTokenParts := strings.Split(tokenSecond, ".")
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Authenticator: m},
+		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
 	}
 
 	// for each position of the split token
@@ -166,16 +168,16 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 
-	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
+	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
-	token, err := CreateUserForTests(m, userID, userScope)
+	token, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken errored", err, t)
 
 	token = "notBearer" + token[6:]
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Authenticator: m},
+		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -208,11 +210,11 @@ func TestCheckAccessTokenInvalidATformat(t *testing.T) {
 // all tests should fail
 func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	ASK, _ := crypt.Random(32)
-	m, err := crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
+	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("Error creating MessageAuthenticator", err, t)
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Authenticator: m},
+		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
 	}
 
 	for endpoint, rscope := range methodScopeMap {
@@ -223,7 +225,7 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 		}
 		tscopes := (scopes.ScopeEnd - 1) &^ rscope
 		tuid := uuid.Must(uuid.NewV4())
-		token, err := CreateUserForTests(m, tuid, tscopes)
+		token, err := CreateUserForTests(c, tuid, tscopes)
 		failOnError("Error Creating User", err, t)
 
 		var md = metadata.Pairs("authorization", token)

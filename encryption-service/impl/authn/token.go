@@ -17,11 +17,13 @@ package authn
 import (
 	"encoding/base64"
 	"errors"
+	"strings"
+	"time"
+
 	"github.com/gofrs/uuid"
 
 	"google.golang.org/protobuf/proto"
 
-	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 	"encryption-service/scopes"
 )
@@ -31,12 +33,15 @@ type AccessToken struct {
 	// this field is not exported to prevent other parts
 	// of the encryption service to depend on its implementation
 	userScopes scopes.ScopeType
+	expiryTime int64
 }
 
-func NewAccessToken(userID uuid.UUID, userScopes scopes.ScopeType) AccessToken {
+func NewAccessToken(userID uuid.UUID, userScopes scopes.ScopeType, expiryDuration time.Duration) AccessToken {
+	expiryTime := time.Now().Add(expiryDuration).Unix()
 	return AccessToken{
 		userID:     userID,
 		userScopes: userScopes,
+		expiryTime: expiryTime,
 	}
 }
 
@@ -52,22 +57,8 @@ func (at *AccessToken) HasScopes(tar scopes.ScopeType) bool {
 	return at.UserScopes().HasScopes(tar)
 }
 
-// serializes an access token together with a random value. The random
-// value ensures unique user facing token even if the actual access token
-// would be equal. It also checks the validity of the access token as
-// this is last function every token has to go through before the token
-// are presented to an API. If this method only signs valid token we
-// can then assume that any signed token is valid.
-// The returned token has three parts. Each part is individually base64url encoded
-// the first part (data) is a serialized protobuf message containing
-// the user ID and a set of scopes. The structure of the assembled token is
-// <data>.<nonce>.HMAC(nonce||data)
-func (at *AccessToken) SerializeAccessToken(authenticator interfaces.MessageAuthenticatorInterface) (string, error) {
-	nonce, err := crypt.Random(16)
-	if err != nil {
-		return "", err
-	}
-
+func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface) (string, error) {
+	//TODO not sure about these checks
 	if at.UserScopes().IsValid() != nil {
 		return "", errors.New("Invalid scopes")
 	}
@@ -101,6 +92,7 @@ func (at *AccessToken) SerializeAccessToken(authenticator interfaces.MessageAuth
 	accessTokenClient := &scopes.AccessTokenClient{
 		UserId:     at.UserID().Bytes(),
 		UserScopes: userScope,
+		ExpiryTime: at.expiryTime,
 	}
 
 	data, err := proto.Marshal(accessTokenClient)
@@ -108,15 +100,72 @@ func (at *AccessToken) SerializeAccessToken(authenticator interfaces.MessageAuth
 		return "", err
 	}
 
-	msg := append(nonce, data...)
-	tag, err := authenticator.Tag(msg)
+	wrappedKey, ciphertext, err := cryptor.Encrypt(data, nil)
 	if err != nil {
 		return "", err
 	}
 
-	nonceStr := base64.RawURLEncoding.EncodeToString(nonce)
-	dataStr := base64.RawURLEncoding.EncodeToString(data)
-	tagStr := base64.RawURLEncoding.EncodeToString(tag)
+	return base64.RawURLEncoding.EncodeToString(wrappedKey) + "." + base64.RawURLEncoding.EncodeToString(ciphertext), nil
+}
 
-	return dataStr + "." + nonceStr + "." + tagStr, nil
+func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*AccessToken, error) {
+	tokenParts := strings.Split(token, ".")
+	if len(tokenParts) != 2 {
+		return nil, errors.New("invalid token format")
+	}
+
+	wrappedKey, err := base64.RawURLEncoding.DecodeString(tokenParts[0])
+	if err != nil {
+		return nil, errors.New("invalid wrappedKey portion of token")
+	}
+
+	ciphertext, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	if err != nil {
+		return nil, errors.New("invalid ciphertext portion of token")
+	}
+
+	data, err := cryptor.Decrypt(wrappedKey, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	accessTokenClient := &scopes.AccessTokenClient{}
+	err = proto.Unmarshal(data, accessTokenClient)
+	if err != nil {
+		return nil, err
+	}
+
+	uuid, err := uuid.FromBytes(accessTokenClient.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	var userScopes scopes.ScopeType
+	for _, scope := range accessTokenClient.UserScopes {
+		switch scope {
+		case scopes.UserScope_READ:
+			userScopes |= scopes.ScopeRead
+		case scopes.UserScope_CREATE:
+			userScopes |= scopes.ScopeCreate
+		case scopes.UserScope_INDEX:
+			userScopes |= scopes.ScopeIndex
+		case scopes.UserScope_OBJECTPERMISSIONS:
+			userScopes |= scopes.ScopeObjectPermissions
+		case scopes.UserScope_USERMANAGEMENT:
+			userScopes |= scopes.ScopeUserManagement
+		default:
+			return nil, errors.New("Invalid Scopes in Token")
+		}
+	}
+
+	expiryTime := time.Unix(accessTokenClient.ExpiryTime, 0)
+	if time.Now().After(expiryTime) {
+		return nil, errors.New("token expired")
+	}
+
+	return &AccessToken{
+		userID:     uuid,
+		userScopes: userScopes,
+		expiryTime: accessTokenClient.ExpiryTime,
+	}, nil
 }

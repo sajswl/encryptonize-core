@@ -14,10 +14,10 @@
 package authn
 
 import (
-	"encoding/base64"
 	"encoding/hex"
-	"strings"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gofrs/uuid"
 
@@ -26,131 +26,125 @@ import (
 )
 
 var (
-	ASK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
+	TEK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000002")
 	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
-	nonce, _  = hex.DecodeString("00000000000000000000000000000002")
 	userScope = scopes.ScopeUserManagement
 	AT        = &AccessToken{
 		userID:     userID,
 		userScopes: userScope,
+		expiryTime: time.Now().Add(time.Hour * 24 * 365 * 150).Unix(),
 	}
 
-	messageAuthenticator, _ = crypt.NewMessageAuthenticator(ASK, crypt.TokenDomain)
-
-	expectedSerialized = "ChAAAAAAAABAAIAAAAAAAAACEgEE"
-	expectedMessage, _ = base64.RawURLEncoding.DecodeString(expectedSerialized)
-	expectedTag, _     = messageAuthenticator.Tag(append(nonce, expectedMessage...))
-	expectedToken      = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg." + base64.RawURLEncoding.EncodeToString(expectedTag)
+	tokenCryptor, _ = crypt.NewAESCryptor(TEK)
 )
 
-func failOnError(message string, err error, t *testing.T) {
-	if err != nil {
-		t.Fatalf(message+": %v", err)
-	}
-}
-
-func failOnSuccess(message string, err error, t *testing.T) {
-	if err == nil {
-		t.Fatalf("Test expected to fail: %v", message)
-	}
-}
-
 func TestSerialize(t *testing.T) {
-	token, err := AT.SerializeAccessToken(messageAuthenticator)
+	token, err := AT.SerializeAccessToken(tokenCryptor)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)
 	}
 
-	serialized := strings.Split(token, ".")[0]
-
-	if serialized != expectedSerialized {
-		t.Errorf("Message doesn't match:\n%v\n%v", expectedToken, token)
-	}
-
-	t.Logf("dev admin token: %v", expectedToken)
+	t.Logf("dev admin token: %v", token)
 }
 
-func TestSerializeParseIdentity(t *testing.T) {
-	token, err := AT.SerializeAccessToken(messageAuthenticator)
-	if err != nil {
-		t.Fatalf("SerializeAccessToken errored: %v", err)
-	}
-
-	ua := UserAuthenticator{
-		Authenticator: messageAuthenticator,
-	}
-	AT2, err := ua.ParseAccessToken(token)
-	failOnError("Parsing serialized access token failed", err, t)
-	if AT2.UserID() != AT.UserID() || AT2.UserScopes() != AT.UserScopes() {
-		t.Errorf("Serialize parse identity violated")
-	}
-}
-
-func TestSerializeBaduserScope(t *testing.T) {
-	BadScopeAT := &AccessToken{
-		userID:     userID,
-		userScopes: scopes.ScopeType(0xff),
-	}
-
-	token, err := BadScopeAT.SerializeAccessToken(messageAuthenticator)
-	if (err == nil && err.Error() != "Invalid scopes") || token != "" {
-		t.Errorf("formatMessage should have errored")
-	}
-}
-
-func TestSerializeBadUserID(t *testing.T) {
-	BadUUIDAT := &AccessToken{
-		userID:     uuid.Nil,
-		userScopes: userScope,
-	}
-
-	token, err := BadUUIDAT.SerializeAccessToken(messageAuthenticator)
-	if (err == nil && err.Error() != "Invalid userID UUID") || token != "" {
-		t.Errorf("formatMessage should have errored")
-	}
-}
-
-func TestParseAccessToken(t *testing.T) {
-	ua := UserAuthenticator{
-		Authenticator: messageAuthenticator,
-	}
-	AT, err := ua.ParseAccessToken(expectedToken)
-	failOnError("ParseAccessToken did fail", err, t)
-
-	if AT.UserID() != userID || AT.UserScopes() != userScope {
-		t.Errorf("Parsed Access Token contained different data!")
-	}
-}
-
-// the checks for the modified parts of the token is currently handled
-// in auth_handlers_test (TestAuthMiddlewareSwappedTokenParts)
-
-func TestVerifyModifiedASK(t *testing.T) {
-	ma, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.TokenDomain)
-	failOnError("NewMessageAuthenticator errored", err, t)
-
-	ua := UserAuthenticator{
-		Authenticator: ma,
-	}
-	_, err = ua.ParseAccessToken(expectedToken)
-	failOnSuccess("ParseAccessToken should have failed with modified ASK", err, t)
-	if err.Error() != "invalid token" {
-		t.Errorf("ParseAccessToken failed with different error. Expected \"invalid token\" but go %v", err)
-	}
-}
-
-func TestSerializeAccessTokenAnyScopes(t *testing.T) {
-	// try to create a use for every valid combination of scopes
-	// even the empty set
-	for i := uint64(0); i < uint64(scopes.ScopeEnd); i++ {
-		uScope := scopes.ScopeType(i)
-		tAT := &AccessToken{
-			userID:     userID,
-			userScopes: uScope,
-		}
-		_, err := tAT.SerializeAccessToken(messageAuthenticator)
+func TestSerializeParse(t *testing.T) {
+	// iterate over all possible scope combinations
+	for s := scopes.ScopeType(0); s < scopes.ScopeEnd; s++ {
+		userID := uuid.Must(uuid.NewV4())
+		kek, err := crypt.Random(32)
 		if err != nil {
-			t.Fatalf("Failed to create/update user with scopes %v: %v", uScope, err)
+			t.Fatalf("Random errored: %v", err)
 		}
+
+		cryptor, err := crypt.NewAESCryptor(kek)
+		if err != nil {
+			t.Fatalf("NewAESCryptor errored: %v", err)
+		}
+
+		accessToken := NewAccessToken(userID, s, time.Second*30)
+		token, err := accessToken.SerializeAccessToken(cryptor)
+		if err != nil {
+			t.Fatalf("NewSerializeToken errored: %v", err)
+		}
+
+		parsedAccessToken, err := ParseAccessToken(cryptor, token)
+		if err != nil {
+			t.Fatalf("ParseAccessToken errored: %v", err)
+		}
+
+		if !reflect.DeepEqual(&accessToken, parsedAccessToken) {
+			t.Fatalf("accessToken doesn't match: %v != %v", accessToken, parsedAccessToken)
+		}
+	}
+}
+
+func TestParseExpiry(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	kek, err := crypt.Random(32)
+	if err != nil {
+		t.Fatalf("Random errored: %v", err)
+	}
+
+	cryptor, err := crypt.NewAESCryptor(kek)
+	if err != nil {
+		t.Fatalf("NewAESCryptor errored: %v", err)
+	}
+
+	accessToken := NewAccessToken(userID, scopes.ScopeCreate, time.Second)
+	token, err := accessToken.SerializeAccessToken(cryptor)
+	if err != nil {
+		t.Fatalf("SerializeAccessToken errored: %v", err)
+	}
+	_, err = ParseAccessToken(cryptor, token)
+	if err != nil {
+		t.Fatalf("ParseAccessToken errored: %v", err)
+	}
+
+	time.Sleep(time.Second)
+
+	_, err = ParseAccessToken(cryptor, token)
+	if err == nil || err.Error() != "token expired" {
+		t.Fatalf("ParseAccessToken should have errored: %v", err)
+	}
+}
+
+func TestParseModified(t *testing.T) {
+	userID := uuid.Must(uuid.NewV4())
+	kek, err := crypt.Random(32)
+	if err != nil {
+		t.Fatalf("Random errored: %v", err)
+	}
+
+	cryptor, err := crypt.NewAESCryptor(kek)
+	if err != nil {
+		t.Fatalf("NewAESCryptor errored: %v", err)
+	}
+
+	accessToken := NewAccessToken(userID, scopes.ScopeCreate, time.Second*30)
+	token, err := accessToken.SerializeAccessToken(cryptor)
+	if err != nil {
+		t.Fatalf("SerializeAccessToken errored: %v", err)
+	}
+
+	tokenBytes := []byte(token)
+	for i := 0; i < len(tokenBytes); i++ {
+		tokenBytes[i] ^= 0xff
+
+		_, err = ParseAccessToken(cryptor, string(tokenBytes))
+		if err == nil {
+			t.Fatalf("ParseAccessToken should have errored")
+		}
+
+		tokenBytes[i] ^= 0xff
+	}
+
+	kek[0] ^= 0xff
+	cryptor, err = crypt.NewAESCryptor(kek)
+	if err != nil {
+		t.Fatalf("NewAESCryptor errored: %v", err)
+	}
+	_, err = ParseAccessToken(cryptor, string(tokenBytes))
+	if err == nil {
+		t.Fatalf("ParseAccessToken should have errored")
 	}
 }
