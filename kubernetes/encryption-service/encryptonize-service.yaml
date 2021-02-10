@@ -98,6 +98,11 @@ spec:
               secretKeyRef:
                 name: encryptonize-secrets
                 key: ASK
+          - name: TEK
+            valueFrom:
+              secretKeyRef:
+                name: encryptonize-secrets
+                key: TEK
       volumes:
         - name: encryptonize-secrets
           secret:

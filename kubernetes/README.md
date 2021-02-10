@@ -317,6 +317,7 @@ Create two random 32 byte keys:
 ```bash
 hexdump -n 32 -e '1/4 "%08X"' /dev/random > ./encryptonize-secrets/ASK
 hexdump -n 32 -e '1/4 "%08X"' /dev/random > ./encryptonize-secrets/KEK
+hexdump -n 32 -e '1/4 "%08X"' /dev/random > ./encryptonize-secrets/TEK
 ```
 
 ### Set hostnames
@@ -407,7 +408,8 @@ kubectl -n encryptonize create secret generic encryptonize-secrets \
   --from-file=./encryptonize-secrets/object_storage_key \
   --from-file=./encryptonize-secrets/object_storage.crt \
   --from-file=./encryptonize-secrets/KEK \
-  --from-file=./encryptonize-secrets/ASK
+  --from-file=./encryptonize-secrets/ASK \
+  --from-file=./encryptonize-secrets/TEK
 ```
 
 ### Deploy the service
