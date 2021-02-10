@@ -14,6 +14,7 @@ import (
 type Config struct {
 	KEK               []byte
 	ASK               []byte
+	TEK               []byte
 	AuthStorageURL    string
 	ObjectStorageURL  string
 	ObjectStorageID   string
@@ -52,6 +53,7 @@ func ParseConfig() (*Config, error) {
 
 	var KEKHex string
 	var ASKHex string
+	var TEKHex string
 	var ObjectStorageCertFromEnv string
 	a := []struct {
 		EnvName      string
@@ -60,6 +62,7 @@ func ParseConfig() (*Config, error) {
 	}{
 		{"KEK", &KEKHex, false},
 		{"ASK", &ASKHex, false},
+		{"TEK", &TEKHex, false},
 		{"AUTH_STORAGE_URL", &config.AuthStorageURL, false},
 		{"OBJECT_STORAGE_URL", &config.ObjectStorageURL, false},
 		{"OBJECT_STORAGE_ID", &config.ObjectStorageID, false},
@@ -92,6 +95,15 @@ func ParseConfig() (*Config, error) {
 		return nil, errors.New("ASK must be 32 bytes (64 hex digits) long")
 	}
 	config.ASK = ASK
+
+	TEK, err := hex.DecodeString(TEKHex)
+	if err != nil {
+		return nil, errors.New("TEK env couldn't be parsed (decode hex)")
+	}
+	if len(TEK) != 32 {
+		return nil, errors.New("TEK must be 32 bytes (64 hex digits) long")
+	}
+	config.TEK = TEK
 
 	// Read object storage ID, key and certificate from file if env var not specified
 	if config.ObjectStorageID == "" {
@@ -135,6 +147,9 @@ func CheckInsecure(config *Config) {
 		}
 		if hex.EncodeToString(config.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
 			log.Fatal(ctx, "Test ASK used outside of INSECURE testing mode", errors.New(""))
+		}
+		if hex.EncodeToString(config.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
+			log.Fatal(ctx, "Test TEK used outside of INSECURE testing mode", errors.New(""))
 		}
 	}
 }

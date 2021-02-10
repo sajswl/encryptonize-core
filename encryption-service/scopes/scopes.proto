@@ -27,4 +27,5 @@ enum UserScope{
 message AccessTokenClient{
   bytes user_id = 1;
   repeated scopes.UserScope user_scopes = 2;
+  int64 expiry_time = 3;
 }

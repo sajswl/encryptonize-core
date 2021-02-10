@@ -48,11 +48,11 @@ func main() {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
 
-	tokenMAC, err := crypt.NewMessageAuthenticator(config.ASK, crypt.TokenDomain)
+	tokenCryptor, err := crypt.NewAESCryptor(config.TEK)
 	if err != nil {
-		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
+		log.Fatal(ctx, "NewAESCryptor (token) failed", err)
 	}
-	userAuthenticator := &authnimpl.UserAuthenticator{Authenticator: tokenMAC}
+	userAuthenticator := &authnimpl.UserAuthenticator{Cryptor: tokenCryptor}
 
 	objectStore, err := buildtags.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
@@ -63,7 +63,7 @@ func main() {
 
 	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
 	if err != nil {
-		log.Fatal(ctx, "NewAESCryptor failed", err)
+		log.Fatal(ctx, "NewAESCryptor (data) failed", err)
 	}
 
 	encService := &enc.Enc{

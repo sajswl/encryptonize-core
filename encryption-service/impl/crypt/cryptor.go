@@ -13,6 +13,8 @@
 // limitations under the License.
 package crypt
 
+import "errors"
+
 type AESCryptor struct {
 	keyWrap *KWP
 	crypter CrypterInterface // TODO: remove this by pulling it into the implementation?
@@ -53,6 +55,10 @@ func (c *AESCryptor) Decrypt(wrappedKey, ciphertext, aad []byte) ([]byte, error)
 	key, err := c.keyWrap.Unwrap(wrappedKey)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(key) != 32 {
+		return nil, errors.New("invalid key length")
 	}
 
 	data, err := c.crypter.Decrypt(ciphertext, aad, key)

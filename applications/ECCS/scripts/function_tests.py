@@ -23,8 +23,7 @@
 # - ECCS_TEST_ADMIN_AT: Admin user access token. As default it uses the following token:
 #                         UUID   00000000-0000-4000-8000-000000000002
 #                         scopes [UserManagement]
-#                         nonce  00000000000000000000000000000002
-#                         ASK    0000000000000000000000000000000000000000000000000000000000000001
+#                         TEK    0000000000000000000000000000000000000000000000000000000000000002
 #                         which is the same one as in the authn unit test
 # - ECCS_ENDPOINT:      Address of the server (e.g.: 127.0.0.1:9000)
 # - ECCS_CRT:           Certification used by the Encryption server
@@ -45,7 +44,7 @@ def init():
 		os.environ[ENDPOINT_ENV] = "127.0.0.1:9000"
 	
 	ADMIN_TOKEN_ENV = "ECCS_TEST_ADMIN_AT"
-	admin_token = "ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.OWQcxNqqdofSXdBMaeiXaM4BV1bgusy-umfJGhOQI5g"
+	admin_token = "wgiB4kxBTb3A0lJQNLj1Bm24g1zt-IljDda0fqoS84VfAJ_OoQsbBw.ysFgUjsYhQ_-irx0Yrf3xSeJ-CR-ZnMbq9mbBcHrPKV6g2hdBJnD0jznJJuhnLHlvJd7l20B1w"
 	if ADMIN_TOKEN_ENV in os.environ:
 		admin_token = os.environ[ADMIN_TOKEN_ENV]
 
