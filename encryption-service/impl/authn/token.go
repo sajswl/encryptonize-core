@@ -37,7 +37,7 @@ type AccessToken struct {
 	expiryTime int64
 }
 
-// NewAccessToken instances a new access token with user ID, user scopes and validity period
+// NewAccessToken instantiates a new access token with user ID, user scopes and validity period
 func NewAccessToken(userID uuid.UUID, userScopes scopes.ScopeType, validityPeriod time.Duration) *AccessToken {
 	expiryTime := time.Now().Add(validityPeriod).Unix()
 	return &AccessToken{
@@ -60,6 +60,7 @@ func (at *AccessToken) HasScopes(tar scopes.ScopeType) bool {
 }
 
 // SerializeAccessToken encrypts and serializes an access token with a CryptorInterface
+// Format (only used internally): base64_url(wrapped_key).base64_url(proto_marshal(AccessTokenClient))
 func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface) (string, error) {
 	//TODO not sure about these checks
 	if at.UserScopes().IsValid() != nil {
