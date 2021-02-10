@@ -50,7 +50,7 @@ func main() {
 
 	tokenCryptor, err := crypt.NewAESCryptor(config.TEK)
 	if err != nil {
-		log.Fatal(ctx, "NewAESCryptor failed", err)
+		log.Fatal(ctx, "NewAESCryptor (token) failed", err)
 	}
 	userAuthenticator := &authnimpl.UserAuthenticator{Cryptor: tokenCryptor}
 
@@ -63,7 +63,7 @@ func main() {
 
 	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
 	if err != nil {
-		log.Fatal(ctx, "NewAESCryptor failed", err)
+		log.Fatal(ctx, "NewAESCryptor (data) failed", err)
 	}
 
 	encService := &enc.Enc{
