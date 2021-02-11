@@ -315,9 +315,9 @@ kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.k
 
 Create two random 32 byte keys:
 ```bash
-hexdump -n 32 -e '1/4 "%08X"' /dev/random > ./encryptonize-secrets/ASK
-hexdump -n 32 -e '1/4 "%08X"' /dev/random > ./encryptonize-secrets/KEK
-hexdump -n 32 -e '1/4 "%08X"' /dev/random > ./encryptonize-secrets/TEK
+hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/ASK
+hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/KEK
+hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/TEK
 ```
 
 ### Set hostnames
