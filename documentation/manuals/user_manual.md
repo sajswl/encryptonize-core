@@ -76,24 +76,19 @@ All IDs are of the format version 4 UUID ([RFC 4122](https://tools.ietf.org/html
 ## Managing Users
 ### Bootstraping admin user
 To bootstrap the Encryptonize service with an admin user, once the service has been started, connect
-to it and execute `./es-service create-admin`. Note that admin users created this way are only valid
+to it and execute `./encryption-service create-admin`. Note that admin users created this way are only valid
 for other Encryption Services that use the same key material.
 
 #### Docker example
 If using docker run:
 ```
-docker exec <CONTAINER ID> ./es create-admin
+docker exec <CONTAINER ID> ./encryption-service create-admin
 ```
 
 #### Kubernetes example
 If using kubernetes with kubectl run:
 ```
-kubectl exec <encryptonize pod name> -n encryptonize -- /es create-admin
-```
-It doesn't matter which pod is used, as long as it's running the Encryptionize service.
-You can get a list of pods running Encryptonize by running:
-```
-kubectl get pods -n encryptonize
+kubectl -n encryptonize exec deployment/encryptonize-deployment -- /encryption-service create-admin
 ```
 
 ### Generating users through API
