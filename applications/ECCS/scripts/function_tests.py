@@ -109,7 +109,9 @@ if __name__ == "__main__":
 	uid2, at2 = create_user(at, "-r")
 	print(f"[+] created second user: UID {uid2}, AT {at2}")
 	try:
-		uid3, at3 = create_user(at)
+		uid3, at3 = create_user(at) # expecting a subprocess.CalledProcessError when calling without scope
+		print(f"[-] A user without any scope was created, but an error was expected, aborting")
+		sys.exit(1)
 	except subprocess.CalledProcessError:
 		print("[+] did not create a third user without scopes")
 	oid = create_object(at1, "no one has the intention to store bytes here.")
