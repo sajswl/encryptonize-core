@@ -41,6 +41,10 @@ func CreateUser(userAT string, read, create, index, objectPermissions, userManag
 		scopes = append(scopes, "USERMANAGEMENT")
 	}
 
+	if len(scopes) < 1 {
+		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
+	}
+
 	// Create client
 	client, err := NewClient(userAT)
 	if err != nil {

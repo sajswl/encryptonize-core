@@ -44,6 +44,7 @@ make run
 ```
 This will expose the gRPC endpoints of Encryption Service on `localhost:9000`. To connect the
 service to existing storage solutions you need to set the environment variables in [`scripts/run.sh`](scripts/run.sh).
+To create and obtain an admin token, run `make create-admin`.
 
 
 ### Docker Compose
@@ -55,12 +56,8 @@ To start the Docker Compose setup, call
 make docker-up
 ```
 This will start local instances of CockroachDB and MinIO and connect a dockerized version of the
-Encryption Service to these. An admin user with the following credentials will automatically be
-created:
-```
-User ID: 00000000-0000-4000-8000-000000000002
-Access Token: 0000000000000000000000000000000000000000000000000000000000000002
-```
+Encryption Service to these. To create and obtain an admin token, run `make docker-create-admin`.
+
 The gRPC endpoints of the Encryption Service are exposed on `localhost:9000`. MinIO's web console is
 exposed on `localhost:7000` (ID `storageid` and key `storagekey`) while CockroachDB's web console is
 exposed on `localhost:7001`.
