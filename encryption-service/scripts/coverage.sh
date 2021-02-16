@@ -63,7 +63,7 @@ done
 
 go test -count=1 -v ./tests/...
 
-while pkill -x -SIGINT encryption-serv; do
+while pkill -f -SIGINT encryption-service.test; do
   echo '[*] waiting for the server to shut down'
   sleep 1
 done
