@@ -26,17 +26,7 @@ export CGO_ENABLED=0
 # Start storage servers
 docker-compose up --detach cockroachdb-1 cockroachdb-2 cockroachdb-3 minio minio-init
 
-# Initialise the auth storage
-COCKROACH_EXEC="docker-compose exec -T cockroachdb-1 /bin/sh -c"
-docker-compose exec -T cockroachdb-1 ./cockroach init --insecure || true
-${COCKROACH_EXEC} "echo 'CREATE DATABASE IF NOT EXISTS auth;' | /cockroach/cockroach sql --insecure"
-${COCKROACH_EXEC} "/cockroach/cockroach sql --insecure --database auth" < ./data/auth_storage.sql
-
-# Bootstrap admin user
-UserID='00000000-0000-4000-8000-000000000002'
-ADDUSER="UPSERT INTO users (id) VALUES ('${UserID}');"
-${COCKROACH_EXEC} "echo \"${ADDUSER}\" | /cockroach/cockroach sql --insecure  --database auth"
-
+source ./scripts/db_init.sh
 
 # testing keys never deploy them!
 export KEK=0000000000000000000000000000000000000000000000000000000000000000
@@ -73,7 +63,7 @@ done
 
 go test -count=1 -v ./tests/...
 
-while pkill -x -SIGINT main.test; do
+while pkill -x -SIGINT encryption-serv; do
   echo '[*] waiting for the server to shut down'
   sleep 1
 done

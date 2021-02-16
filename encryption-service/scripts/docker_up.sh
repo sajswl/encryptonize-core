@@ -30,13 +30,4 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 docker-compose build --build-arg COMMIT="$(git rev-list -1 HEAD)" --build-arg TAG="$(git tag --points-at HEAD)"
 docker-compose up $@
 
-# Initialise the auth storage
-COCKROACH_EXEC="docker-compose exec -T cockroachdb-1 /bin/sh -c"
-docker-compose exec -T cockroachdb-1 ./cockroach init --insecure || true
-${COCKROACH_EXEC} "echo 'CREATE DATABASE IF NOT EXISTS auth;' | /cockroach/cockroach sql --insecure"
-${COCKROACH_EXEC} "/cockroach/cockroach sql --insecure --database auth" < ./data/auth_storage.sql
-
-# Bootstrap admin user
-UserID='00000000-0000-4000-8000-000000000002'
-ADDUSER="UPSERT INTO users (id) VALUES ('${UserID}');"
-${COCKROACH_EXEC} "echo \"${ADDUSER}\" | /cockroach/cockroach sql --insecure  --database auth"
+source ./scripts/db_init.sh
