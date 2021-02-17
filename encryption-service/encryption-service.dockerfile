@@ -30,7 +30,6 @@ COPY . /encryption-service
 # Build binary
 ARG COMMIT
 ARG TAG
-ENV CGO_ENABLED=0
 RUN make ldflags="-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" build
 
 # Adding the grpc_health_probe

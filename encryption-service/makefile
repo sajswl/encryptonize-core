@@ -17,6 +17,10 @@ help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target> \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 
+##### Config #####
+# Change shell to bash to allow sourcing of env variables
+SHELL := /bin/bash
+
 ##### Files #####
 binary = encryption-service
 protobufs = services/enc/enc_grpc.pb.go services/enc/enc.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go scopes/scopes.pb.go
@@ -35,7 +39,7 @@ ldflags =
 ##### Build targets #####
 .PHONY: build
 build: $(protobufs)  ## Build the Encryption Service binary
-	CGO_ENABLED=0 go build -v -ldflags "$(ldflags)" -tags "$(tags)" .
+	source ./scripts/build-env && go build -v -ldflags "$(ldflags)" -tags "$(tags)" .
 
 $(protobufs): $(protosource)
 	protoc $(grpcopts) services/enc/enc.proto
