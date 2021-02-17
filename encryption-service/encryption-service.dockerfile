@@ -20,6 +20,11 @@ RUN apt-get update \
     && apt-get install -y protobuf-compiler \
     && go get google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
+# Adding the grpc_health_probe
+RUN GRPC_HEALTH_PROBE_VERSION=v0.3.6 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
 # Fetch dependencies
 COPY go.mod go.sum /encryption-service/
 RUN go mod download -x
@@ -30,13 +35,7 @@ COPY . /encryption-service
 # Build binary
 ARG COMMIT
 ARG TAG
-ENV CGO_ENABLED=0
 RUN make ldflags="-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" build
-
-# Adding the grpc_health_probe
-RUN GRPC_HEALTH_PROBE_VERSION=v0.3.2 && \
-    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
-    chmod +x /bin/grpc_health_probe
 
 ##############################
 ### Runtime Image

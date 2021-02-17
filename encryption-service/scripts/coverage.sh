@@ -20,30 +20,13 @@ set -euo pipefail
 #   ./tests/run-all-tests.sh
 
 
-# Static compilation
-export CGO_ENABLED=0
+source ./scripts/build-env
+source ./scripts/dev-env
 
 # Start storage servers
 docker-compose up --detach cockroachdb-1 cockroachdb-2 cockroachdb-3 minio minio-init
 
-source ./scripts/db_init.sh
-
-# testing keys never deploy them!
-export KEK=0000000000000000000000000000000000000000000000000000000000000000
-export ASK=0000000000000000000000000000000000000000000000000000000000000001
-export TEK=0000000000000000000000000000000000000000000000000000000000000002
-
-export AUTH_STORAGE_URL='postgresql://root@localhost:26257/auth'
-export OBJECT_STORAGE_URL='http://localhost:7000'
-
-export OBJECT_STORAGE_ID=storageid
-export OBJECT_STORAGE_KEY=storagekey
-# This is just a dummy certificate
-export OBJECT_STORAGE_CERT="-----BEGIN CERTIFICATE-----
-MIIBpjCCAVigAwIBAgIUQ3byU/Dxv0eA11bPDYVC4xD36dwwBQYDK2VwMGUxCzAJBgNVBAYTAkRLMQowCAYDVQQIDAEuMQowCAYDVQQHDAEuMQwwCgYDVQQKDANmb28xGjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMRQwEgYDVQQDDAtmb28uYmFyLmNvbTAeFw0yMDExMTgxNjM5MDVaFw0yMTExMTgxNjM5MDVaMGUxCzAJBgNVBAYTAkRLMQowCAYDVQQIDAEuMQowCAYDVQQHDAEuMQwwCgYDVQQKDANmb28xGjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMRQwEgYDVQQDDAtmb28uYmFyLmNvbTAqMAUGAytlcAMhAEeBiCvHWsxIRPH6tSqmalACa4ckUhXGLoqFUSLef5jyoxowGDAWBgNVHREEDzANggtmb28uYmFyLmNvbTAFBgMrZXADQQAdA1YAoyBCqsFlePrYO6AP1eUgYfCKEjRUttIeSltIv+M+AEzZIU8+JB3nH684qyi8y7XwWuZVC64639WbLxoL
------END CERTIFICATE-----"
-
-export ENCRYPTION_SERVICE_INSECURE=1
+source $(dirname "$(realpath $0)")/db_init.sh
 
 export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|e2e_tests')
 echo '[*] testfolders: '

@@ -19,8 +19,7 @@
 
 set -euo pipefail
 
-# Static compilation
-export CGO_ENABLED=0
+source ./scripts/build-env
 
 echo "[*] formatting code"
 gofmt -l -w .
