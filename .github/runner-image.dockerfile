@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Dependencies
 RUN apt-get update && \
-  apt-get install --no-install-recommends -y ca-certificates wget curl git make python iproute2 && \
+  apt-get install --no-install-recommends -y ca-certificates wget curl git make python iproute2 build-essential clang && \
   rm -rf /var/lib/apt/lists/*
 
 # GCloud
