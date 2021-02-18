@@ -19,9 +19,9 @@ import (
 
 // The Encryptonize Encryption Service
 type Enc struct {
-	AccessObjectMAC interfaces.MessageAuthenticatorInterface
-	AuthStore       interfaces.AuthStoreInterface
-	ObjectStore     interfaces.ObjectStoreInterface
-	DataCryptor     interfaces.CryptorInterface
+	Authorizer  interfaces.AccessObjectAuthenticatorInterface
+	AuthStore   interfaces.AuthStoreInterface
+	ObjectStore interfaces.ObjectStoreInterface
+	DataCryptor interfaces.CryptorInterface
 	UnimplementedEncryptonizeServer
 }

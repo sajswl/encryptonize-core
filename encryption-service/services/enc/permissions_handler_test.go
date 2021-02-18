@@ -34,7 +34,7 @@ var authorizer = &authz.Authorizer{
 }
 
 var enc = Enc{
-	AccessObjectMAC: ma,
+	Authorizer: authorizer,
 }
 
 var targetID = uuid.Must(uuid.NewV4())

@@ -19,6 +19,7 @@ import (
 	"encryption-service/buildtags"
 	"encryption-service/config"
 	authnimpl "encryption-service/impl/authn"
+	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 	log "encryption-service/logger"
 	"encryption-service/services/app"
@@ -47,6 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
 	}
+	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
 
 	tokenCryptor, err := crypt.NewAESCryptor(config.TEK)
 	if err != nil {
@@ -67,10 +69,10 @@ func main() {
 	}
 
 	encService := &enc.Enc{
-		AccessObjectMAC: accessObjectMAC,
-		AuthStore:       authStore,
-		ObjectStore:     objectStore,
-		DataCryptor:     dataCryptor,
+		Authorizer:  authorizer,
+		AuthStore:   authStore,
+		ObjectStore: objectStore,
+		DataCryptor: dataCryptor,
 	}
 
 	authnService := &authn.Authn{

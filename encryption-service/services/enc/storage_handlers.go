@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
-	"encryption-service/impl/authz"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
@@ -55,18 +54,13 @@ func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 		return nil, err
 	}
 
-	authorizer := &authz.Authorizer{
-		AccessObjectMAC: enc.AccessObjectMAC,
-		AuthStoreTx:     authStorageTx,
-	}
-
 	woek, ciphertext, err := enc.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
 	if err != nil {
 		log.Error(ctx, "Store: Failed to encrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	err = authorizer.CreateObject(ctx, objectID, userID, woek)
+	err = enc.Authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
 		log.Error(ctx, "Store: Failed to create new access object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
@@ -99,7 +93,7 @@ func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 // Errors if authentication, authorization, or retrieving the object fails
 func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	_, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, objectIDString)
+	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -117,7 +111,7 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	plaintext, err := enc.DataCryptor.Decrypt(accessObject.Woek, ciphertext, aad)
+	plaintext, err := enc.DataCryptor.Decrypt(accessObject.GetWOEK(), ciphertext, aad)
 	if err != nil {
 		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")

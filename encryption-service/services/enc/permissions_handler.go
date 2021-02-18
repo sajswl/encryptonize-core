@@ -28,7 +28,7 @@ import (
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (enc *Enc) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	_, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -42,17 +42,22 @@ func (enc *Enc) GetPermissions(ctx context.Context, request *GetPermissionsReque
 	}
 
 	// Grab user ids
-	uids, err := accessObject.MakeUIDStringList()
+	uids, err := accessObject.GetUsers()
 	if err != nil {
 		msg := fmt.Sprintf("GetPermissions: Couldn't parse access object for ID %v", oid)
 		log.Error(ctx, msg, err)
 		return nil, status.Errorf(codes.Internal, "error encountered while getting permissions")
 	}
 
+	strUIDs := make([]string, len(uids))
+	for i, uid := range uids {
+		strUIDs[i] = uid.String()
+	}
+
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, request.ObjectId)
 	log.Info(ctx, "GetPermissions: Permission added")
 
-	return &GetPermissionsResponse{UserIds: uids}, nil
+	return &GetPermissionsResponse{UserIds: strUIDs}, nil
 }
 
 // Grant a user access to an object.
@@ -65,7 +70,7 @@ func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -99,8 +104,9 @@ func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
+	accessObject.AddUser(target)
 	// Add the permission to the access object
-	err = authorizer.AddPermission(ctx, accessObject, oid, target)
+	err = enc.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
 		log.Error(ctx, msg, err)
@@ -130,7 +136,7 @@ func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, err
 	}
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, enc.AccessObjectMAC, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -148,8 +154,9 @@ func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 	}
 
+	accessObject.RemoveUser(target)
 	// Add the permission to the access object
-	err = authorizer.RemovePermission(ctx, accessObject, oid, target)
+	err = enc.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)
 		log.Error(ctx, msg, err)

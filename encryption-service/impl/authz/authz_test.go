@@ -21,6 +21,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/crypt"
 )
@@ -102,7 +103,7 @@ func TestCreateObject(t *testing.T) {
 
 	insertCalledCorrectly := false
 
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		InsertAcccessObjectFunc: func(ctx context.Context, oid uuid.UUID, data, tag []byte) error {
 			accessObject, err := authorizer.ParseAccessObject(oid, data, tag)
 			if err != nil {
@@ -112,8 +113,9 @@ func TestCreateObject(t *testing.T) {
 			return nil
 		},
 	}
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	err = authorizer.CreateObject(context.Background(), objectID, userID, woek)
+	err = authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
 		t.Error("CreateObject errored")
 	}
@@ -131,98 +133,68 @@ func TestCreateObjectFail(t *testing.T) {
 		t.Fatalf("Random errored: %v", err)
 	}
 
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		InsertAcccessObjectFunc: func(ctx context.Context, oid uuid.UUID, data, tag []byte) error {
 			return errors.New("mock error")
 		},
 	}
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	err = authorizer.CreateObject(context.Background(), objectID, userID, woek)
+	err = authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err == nil || err.Error() != "mock error" {
 		t.Error("CreateObject should have errored")
 	}
 }
 
-func TestAuthorize(t *testing.T) {
-	userID := uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000"))
-
+func TestFetchAccessObject(t *testing.T) {
 	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
 	if err != nil {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
 
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return data, tag, nil
 		},
 	}
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	_, authorized, err := authorizer.Authorize(context.Background(), objectID, userID)
+	_, err = authorizer.FetchAccessObject(ctx, objectID)
 	if err != nil {
-		t.Fatalf("Authorize errored: %v", err)
-	}
-
-	if !authorized {
-		t.Error("authorized was not ok")
+		t.Fatalf("FetchAccessObject errored: %v", err)
 	}
 }
 
 func TestAuthorizeStoreFailed(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return nil, nil, errors.New("mock error")
 		},
 	}
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	_, _, err := authorizer.Authorize(context.Background(), objectID, userID)
+	_, err := authorizer.FetchAccessObject(ctx, objectID)
 	if err == nil {
 		t.Fatal("Authorize should have errored")
 	}
 }
 
 func TestAuthorizeParseFailed(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-
 	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
 	if err != nil {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
 
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
 			return data, append(tag, []byte("bad")...), nil
 		},
 	}
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	_, _, err = authorizer.Authorize(context.Background(), objectID, userID)
+	_, err = authorizer.FetchAccessObject(ctx, objectID)
 	if err == nil {
 		t.Fatal("Authorize should have errored")
-	}
-}
-
-func TestAuthorizeWrongUserID(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-
-	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
-	if err != nil {
-		t.Fatalf("serializeAccessObject errored: %v", err)
-	}
-
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
-			return data, tag, nil
-		},
-	}
-
-	accessObject, authorized, err := authorizer.Authorize(context.Background(), objectID, userID)
-	if err != nil {
-		t.Fatalf("Authorize errored: %v", err)
-	}
-
-	if accessObject != nil || authorized {
-		t.Error("authorized was ok")
 	}
 }
 
@@ -236,14 +208,16 @@ func TestUpdatePermissions(t *testing.T) {
 
 	var gotData, gotTag []byte
 
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			gotData = data
 			gotTag = tag
 			return nil
 		},
 	}
-	err := authorizer.updatePermissions(context.Background(), objectID, accessObject)
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+
+	err := authorizer.UpsertAccessObject(ctx, objectID, accessObject)
 	if err != nil {
 		t.Fatalf("updatePermissions errored: %v", err)
 	}
@@ -259,85 +233,15 @@ func TestUpdatePermissions(t *testing.T) {
 }
 
 func TestUpdatePermissionsStoreFailed(t *testing.T) {
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
+	authStoreTx := &authstorage.AuthStoreTxMock{
 		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 			return errors.New("mock error")
 		},
 	}
-	err := authorizer.updatePermissions(context.Background(), objectID, accessObject)
+	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+
+	err := authorizer.UpsertAccessObject(ctx, objectID, accessObject)
 	if err == nil {
 		t.Fatalf("updatePermissions should have errored")
-	}
-}
-
-func TestAddPermission(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &AccessObject{
-		Version: 4,
-		UserIds: [][]byte{uuid.Must(uuid.NewV4()).Bytes()},
-		Woek:    []byte("woek"),
-	}
-
-	var gotData, gotTag []byte
-
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			gotData = data
-			gotTag = tag
-			return nil
-		},
-	}
-	err := authorizer.AddPermission(context.Background(), accessObject, objectID, userID)
-	if err != nil {
-		t.Fatalf("updatePermissions errored: %v", err)
-	}
-
-	gotAccessObject, err := authorizer.ParseAccessObject(objectID, gotData, gotTag)
-	if err != nil {
-		t.Fatalf("parseAccessObject errored: %v", err)
-	}
-	if accessObject.String() != gotAccessObject.String() || gotAccessObject.Version != 5 {
-		t.Error("access objects didn't match")
-	}
-
-	if !accessObject.ContainsUser(userID) {
-		t.Error("access object didn't container userID")
-	}
-}
-
-func TestRemovePermission(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &AccessObject{
-		Version: 4,
-		UserIds: [][]byte{uuid.Must(uuid.NewV4()).Bytes()},
-		Woek:    []byte("woek"),
-	}
-
-	var gotData, gotTag []byte
-
-	authorizer.AuthStoreTx = &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			gotData = data
-			gotTag = tag
-			return nil
-		},
-	}
-	err := authorizer.RemovePermission(context.Background(), accessObject, objectID, userID)
-	if err != nil {
-		t.Fatalf("updatePermissions errored: %v", err)
-	}
-
-	gotAccessObject, err := authorizer.ParseAccessObject(objectID, gotData, gotTag)
-	if err != nil {
-		t.Fatalf("parseAccessObject errored: %v", err)
-	}
-	if accessObject.String() != gotAccessObject.String() || gotAccessObject.Version != 5 {
-		t.Error("access objects didn't match")
-	}
-
-	if accessObject.ContainsUser(userID) {
-		t.Error("access object did container userID")
 	}
 }
