@@ -104,8 +104,8 @@ func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
-	accessObject.AddUser(target)
 	// Add the permission to the access object
+	accessObject.AddUser(target)
 	err = enc.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
@@ -154,8 +154,8 @@ func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 	}
 
-	accessObject.RemoveUser(target)
 	// Add the permission to the access object
+	accessObject.RemoveUser(target)
 	err = enc.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)

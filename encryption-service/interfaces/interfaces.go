@@ -105,15 +105,15 @@ type AccessObjectInterface interface {
 	GetWOEK() (woek []byte)
 }
 
-// Interface for authenticating an creating Access Objects
+// Interface for authenticating and creating Access Objects
 type AccessObjectAuthenticatorInterface interface {
 	// Creates a new Access Object and inserts it into the Authstorage
 	CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) (err error)
 
-	// Updates an existing Access Object
+	// Fetches an existing Access Object
 	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject AccessObjectInterface, err error)
 
-	// Updates or inserts the AccessObject into backend storrage
+	// Updates or inserts the AccessObject into backend storage
 	UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject AccessObjectInterface) (err error)
 }
 
