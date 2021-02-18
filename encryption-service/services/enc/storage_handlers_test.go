@@ -40,8 +40,6 @@ func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte
 	return o.RetrieveFunc(ctx, objectID)
 }
 
-var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
-
 var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 
 // Test normal store and retrieve flow
@@ -55,9 +53,9 @@ func TestStoreRetrieve(t *testing.T) {
 	}
 
 	enc := Enc{
-		ObjectStore:     objectstorage.NewMemoryObjectStore(),
-		AccessObjectMAC: messageAuthenticator,
-		DataCryptor:     dataCryptor,
+		ObjectStore: objectstorage.NewMemoryObjectStore(),
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
 	}
 
 	object := &Object{
@@ -107,9 +105,9 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	}
 
 	enc := Enc{
-		ObjectStore:     objectstorage.NewMemoryObjectStore(),
-		AccessObjectMAC: messageAuthenticator,
-		DataCryptor:     dataCryptor,
+		ObjectStore: objectstorage.NewMemoryObjectStore(),
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
 	}
 
 	userID, err := uuid.NewV4()
@@ -150,9 +148,9 @@ func TestStoreFail(t *testing.T) {
 	}
 
 	enc := Enc{
-		ObjectStore:     objectStore,
-		AccessObjectMAC: messageAuthenticator,
-		DataCryptor:     dataCryptor,
+		ObjectStore: objectStore,
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
 	}
 
 	object := &Object{
@@ -193,9 +191,9 @@ func TestStoreFailAuth(t *testing.T) {
 	}
 
 	enc := Enc{
-		ObjectStore:     objectstorage.NewMemoryObjectStore(),
-		AccessObjectMAC: messageAuthenticator,
-		DataCryptor:     dataCryptor,
+		ObjectStore: objectstorage.NewMemoryObjectStore(),
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
 	}
 
 	object := &Object{

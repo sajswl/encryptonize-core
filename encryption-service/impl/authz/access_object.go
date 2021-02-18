@@ -71,17 +71,22 @@ func (a *AccessObject) findUser(userID uuid.UUID) (int, bool) {
 	return i, i < len(a.UserIds) && bytes.Equal(a.UserIds[i], u)
 }
 
-// Converts an array of byte arrays to a list of strings
-func (a *AccessObject) MakeUIDStringList() ([]string, error) {
+// GetUsers returns a list of userIDs that may access the Object
+func (a *AccessObject) GetUsers() ([]uuid.UUID, error) {
 	uidsBytes := a.UserIds
-	uids := make([]string, len(uidsBytes))
+	uids := make([]uuid.UUID, len(uidsBytes))
 	for i, uid := range uidsBytes {
 		newUID, err := uuid.FromBytes(uid)
 		if err != nil {
 			return nil, err
 		}
 
-		uids[i] = newUID.String()
+		uids[i] = newUID
 	}
 	return uids, nil
+}
+
+// getWOEK returns the wrapped object encryption key
+func (a *AccessObject) GetWOEK() []byte {
+	return a.Woek
 }

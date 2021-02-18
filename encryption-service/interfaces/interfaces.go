@@ -88,6 +88,35 @@ type UserAuthenticatorInterface interface {
 	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
 }
 
+type AccessObjectInterface interface {
+	// AddUser adds a user to the permission list
+	AddUser(targetUserID uuid.UUID)
+
+	// RemoveUser Removes a user from the permission list
+	RemoveUser(targetUserID uuid.UUID)
+
+	// GetUsers returns the list of users that may access the object
+	GetUsers() (userIDs []uuid.UUID, err error)
+
+	// ContainsUser checks if the user is present in the permission list
+	ContainsUser(targetUserID uuid.UUID) (exists bool)
+
+	// getWOEK retrieves the wrapped object encryption key
+	GetWOEK() (woek []byte)
+}
+
+// Interface for authenticating and creating Access Objects
+type AccessObjectAuthenticatorInterface interface {
+	// Creates a new Access Object and inserts it into the Authstorage
+	CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) (err error)
+
+	// Fetches an existing Access Object
+	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject AccessObjectInterface, err error)
+
+	// Updates or inserts the AccessObject into backend storage
+	UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject AccessObjectInterface) (err error)
+}
+
 // Interface for authentication of data
 type MessageAuthenticatorInterface interface {
 	// Create a tag for the given message

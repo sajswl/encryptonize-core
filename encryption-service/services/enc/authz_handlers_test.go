@@ -65,18 +65,16 @@ func TestAuthorizeWrapper(t *testing.T) {
 
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
+	aoAuth := &authz.Authorizer{AccessObjectMAC: messageAuthenticator}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
+	accessObjectFetched, err := AuthorizeWrapper(ctx, aoAuth, objectID.String())
 	if err != nil {
 		t.Fatalf("User couldn't be authorized")
 	}
-	if authorizer == nil {
-		t.Fatalf("Authorizer is nil, but no error")
-	}
-	if accessObject == nil {
+	if accessObjectFetched == nil {
 		t.Fatalf("Access object is nil but no error")
 	}
 }
@@ -107,20 +105,18 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
+	aoAuth := &authz.Authorizer{AccessObjectMAC: messageAuthenticator}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
-	authorizer, accessObject, err := AuthorizeWrapper(ctx, messageAuthenticator, objectID.String())
+	accessObjectFetched, err := AuthorizeWrapper(ctx, aoAuth, objectID.String())
 	failOnSuccess("User should not be authorized", err, t)
 
 	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
 		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
 	}
-	if authorizer != nil {
-		t.Fatalf("Leaking authorizer data")
-	}
-	if accessObject != nil {
+	if accessObjectFetched != nil {
 		t.Fatalf("Leaking access object data")
 	}
 }
