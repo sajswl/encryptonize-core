@@ -76,6 +76,15 @@ type CryptorInterface interface {
 	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
 }
 
+// KeyWrapperInterface offers an API to wrap / unwrap key material
+type KeyWrapperInterface interface {
+	//Wrap wraps the provided key material.
+	Wrap(data []byte) ([]byte, error)
+
+	// Unwrap unwraps a wrapped key.
+	Unwrap(data []byte) ([]byte, error)
+}
+
 // Interface for authenticating and creating users
 type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
