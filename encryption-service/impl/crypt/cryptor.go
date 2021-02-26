@@ -13,10 +13,14 @@
 // limitations under the License.
 package crypt
 
-import "errors"
+import (
+	"errors"
+
+	"encryption-service/interfaces"
+)
 
 type AESCryptor struct {
-	keyWrap *KWP
+	keyWrap interfaces.KeyWrapperInterface
 	crypter CrypterInterface // TODO: remove this by pulling it into the implementation?
 }
 
@@ -30,6 +34,13 @@ func NewAESCryptor(KEK []byte) (*AESCryptor, error) {
 		keyWrap: keyWrap,
 		crypter: &AESCrypter{},
 	}, nil
+}
+
+func NewAESCryptorWithKeyWrap(keyWrap interfaces.KeyWrapperInterface) *AESCryptor {
+	return &AESCryptor{
+		keyWrap: keyWrap,
+		crypter: &AESCrypter{},
+	}
 }
 
 func (c *AESCryptor) Encrypt(data, aad []byte) ([]byte, []byte, error) {
