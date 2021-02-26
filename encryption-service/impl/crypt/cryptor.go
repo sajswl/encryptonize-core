@@ -30,10 +30,7 @@ func NewAESCryptor(KEK []byte) (*AESCryptor, error) {
 		return nil, err
 	}
 
-	return &AESCryptor{
-		keyWrap: keyWrap,
-		crypter: &AESCrypter{},
-	}, nil
+	return NewAESCryptorWithKeyWrap(keyWrap), nil
 }
 
 func NewAESCryptorWithKeyWrap(keyWrap interfaces.KeyWrapperInterface) *AESCryptor {
