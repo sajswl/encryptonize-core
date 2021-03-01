@@ -28,4 +28,4 @@ echo "[*] tidying up"
 go mod tidy
 
 echo "[*] running linter"
-golangci-lint run -E gosec,asciicheck,bodyclose,gocyclo,unconvert,gocognit,misspell,golint,whitespace -D unused
+golangci-lint run -E gosec,asciicheck,bodyclose,gocyclo,unconvert,gocognit,misspell,golint,whitespace -D unused --timeout 5m
