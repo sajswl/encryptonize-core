@@ -54,7 +54,14 @@ func main() {
 	if err != nil {
 		log.Fatal(ctx, "NewAESCryptor (token) failed", err)
 	}
-	userAuthenticator := &authnimpl.UserAuthenticator{Cryptor: tokenCryptor}
+
+	// TODO: double check in review
+	userCryptor, err := crypt.NewAESCryptor(config.UEK)
+	if err != nil {
+		log.Fatal(ctx, "NewAESCryptor (user) failed", err)
+	}
+
+	userAuthenticator := &authnimpl.UserAuthenticator{TokenCryptor: tokenCryptor, UserCryptor: userCryptor}
 
 	objectStore, err := buildtags.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,

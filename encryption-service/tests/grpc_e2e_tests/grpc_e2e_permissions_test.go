@@ -47,8 +47,13 @@ func TestShareObjectWithUser(t *testing.T) {
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	t.Logf("%v", createUserResponse)
+
+	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Create user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
 	uid2 := createUserResponse.UserId
-	uat2 := createUserResponse.AccessToken
+	uat2 := loginUserResponse.AccessToken
 	failOnError("Couldn't parse UAT", err, t)
 
 	// Store an object
@@ -87,7 +92,12 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 	t.Logf("%v", createUserResponse)
-	uat2 := createUserResponse.AccessToken
+
+	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Login user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
+	uat2 := loginUserResponse.AccessToken
 	failOnError("Couldn't parse UAT", err, t)
 
 	// Store an object
@@ -119,13 +129,24 @@ func TestPermissionTransitivity(t *testing.T) {
 	// Create users B and C
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
+
+	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Login user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
 	uid2 := createUserResponse.UserId
-	uat2 := createUserResponse.AccessToken
+	uat2 := loginUserResponse.AccessToken
 	failOnError("Could not parse access token", err, t)
+
 	createUserResponse, err = adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
+
+	loginUserResponse, err = adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Login user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
 	uid3 := createUserResponse.UserId
-	uat3 := createUserResponse.AccessToken
+	uat3 := loginUserResponse.AccessToken
 	failOnError("Could not parse access token", err, t)
 
 	// Store an object
@@ -168,8 +189,13 @@ func TestGetPermissions(t *testing.T) {
 	// Create user 2
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
+
+	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Login user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
 	uid2 := createUserResponse.UserId
-	uat2 := createUserResponse.AccessToken
+	uat2 := loginUserResponse.AccessToken
 	client2, err := NewClient(endpoint, uat2, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(client2, t)

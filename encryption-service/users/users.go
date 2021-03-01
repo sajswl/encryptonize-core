@@ -1,6 +1,10 @@
-package scopes
+package users
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/gofrs/uuid"
+)
 
 // ScopeType represents the different scopes a user could be granted
 type ScopeType uint64
@@ -14,6 +18,16 @@ const (
 	ScopeUserManagement
 	ScopeEnd
 )
+
+type UserData struct {
+	UserID               uuid.UUID
+	ConfidentialUserData []byte
+}
+
+type ConfidentialUserData struct {
+	Password []byte
+	Scopes   ScopeType
+}
 
 func (us ScopeType) IsValid() error {
 	if us < ScopeEnd {

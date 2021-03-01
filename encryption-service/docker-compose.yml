@@ -17,6 +17,7 @@ x-service-variables: &service-variables
   KEK: "0000000000000000000000000000000000000000000000000000000000000000"
   ASK: "0000000000000000000000000000000000000000000000000000000000000001"
   TEK: "0000000000000000000000000000000000000000000000000000000000000002"
+  UEK: "0000000000000000000000000000000000000000000000000000000000000003"
   ENCRYPTION_SERVICE_INSECURE: "1"
   AUTH_STORAGE_URL: "postgresql://root@cockroachdb-1:26257/auth"
   OBJECT_STORAGE_URL: "http://minio:9000"
@@ -30,20 +31,20 @@ x-service-variables: &service-variables
 
 services:
   # Encryption service
-  encryption-service:
-    build:
-      context: .
-      dockerfile: ./encryption-service.dockerfile
-    environment:
-      <<: *service-variables
-    ports:
-      - 9000:9000
-    depends_on:
-      - cockroachdb-1
-      - cockroachdb-2
-      - cockroachdb-3
-      - minio
-    tty: true
+  # encryption-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./encryption-service.dockerfile
+  #   environment:
+  #     <<: *service-variables
+  #   ports:
+  #     - 9000:9000
+  #   depends_on:
+  #     - cockroachdb-1
+  #     - cockroachdb-2
+  #     - cockroachdb-3
+  #     - minio
+  #   tty: true
 
   # CockroachDB
   cockroachdb-1:

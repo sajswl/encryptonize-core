@@ -23,8 +23,8 @@ SHELL := /bin/bash
 
 ##### Files #####
 binary = encryption-service
-protobufs = services/enc/enc_grpc.pb.go services/enc/enc.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go scopes/scopes.pb.go
-protosource = services/enc/enc.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto scopes/scopes.proto
+protobufs = services/enc/enc_grpc.pb.go services/enc/enc.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go users/users.pb.go
+protosource = services/enc/enc.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto users/users.proto
 protocopts = --go_opt=paths=source_relative --go_out=.
 grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
@@ -46,7 +46,7 @@ $(protobufs): $(protosource)
 	protoc $(grpcopts) services/authn/authn.proto
 	protoc $(grpcopts) services/app/app.proto
 	protoc $(protocopts) impl/authz/access_object.proto
-	protoc $(protocopts) scopes/scopes.proto
+	protoc $(protocopts) users/users.proto
 
 .PHONY: docker-build
 docker-build:  ## Build the Encryption Service docker image

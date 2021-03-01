@@ -22,22 +22,23 @@ import (
 
 	"encryption-service/contextkeys"
 	log "encryption-service/logger"
-	"encryption-service/scopes"
 	"encryption-service/services/health"
+	users "encryption-service/users"
 )
 
 const baseAppPath string = "/app.Encryptonize/"
 const baseEncPath string = "/enc.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
 
-var methodScopeMap = map[string]scopes.ScopeType{
-	baseAuthPath + "CreateUser":      scopes.ScopeUserManagement,
-	baseEncPath + "GetPermissions":   scopes.ScopeIndex,
-	baseEncPath + "AddPermission":    scopes.ScopeObjectPermissions,
-	baseEncPath + "RemovePermission": scopes.ScopeObjectPermissions,
-	baseEncPath + "Store":            scopes.ScopeCreate,
-	baseEncPath + "Retrieve":         scopes.ScopeRead,
-	baseAppPath + "Version":          scopes.ScopeNone,
+var methodScopeMap = map[string]users.ScopeType{
+	baseAuthPath + "CreateUser":      users.ScopeUserManagement,
+	baseEncPath + "GetPermissions":   users.ScopeIndex,
+	baseEncPath + "AddPermission":    users.ScopeObjectPermissions,
+	baseEncPath + "RemovePermission": users.ScopeObjectPermissions,
+	baseEncPath + "Store":            users.ScopeCreate,
+	baseEncPath + "Retrieve":         users.ScopeRead,
+	baseAppPath + "Version":          users.ScopeNone,
+	baseAuthPath + "LoginUser":       users.ScopeNone,
 }
 
 // CheckAccessToken verifies the authenticity of a token and

@@ -17,13 +17,20 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
+
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // Interface representing crypto functionality
 type CrypterInterface interface {
 	Encrypt(plaintext, aad, key []byte) ([]byte, error)
 	Decrypt(ciphertext, aad, key []byte) ([]byte, error)
+}
+
+type UserHasher interface {
+	Random(n int) ([]byte, error)
 }
 
 type AESCrypter struct {
@@ -75,6 +82,19 @@ func AESGCMDecrypt(data, aad, nonce, key []byte, tagLen int) error {
 	_, err = aesgcm.Open(data[:0], nonce, data, aad)
 
 	return err
+}
+
+// GenerateUserPassword generates a password according to
+// https://www.ietf.org/rfc/rfc2898.txt
+func GenerateUserPassword() ([]byte, []byte) {
+	password, _ := Random(32)
+	salt, _ := Random(8)
+
+	return password, salt
+}
+
+func HashPassword(password []byte, salt []byte) []byte {
+	return pbkdf2.Key(password, salt, 4096, sha256.Size, sha256.New)
 }
 
 // Encrypt encrypts a plaintext with additional associated data (aad) using the provided key returning the resulting ciphertext.

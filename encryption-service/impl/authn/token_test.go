@@ -22,13 +22,13 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/impl/crypt"
-	"encryption-service/scopes"
+	"encryption-service/users"
 )
 
 var (
 	TEK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000002")
 	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
-	userScope = scopes.ScopeUserManagement
+	userScope = users.ScopeUserManagement
 	AT        = &AccessToken{
 		userID:     userID,
 		userScopes: userScope,
@@ -49,7 +49,7 @@ func TestSerialize(t *testing.T) {
 
 func TestSerializeParse(t *testing.T) {
 	// iterate over all possible scope combinations
-	for s := scopes.ScopeType(0); s < scopes.ScopeEnd; s++ {
+	for s := users.ScopeType(0); s < users.ScopeEnd; s++ {
 		userID := uuid.Must(uuid.NewV4())
 		kek, err := crypt.Random(32)
 		if err != nil {
@@ -90,7 +90,7 @@ func TestParseExpiry(t *testing.T) {
 		t.Fatalf("NewAESCryptor errored: %v", err)
 	}
 
-	accessToken := NewAccessToken(userID, scopes.ScopeCreate, time.Second)
+	accessToken := NewAccessToken(userID, users.ScopeCreate, time.Second)
 	token, err := accessToken.SerializeAccessToken(cryptor)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)
@@ -120,7 +120,7 @@ func TestParseModified(t *testing.T) {
 		t.Fatalf("NewAESCryptor errored: %v", err)
 	}
 
-	accessToken := NewAccessToken(userID, scopes.ScopeCreate, time.Second*30)
+	accessToken := NewAccessToken(userID, users.ScopeCreate, time.Second*30)
 	token, err := accessToken.SerializeAccessToken(cryptor)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)

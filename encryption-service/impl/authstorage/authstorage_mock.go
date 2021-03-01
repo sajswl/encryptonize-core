@@ -20,6 +20,7 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/interfaces"
+	"encryption-service/users"
 )
 
 // TODO: we haven't found a better way to export testing structs yet
@@ -30,7 +31,7 @@ type AuthStoreTxMock struct {
 	RollbackFunc func(ctx context.Context) error
 
 	UserExistsFunc func(ctx context.Context, userID uuid.UUID) (bool, error)
-	UpsertUserFunc func(ctx context.Context, userID uuid.UUID) error
+	UpsertUserFunc func(ctx context.Context, user users.UserData) error
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
 	InsertAcccessObjectFunc func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
@@ -47,8 +48,8 @@ func (db *AuthStoreTxMock) Rollback(ctx context.Context) error {
 func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	return db.UserExistsFunc(ctx, userID)
 }
-func (db *AuthStoreTxMock) UpsertUser(ctx context.Context, userID uuid.UUID) error {
-	return db.UpsertUserFunc(ctx, userID)
+func (db *AuthStoreTxMock) UpsertUser(ctx context.Context, user users.UserData) error {
+	return db.UpsertUserFunc(ctx, user)
 }
 
 func (db *AuthStoreTxMock) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
@@ -100,8 +101,8 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	return true, nil
 }
 
-func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID) error {
-	m.data.Store(userID, true)
+func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
+	m.data.Store(user, true)
 	return nil
 }
 
