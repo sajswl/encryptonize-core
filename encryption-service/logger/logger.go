@@ -78,31 +78,58 @@ func fieldsFromCtx(ctx context.Context) log.Fields {
 
 // The following functions wrap the standard logging functions
 // in order to provide structured logging for our service
-func Error(ctx context.Context, msg string, err error) {
+func Error(ctx context.Context, err error, args ...interface{}) {
 	fields := fieldsFromCtx(ctx)
 	fields["error"] = err
-	log.WithFields(fields).Error(msg)
+	log.WithFields(fields).Error(args...)
 }
 
-func Fatal(ctx context.Context, msg string, err error) {
+func Errorf(ctx context.Context, err error, format string, args ...interface{}) {
 	fields := fieldsFromCtx(ctx)
 	fields["error"] = err
-	log.WithFields(fields).Fatal(msg)
+	log.WithFields(fields).Errorf(format, args...)
 }
 
-func Warn(ctx context.Context, msg string) {
+func Fatal(ctx context.Context, err error, args ...interface{}) {
 	fields := fieldsFromCtx(ctx)
-	log.WithFields(fields).Warn(msg)
+	fields["error"] = err
+	log.WithFields(fields).Fatal(args...)
 }
 
-func Info(ctx context.Context, msg string) {
+func Fatalf(ctx context.Context, err error, format string, args ...interface{}) {
 	fields := fieldsFromCtx(ctx)
-	log.WithFields(fields).Info(msg)
+	fields["error"] = err
+	log.WithFields(fields).Fatalf(format, args...)
 }
 
-func Debug(ctx context.Context, msg string) {
+func Warn(ctx context.Context, args ...interface{}) {
 	fields := fieldsFromCtx(ctx)
-	log.WithFields(fields).Debug(msg)
+	log.WithFields(fields).Warn(args...)
+}
+
+func Warnf(ctx context.Context, format string, args ...interface{}) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Warnf(format, args...)
+}
+
+func Info(ctx context.Context, args ...interface{}) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Info(args...)
+}
+
+func Infof(ctx context.Context, format string, args ...interface{}) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Infof(format, args...)
+}
+
+func Debug(ctx context.Context, args ...interface{}) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Debug(args...)
+}
+
+func Debugf(ctx context.Context, format string, args ...interface{}) {
+	fields := fieldsFromCtx(ctx)
+	log.WithFields(fields).Debugf(format, args...)
 }
 
 // Inject full method name into unary call

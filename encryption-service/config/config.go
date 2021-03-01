@@ -143,13 +143,13 @@ func CheckInsecure(config *Config) {
 		}
 	} else {
 		if hex.EncodeToString(config.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
-			log.Fatal(ctx, "Test KEK used outside of INSECURE testing mode", errors.New(""))
+			log.Fatal(ctx, errors.New(""), "Test KEK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(config.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
-			log.Fatal(ctx, "Test ASK used outside of INSECURE testing mode", errors.New(""))
+			log.Fatal(ctx, errors.New(""), "Test ASK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(config.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
-			log.Fatal(ctx, "Test TEK used outside of INSECURE testing mode", errors.New(""))
+			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
 	}
 }

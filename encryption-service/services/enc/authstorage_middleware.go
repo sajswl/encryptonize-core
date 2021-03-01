@@ -34,7 +34,7 @@ func (enc *Enc) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 		if !ok {
 			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
-			log.Error(ctx, "Could not typecast methodName to string", err)
+			log.Error(ctx, err, "Could not typecast methodName to string")
 			return nil, err
 		}
 
@@ -46,13 +46,13 @@ func (enc *Enc) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor 
 
 		authStoreTx, err := enc.AuthStore.NewTransaction(ctx)
 		if err != nil {
-			log.Error(ctx, "NewDBAuthStore failed", err)
+			log.Error(ctx, err, "NewDBAuthStore failed")
 			return nil, status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 		}
 		defer func() {
 			err := authStoreTx.Rollback(ctx)
 			if err != nil {
-				log.Error(ctx, "Performing rollback", err)
+				log.Error(ctx, err, "Performing rollback")
 			}
 		}()
 
@@ -70,7 +70,7 @@ func (enc *Enc) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 		if !ok {
 			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
-			log.Error(ctx, "Could not typecast methodName to string", err)
+			log.Error(ctx, err, "Could not typecast methodName to string")
 			return err
 		}
 
@@ -82,13 +82,13 @@ func (enc *Enc) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
 
 		authStoreTx, err := enc.AuthStore.NewTransaction(ctx)
 		if err != nil {
-			log.Error(ctx, "NewDBAuthStore failed", err)
+			log.Error(ctx, err, "NewDBAuthStore failed")
 			return status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 		}
 		defer func() {
 			err := authStoreTx.Rollback(ctx)
 			if err != nil {
-				log.Error(ctx, "Performing rollback", err)
+				log.Error(ctx, err, "Performing rollback")
 			}
 		}()
 

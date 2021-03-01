@@ -33,26 +33,26 @@ func main() {
 
 	config, err := config.ParseConfig()
 	if err != nil {
-		log.Fatal(ctx, "Config parse failed", err)
+		log.Fatal(ctx, err, "Config parse failed")
 	}
 	log.Info(ctx, "Config parsed")
 
 	// Setup authentication storage DB Pool connection
 	authStore, err := buildtags.SetupAuthStore(context.Background(), config.AuthStorageURL)
 	if err != nil {
-		log.Fatal(ctx, "Authstorage connect failed", err)
+		log.Fatal(ctx, err, "Authstorage connect failed")
 	}
 	defer authStore.Close()
 
 	accessObjectMAC, err := crypt.NewMessageAuthenticator(config.ASK, crypt.AccessObjectsDomain)
 	if err != nil {
-		log.Fatal(ctx, "NewMessageAuthenticator failed", err)
+		log.Fatal(ctx, err, "NewMessageAuthenticator failed")
 	}
 	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
 
 	tokenCryptor, err := crypt.NewAESCryptor(config.TEK)
 	if err != nil {
-		log.Fatal(ctx, "NewAESCryptor (token) failed", err)
+		log.Fatal(ctx, err, "NewAESCryptor (token) failed")
 	}
 	userAuthenticator := &authnimpl.UserAuthenticator{Cryptor: tokenCryptor}
 
@@ -60,12 +60,12 @@ func main() {
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
 	)
 	if err != nil {
-		log.Fatal(ctx, "Objectstorage connect failed", err)
+		log.Fatal(ctx, err, "Objectstorage connect failed")
 	}
 
 	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
 	if err != nil {
-		log.Fatal(ctx, "NewAESCryptor (data) failed", err)
+		log.Fatal(ctx, err, "NewAESCryptor (data) failed")
 	}
 
 	encService := &enc.Enc{
