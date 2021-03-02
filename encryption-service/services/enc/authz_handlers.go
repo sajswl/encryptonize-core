@@ -33,7 +33,7 @@ func AuthorizeWrapper(ctx context.Context, accessObjectAuthenticator interfaces.
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthorizeWrapper: Internal error during authorization")
-		log.Error(ctx, "Could not typecast userID to uuid.UUID", err)
+		log.Error(ctx, err, "Could not typecast userID to uuid.UUID")
 		return nil, err
 	}
 
@@ -41,14 +41,14 @@ func AuthorizeWrapper(ctx context.Context, accessObjectAuthenticator interfaces.
 	objectID, err := uuid.FromString(objectIDString)
 	if err != nil {
 		errMsg := fmt.Sprintf("AuthorizeWrapper: Failed to parse object ID %s as UUID", objectIDString)
-		log.Error(ctx, errMsg, err)
+		log.Error(ctx, err, errMsg)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 	}
 
 	accessObject, err := accessObjectAuthenticator.FetchAccessObject(ctx, objectID)
 	if err != nil {
 		errMsg := fmt.Sprintf("AuthorizeWrapper: Couldn't fetch AccessObject for object %v", accessObject)
-		log.Error(ctx, errMsg, err)
+		log.Error(ctx, err, errMsg)
 		return nil, status.Errorf(codes.Internal, "error encountered while authorizing user")
 	}
 

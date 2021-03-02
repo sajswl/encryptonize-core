@@ -52,7 +52,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		msg := fmt.Sprintf("Failed to listen on port: %s", fmt.Sprint(port))
-		log.Fatal(context.TODO(), msg, err)
+		log.Fatal(context.TODO(), err, msg)
 	}
 
 	// make gprc_recovery log panics and return generic errors to the caller
@@ -61,7 +61,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 			stack := make([]byte, 4096)
 			runtime.Stack(stack, false)
 			msg := fmt.Sprintf("panic recoverd: \n\n%s\n", stack)
-			log.Error(ctx, msg, fmt.Errorf("panic: %v", p))
+			log.Error(ctx, fmt.Errorf("panic: %v", p), msg)
 			return status.Errorf(codes.Internal, "internal error")
 		},
 	)
@@ -125,11 +125,11 @@ func (app *App) StartServer() {
 			msg := fmt.Sprintf("AuthenticatorInterface is of dynamic type: %v", reflect.TypeOf(app.AuthnService))
 			log.Info(ctx, msg)
 			if err := app.AuthnService.UserAuthenticator.NewAdminUser(app.AuthnService.AuthStore); err != nil {
-				log.Fatal(ctx, "CreateAdminCommand", err)
+				log.Fatal(ctx, err, "CreateAdminCommand")
 			}
 		default:
 			msg := fmt.Sprintf("Invalid command: %v", cmd)
-			log.Fatal(ctx, msg, errors.New(""))
+			log.Fatal(ctx, errors.New(""), msg)
 		}
 
 		return
@@ -142,7 +142,7 @@ func (app *App) StartServer() {
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
 			msg := fmt.Sprintf("Failed to serve gRPC server over port %d", port)
-			log.Fatal(ctx, msg, err)
+			log.Fatal(ctx, err, msg)
 		}
 	}()
 

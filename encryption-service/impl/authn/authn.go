@@ -16,7 +16,6 @@ package authn
 import (
 	context "context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -73,18 +72,18 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	// Need to inject requestID manually, as these calls don't pass the usual middleware
 	requestID, err := uuid.NewV4()
 	if err != nil {
-		log.Fatal(ctx, "Could not generate uuid", err)
+		log.Fatal(ctx, err, "Could not generate uuid")
 	}
 	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
 
 	authStoreTx, err := authStore.NewTransaction(ctx)
 	if err != nil {
-		log.Fatal(ctx, "Authstorage Begin failed", err)
+		log.Fatal(ctx, err, "Authstorage Begin failed")
 	}
 	defer func() {
 		err := authStoreTx.Rollback(ctx)
 		if err != nil {
-			log.Fatal(ctx, "Performing rollback", err)
+			log.Fatal(ctx, err, "Performing rollback")
 		}
 	}()
 
@@ -92,12 +91,12 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	adminScope := scopes.ScopeUserManagement
 	userID, accessToken, err := ua.NewUser(ctx, adminScope)
 	if err != nil {
-		log.Fatal(ctx, "Create user failed", err)
+		log.Fatal(ctx, err, "Create user failed")
 	}
 
 	log.Info(ctx, "Created admin user:")
-	log.Info(ctx, fmt.Sprintf("    User ID:      %v", userID))
-	log.Info(ctx, fmt.Sprintf("    Access Token: %v", accessToken))
+	log.Infof(ctx, "    User ID:      %v", userID)
+	log.Infof(ctx, "    Access Token: %v", accessToken)
 
 	return nil
 }
