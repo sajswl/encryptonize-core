@@ -44,14 +44,14 @@ func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*C
 			usertype |= users.ScopeUserManagement
 		default:
 			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)
-			log.Error(ctx, msg, errors.New("CreateUser: Invalid scope"))
+			log.Error(ctx, errors.New("CreateUser: Invalid scope"), msg)
 			return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 		}
 	}
 
 	userID, password, err := au.UserAuthenticator.NewUser(ctx, usertype)
 	if err != nil {
-		log.Error(ctx, "CreateUser: Couldn't create new user", err)
+		log.Error(ctx, err, "CreateUser: Couldn't create new user")
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
 	}
 

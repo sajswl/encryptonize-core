@@ -1,3 +1,17 @@
+// Copyright 2021 CYBERCRYPT
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package config
 
 import (
@@ -155,13 +169,13 @@ func CheckInsecure(config *Config) {
 		}
 	} else {
 		if hex.EncodeToString(config.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
-			log.Fatal(ctx, "Test KEK used outside of INSECURE testing mode", errors.New(""))
+			log.Fatal(ctx, errors.New(""), "Test KEK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(config.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
-			log.Fatal(ctx, "Test ASK used outside of INSECURE testing mode", errors.New(""))
+			log.Fatal(ctx, errors.New(""), "Test ASK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(config.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
-			log.Fatal(ctx, "Test TEK used outside of INSECURE testing mode", errors.New(""))
+			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
 	}
 }

@@ -35,13 +35,13 @@ func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
-		log.Error(ctx, "Store: Could not typecast userID to uuid.UUID", err)
+		log.Error(ctx, err, "Store: Could not typecast userID to uuid.UUID")
 		return nil, err
 	}
 
 	objectID, err := uuid.NewV4()
 	if err != nil {
-		log.Error(ctx, "Store: Failed to generate new object ID", err)
+		log.Error(ctx, err, "Store: Failed to generate new object ID")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 	objectIDString := objectID.String()
@@ -50,35 +50,35 @@ func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err = status.Errorf(codes.Internal, "error encountered while storing object")
-		log.Error(ctx, "Store: Could not typecast authstorage to AuthStoreTxInterface ", err)
+		log.Error(ctx, err, "Store: Could not typecast authstorage to AuthStoreTxInterface ")
 		return nil, err
 	}
 
 	woek, ciphertext, err := enc.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
 	if err != nil {
-		log.Error(ctx, "Store: Failed to encrypt object", err)
+		log.Error(ctx, err, "Store: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	err = enc.Authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
-		log.Error(ctx, "Store: Failed to create new access object", err)
+		log.Error(ctx, err, "Store: Failed to create new access object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	if err := enc.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
-		log.Error(ctx, "Store: Failed to store associated data", err)
+		log.Error(ctx, err, "Store: Failed to store associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	if err := enc.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
-		log.Error(ctx, "Store: Failed to store object", err)
+		log.Error(ctx, err, "Store: Failed to store object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	// All done, commit auth changes
 	if err := authStorageTx.Commit(ctx); err != nil {
-		log.Error(ctx, "Store: Failed to commit auth storage transaction", err)
+		log.Error(ctx, err, "Store: Failed to commit auth storage transaction")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
@@ -101,19 +101,19 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 
 	aad, err := enc.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
 	if err != nil {
-		log.Error(ctx, "Retrieve: Failed to retrieve associated data", err)
+		log.Error(ctx, err, "Retrieve: Failed to retrieve associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
 	ciphertext, err := enc.ObjectStore.Retrieve(ctx, objectIDString+CiphertextStoreSuffix)
 	if err != nil {
-		log.Error(ctx, "Retrieve: Failed to retrieve object", err)
+		log.Error(ctx, err, "Retrieve: Failed to retrieve object")
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
 	plaintext, err := enc.DataCryptor.Decrypt(accessObject.GetWOEK(), ciphertext, aad)
 	if err != nil {
-		log.Error(ctx, "Retrieve: Failed to decrypt object", err)
+		log.Error(ctx, err, "Retrieve: Failed to decrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 

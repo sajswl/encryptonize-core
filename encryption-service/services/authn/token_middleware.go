@@ -50,7 +50,7 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
-		log.Error(ctx, "Could not typecast methodName to string", err)
+		log.Error(ctx, err, "Could not typecast methodName to string")
 		return nil, err
 	}
 
@@ -62,13 +62,13 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 
 	token, err := grpc_auth.AuthFromMD(ctx, "bearer")
 	if err != nil {
-		log.Error(ctx, "AuthenticateUser: Couldn't find token in metadata", err)
+		log.Error(ctx, err, "AuthenticateUser: Couldn't find token in metadata")
 		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
 	}
 
 	accessToken, err := au.UserAuthenticator.ParseAccessToken(token)
 	if err != nil {
-		log.Error(ctx, "AuthenticateUser: Unable to parse Access Token", err)
+		log.Error(ctx, err, "AuthenticateUser: Unable to parse Access Token")
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
 	}
 
@@ -77,13 +77,13 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 	reqScope, ok := methodScopeMap[methodName]
 	if !ok {
 		err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
-		log.Error(newCtx, "AuthenticateUser: Invalid Endpoint", err)
+		log.Error(newCtx, err, "AuthenticateUser: Invalid Endpoint")
 		return nil, err
 	}
 
 	if !accessToken.HasScopes(reqScope) {
 		err = status.Errorf(codes.PermissionDenied, "access not authorized")
-		log.Error(newCtx, "AuthenticateUser: Unauthorized access", err)
+		log.Error(newCtx, err, "AuthenticateUser: Unauthorized access")
 		return nil, err
 	}
 
