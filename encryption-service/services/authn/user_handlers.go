@@ -68,7 +68,7 @@ func (au *Authn) LoginUser(ctx context.Context, request *LoginUserRequest) (*Log
 	}
 	token, err := au.UserAuthenticator.LoginUser(ctx, uuid, request.Password)
 	if err != nil {
-		log.Error(ctx, "LoginUser: Couldn't login the user", err)
+		log.Error(ctx, err, "LoginUser: Couldn't login the user")
 		return nil, status.Errorf(codes.Internal, "error encountered while logging in user")
 	}
 

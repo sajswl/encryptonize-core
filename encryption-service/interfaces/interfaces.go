@@ -45,6 +45,9 @@ type AuthStoreTxInterface interface {
 	// Check if a user exists in the auth store
 	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
 
+	// Get user's confidential data
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error)
+
 	// Update or insert a user
 	UpsertUser(ctx context.Context, userData users.UserData) (err error)
 

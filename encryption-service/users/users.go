@@ -22,10 +22,12 @@ const (
 type UserData struct {
 	UserID               uuid.UUID
 	ConfidentialUserData []byte
+	WrappedKey           []byte
 }
 
 type ConfidentialUserData struct {
 	Password []byte
+	Salt     []byte
 	Scopes   ScopeType
 }
 

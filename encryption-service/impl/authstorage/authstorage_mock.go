@@ -52,6 +52,10 @@ func (db *AuthStoreTxMock) UpsertUser(ctx context.Context, user users.UserData) 
 	return db.UpsertUserFunc(ctx, user)
 }
 
+func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
+	return db.GetUserData(ctx, userID)
+}
+
 func (db *AuthStoreTxMock) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	return db.GetAccessObjectFunc(ctx, objectID)
 }
@@ -101,8 +105,17 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	return true, nil
 }
 
+func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
+	user, ok := m.data.Load(userID)
+	data := user.(users.UserData)
+	if !ok {
+		return nil, nil, nil
+	}
+	return data.ConfidentialUserData, data.WrappedKey, nil
+}
+
 func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
-	m.data.Store(user, true)
+	m.data.Store(user.UserID, user)
 	return nil
 }
 

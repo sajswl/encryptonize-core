@@ -18,6 +18,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"fmt"
 
 	"golang.org/x/crypto/pbkdf2"
@@ -93,8 +94,12 @@ func GenerateUserPassword() ([]byte, []byte) {
 	return password, salt
 }
 
-func HashPassword(password []byte, salt []byte) []byte {
+func HashPassword(password, salt []byte) []byte {
 	return pbkdf2.Key(password, salt, 4096, sha256.Size, sha256.New)
+}
+
+func ComparePasswords(first, second []byte) int {
+	return subtle.ConstantTimeCompare(first, second)
 }
 
 // Encrypt encrypts a plaintext with additional associated data (aad) using the provided key returning the resulting ciphertext.

@@ -162,23 +162,24 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 // Creates a user with a tag, updates the tag if the user exists
 // Returns an error if SQL query fails to execute in authstorage DB
 func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, data) VALUES ($1, $2)"), user.UserID, user.ConfidentialUserData)
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
 	return err
 }
 
-// func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) ([]byte, error) {
-// 	var data []byte
-// 	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("SELECT data FROM users WHERE id = $1"), userID)
-// 	err := row.Scan(&data, &tag)
-// 	if errors.Is(err, pgx.ErrNoRows) {
-// 		return nil, nil, interfaces.ErrNotFound
-// 	}
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
+// Gets user's confidential data
+func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error) {
+	var data, key []byte
+	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1"), userID)
+	err := row.Scan(&data, &key)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, interfaces.ErrNotFound
+	}
+	if err != nil {
+		return nil, nil, err
+	}
 
-// 	return data, err
-// }
+	return data, key, err
+}
 
 // GetAccessObject fetches data, tag of an Access Object with given Object ID
 func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {

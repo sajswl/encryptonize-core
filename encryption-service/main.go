@@ -58,7 +58,7 @@ func main() {
 	// TODO: double check in review
 	userCryptor, err := crypt.NewAESCryptor(config.UEK)
 	if err != nil {
-		log.Fatal(ctx, "NewAESCryptor (user) failed", err)
+		log.Fatal(ctx, err, "NewAESCryptor (user) failed")
 	}
 
 	userAuthenticator := &authnimpl.UserAuthenticator{TokenCryptor: tokenCryptor, UserCryptor: userCryptor}

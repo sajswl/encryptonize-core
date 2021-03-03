@@ -53,6 +53,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 
 	confidential := users.ConfidentialUserData{
 		Password: hashed,
+		Salt:     salt,
 		Scopes:   userscopes,
 	}
 
@@ -62,12 +63,15 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 
 	err = enc.Encode(confidential)
 	if err != nil {
-		log.Fatal(ctx, "Could not encode user data", err)
+		log.Fatal(ctx, err, "Could not encode user data")
 	}
+
+	wrapped, encrypted, err := ua.UserCryptor.Encrypt(buf.Bytes(), userID.Bytes())
 
 	userData := users.UserData{
 		UserID:               userID,
-		ConfidentialUserData: buf.Bytes(),
+		ConfidentialUserData: encrypted,
+		WrappedKey:           wrapped,
 	}
 
 	// insert user for compatibility with the check in permissions_handler
@@ -89,15 +93,37 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 }
 
 // LoginUser logs in a user
-func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error) {
-	// authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
-	// if !ok {
-	// 	return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
-	// }
+func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+	}
 
-	// // user := authStorageTx.UserExists(ctx, userID)
+	user, key, err := authStorageTx.GetUserData(ctx, userID)
+	if err != nil {
+		return "", err
+	}
 
-	userscopes := users.ScopeType(31)
+	userData, err := ua.UserCryptor.Decrypt(key, user, userID.Bytes())
+	if err != nil {
+		return "", err
+	}
+
+	buf := bytes.NewBuffer(userData)
+	dec := gob.NewDecoder(buf)
+
+	var confidential users.ConfidentialUserData
+	err = dec.Decode(&confidential)
+
+	// password comparison
+	b64decoded, _ := base64.RawURLEncoding.DecodeString(providedPassword)
+	prv := crypt.HashPassword([]byte(b64decoded), confidential.Salt)
+
+	if crypt.ComparePasswords(prv, confidential.Password) != 1 {
+		return "", errors.New("Incorrect password")
+	}
+
+	userscopes := confidential.Scopes
 
 	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
 
