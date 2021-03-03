@@ -22,18 +22,134 @@ import (
 	"os"
 	"strings"
 
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+
 	log "encryption-service/logger"
 )
 
 type Config struct {
-	KEK               []byte
-	ASK               []byte
-	TEK               []byte
-	AuthStorageURL    string
-	ObjectStorageURL  string
-	ObjectStorageID   string
-	ObjectStorageKey  string
-	ObjectStorageCert []byte
+	Keys          Keys
+	AuthStorage   AuthStorage
+	ObjectStorage ObjectStorage
+}
+
+type Keys struct {
+	KEK []byte
+	ASK []byte
+	TEK []byte
+}
+
+type AuthStorage struct {
+	URL string
+}
+
+type ObjectStorage struct {
+	URL  string
+	ID   string
+	Key  string
+	Cert []byte
+}
+
+func ParseConfig() (*Config, error) {
+	var k = koanf.New(".")
+
+	// Load configuration file
+	configFile := "config.toml"
+	path, set := os.LookupEnv("ECTNZ_CONFIG")
+	if set {
+		configFile = path
+	}
+
+	err := k.Load(file.Provider(configFile), toml.Parser())
+	if err != nil {
+		log.Warnf(context.TODO(), "Failed to read config file, skipping: %v", err)
+	}
+
+	// Merge with environment variables
+	err = k.Load(env.Provider("ECTNZ_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "ECTNZ_")), "_", ".", -1)
+	}), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	k.Print()
+
+	// Read configuration into struct
+	var config Config
+	if err := k.Unmarshal("", &config); err != nil {
+		return nil, err
+	}
+
+	// Process subconfigurations
+	if err := config.Keys.ParseConfig(); err != nil {
+		return nil, err
+	}
+	if err := config.ObjectStorage.ParseConfig(); err != nil {
+		return nil, err
+	}
+
+	config.CheckInsecure()
+
+	return &config, nil
+}
+
+// Converts keys as hex string values to bytes
+func (k *Keys) ParseConfig() error {
+	var err error
+	k.KEK, err = hex.DecodeString(string(k.KEK))
+	if err != nil {
+		return errors.New("KEK couldn't be parsed (decode hex)")
+	}
+	if len(k.KEK) != 32 {
+		return errors.New("KEK must be 32 bytes (64 hex digits) long")
+	}
+
+	k.ASK, err = hex.DecodeString(string(k.ASK))
+	if err != nil {
+		return errors.New("ASK couldn't be parsed (decode hex)")
+	}
+	if len(k.ASK) != 32 {
+		return errors.New("ASK must be 32 bytes (64 hex digits) long")
+	}
+
+	k.TEK, err = hex.DecodeString(string(k.TEK))
+	if err != nil {
+		return errors.New("TEK couldn't be parsed (decode hex)")
+	}
+	if len(k.TEK) != 32 {
+		return errors.New("TEK must be 32 bytes (64 hex digits) long")
+	}
+
+	return nil
+}
+
+// Reads object storage ID, key and certificate from file if not specified in the config
+func (o *ObjectStorage) ParseConfig() error {
+	if o.ID == "" {
+		id, err := ioutil.ReadFile("data/object_storage_id")
+		if err != nil {
+			return errors.New("could not read OBJECT_STORAGE_ID from file")
+		}
+		key, err := ioutil.ReadFile("data/object_storage_key")
+		if err != nil {
+			return errors.New("could not read OBJECT_STORAGE_KEY from file")
+		}
+		o.ID = strings.TrimSpace(string(id))
+		o.Key = strings.TrimSpace(string(key))
+	}
+	if len(o.Cert) == 0 {
+		cert, err := ioutil.ReadFile("data/object_storage.crt")
+		if err != nil {
+			return errors.New("could not read OBJECT_STORAGE_CERT from file")
+		}
+		o.Cert = cert
+	}
+
+	return nil
 }
 
 const stopSign = `
@@ -62,93 +178,8 @@ $ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ $
 
           RUNNING IN INSECURE MODE`
 
-func ParseConfig() (*Config, error) {
-	config := &Config{}
-
-	var KEKHex string
-	var ASKHex string
-	var TEKHex string
-	var ObjectStorageCertFromEnv string
-	a := []struct {
-		EnvName      string
-		ConfigTarget *string
-		Optional     bool
-	}{
-		{"KEK", &KEKHex, false},
-		{"ASK", &ASKHex, false},
-		{"TEK", &TEKHex, false},
-		{"AUTH_STORAGE_URL", &config.AuthStorageURL, false},
-		{"OBJECT_STORAGE_URL", &config.ObjectStorageURL, false},
-		{"OBJECT_STORAGE_ID", &config.ObjectStorageID, false},
-		{"OBJECT_STORAGE_KEY", &config.ObjectStorageKey, false},
-		{"OBJECT_STORAGE_CERT", &ObjectStorageCertFromEnv, false},
-	}
-
-	for _, c := range a {
-		v, ok := os.LookupEnv(c.EnvName)
-		if !c.Optional && !ok {
-			return nil, errors.New(c.EnvName + " env missing")
-		}
-		*c.ConfigTarget = v
-	}
-
-	KEK, err := hex.DecodeString(KEKHex)
-	if err != nil {
-		return nil, errors.New("KEK env couldn't be parsed (decode hex)")
-	}
-	if len(KEK) != 32 {
-		return nil, errors.New("KEK must be 32 bytes (64 hex digits) long")
-	}
-	config.KEK = KEK
-
-	ASK, err := hex.DecodeString(ASKHex)
-	if err != nil {
-		return nil, errors.New("ASK env couldn't be parsed (decode hex)")
-	}
-	if len(ASK) != 32 {
-		return nil, errors.New("ASK must be 32 bytes (64 hex digits) long")
-	}
-	config.ASK = ASK
-
-	TEK, err := hex.DecodeString(TEKHex)
-	if err != nil {
-		return nil, errors.New("TEK env couldn't be parsed (decode hex)")
-	}
-	if len(TEK) != 32 {
-		return nil, errors.New("TEK must be 32 bytes (64 hex digits) long")
-	}
-	config.TEK = TEK
-
-	// Read object storage ID, key and certificate from file if env var not specified
-	if config.ObjectStorageID == "" {
-		objectStorageID, err := ioutil.ReadFile("data/object_storage_id")
-		if err != nil {
-			return nil, errors.New("could not read OBJECT_STORAGE_ID from file")
-		}
-		objectStorageKey, err := ioutil.ReadFile("data/object_storage_key")
-		if err != nil {
-			return nil, errors.New("could not read OBJECT_STORAGE_KEY from file")
-		}
-		config.ObjectStorageID = strings.TrimSpace(string(objectStorageID))
-		config.ObjectStorageKey = strings.TrimSpace(string(objectStorageKey))
-	}
-	if ObjectStorageCertFromEnv == "" {
-		objectStorageCert, err := ioutil.ReadFile("data/object_storage.crt")
-		if err != nil {
-			return nil, errors.New("could not read OBJECT_STORAGE_CERT from file")
-		}
-		config.ObjectStorageCert = objectStorageCert
-	} else {
-		config.ObjectStorageCert = []byte(ObjectStorageCertFromEnv)
-	}
-
-	CheckInsecure(config)
-
-	return config, nil
-}
-
 // Prevents an accidental deployment with testing parameters
-func CheckInsecure(config *Config) {
+func (c *Config) CheckInsecure() {
 	ctx := context.TODO()
 
 	if os.Getenv("ENCRYPTION_SERVICE_INSECURE") == "1" {
@@ -156,13 +187,13 @@ func CheckInsecure(config *Config) {
 			log.Warn(ctx, line)
 		}
 	} else {
-		if hex.EncodeToString(config.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
+		if hex.EncodeToString(c.Keys.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
 			log.Fatal(ctx, errors.New(""), "Test KEK used outside of INSECURE testing mode")
 		}
-		if hex.EncodeToString(config.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
+		if hex.EncodeToString(c.Keys.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
 			log.Fatal(ctx, errors.New(""), "Test ASK used outside of INSECURE testing mode")
 		}
-		if hex.EncodeToString(config.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
+		if hex.EncodeToString(c.Keys.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
 	}

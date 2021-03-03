@@ -18,18 +18,19 @@ package buildtags
 
 import (
 	"context"
+	"encryption-service/config"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/objectstorage"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
-func SetupAuthStore(ctx context.Context, URL string) (interfaces.AuthStoreInterface, error) {
+func SetupAuthStore(ctx context.Context, config config.AuthStorage) (interfaces.AuthStoreInterface, error) {
 	log.Info(ctx, "Setup AuthStore mocked")
 	return authstorage.NewMemoryAuthStore(), nil
 }
 
-func SetupObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (interfaces.ObjectStoreInterface, error) {
+func SetupObjectStore(bucket string, config config.ObjectStorage) (interfaces.ObjectStoreInterface, error) {
 	log.Info(context.TODO(), "Setup ObjectStore mocked")
 	return objectstorage.NewMemoryObjectStore(), nil
 }
