@@ -27,10 +27,8 @@
 
 set -euo pipefail
 
-# Static compilation
-export CGO_ENABLED=0
-
-export ENCRYPTION_SERVICE_INSECURE=1
+source ./scripts/build-env
+source ./scripts/dev-env
 
 echo '[*] running end-to-end tests'
 go test -count=1 -v ./tests/...

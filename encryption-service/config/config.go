@@ -20,10 +20,13 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 
@@ -31,29 +34,29 @@ import (
 )
 
 type Config struct {
-	Keys          Keys
-	AuthStorage   AuthStorage
-	ObjectStorage ObjectStorage
+	Keys          Keys `koanf:"keys"`
+	AuthStorage   AuthStorage `koanf:"authstorage"`
+	ObjectStorage ObjectStorage `koanf:"objectstorage"`
 }
 
 type Keys struct {
-	KEK []byte
-	ASK []byte
-	TEK []byte
+	KEK []byte `koanf:"kek"`
+	ASK []byte `koanf:"ask"`
+	TEK []byte `koanf:"tek"`
 }
 
 type AuthStorage struct {
-	URL string
+	URL string `koanf:"url"`
 }
 
 type ObjectStorage struct {
-	URL  string
-	ID   string
-	Key  string
-	Cert []byte
+	URL  string `koanf:"url"`
+	ID   string `koanf:"id"`
+	Key  string `koanf:"key"`
+	Cert []byte `koanf:"cert"`
 }
 
-func ParseConfig() (*Config, error) {
+func LoadConfig(config interface{}) error {
 	var k = koanf.New(".")
 
 	// Load configuration file
@@ -63,7 +66,21 @@ func ParseConfig() (*Config, error) {
 		configFile = path
 	}
 
-	err := k.Load(file.Provider(configFile), toml.Parser())
+	var parser koanf.Parser
+	switch filepath.Ext(configFile) {
+		case ".toml":
+			parser = toml.Parser()
+		case ".yaml":
+			parser = yaml.Parser()
+		case ".json":
+			parser = json.Parser()
+		default:
+			log.Warnf(context.TODO(), "Unknown config file extension, defaulting to TOML")
+			parser = toml.Parser()
+	}
+
+	log.Infof(context.TODO(), "Loading config from %v", configFile)
+	err := k.Load(file.Provider(configFile), parser)
 	if err != nil {
 		log.Warnf(context.TODO(), "Failed to read config file, skipping: %v", err)
 	}
@@ -73,14 +90,21 @@ func ParseConfig() (*Config, error) {
 		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "ECTNZ_")), "_", ".", -1)
 	}), nil)
 	if err != nil {
-		return nil, err
+		return  err
 	}
 
-	k.Print()
-
-	// Read configuration into struct
-	var config Config
+	// Read configuration into interface
 	if err := k.Unmarshal("", &config); err != nil {
+		return  err
+	}
+
+	return nil
+}
+
+func ParseConfig() (*Config, error) {
+	config := Config{}
+	err := LoadConfig(&config)
+	if err != nil {
 		return nil, err
 	}
 
@@ -88,11 +112,11 @@ func ParseConfig() (*Config, error) {
 	if err := config.Keys.ParseConfig(); err != nil {
 		return nil, err
 	}
+	config.Keys.CheckInsecure()
+
 	if err := config.ObjectStorage.ParseConfig(); err != nil {
 		return nil, err
 	}
-
-	config.CheckInsecure()
 
 	return &config, nil
 }
@@ -127,31 +151,6 @@ func (k *Keys) ParseConfig() error {
 	return nil
 }
 
-// Reads object storage ID, key and certificate from file if not specified in the config
-func (o *ObjectStorage) ParseConfig() error {
-	if o.ID == "" {
-		id, err := ioutil.ReadFile("data/object_storage_id")
-		if err != nil {
-			return errors.New("could not read OBJECT_STORAGE_ID from file")
-		}
-		key, err := ioutil.ReadFile("data/object_storage_key")
-		if err != nil {
-			return errors.New("could not read OBJECT_STORAGE_KEY from file")
-		}
-		o.ID = strings.TrimSpace(string(id))
-		o.Key = strings.TrimSpace(string(key))
-	}
-	if len(o.Cert) == 0 {
-		cert, err := ioutil.ReadFile("data/object_storage.crt")
-		if err != nil {
-			return errors.New("could not read OBJECT_STORAGE_CERT from file")
-		}
-		o.Cert = cert
-	}
-
-	return nil
-}
-
 const stopSign = `
             uuuuuuuuuuuuuuuuuuuu
           u* uuuuuuuuuuuuuuuuuu *u
@@ -179,22 +178,47 @@ $ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ $
           RUNNING IN INSECURE MODE`
 
 // Prevents an accidental deployment with testing parameters
-func (c *Config) CheckInsecure() {
+func (k *Keys) CheckInsecure() {
 	ctx := context.TODO()
 
-	if os.Getenv("ENCRYPTION_SERVICE_INSECURE") == "1" {
+	if os.Getenv("ECTNZ_SERVICE_INSECURE") == "1" {
 		for _, line := range strings.Split(stopSign, "\n") {
 			log.Warn(ctx, line)
 		}
 	} else {
-		if hex.EncodeToString(c.Keys.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
+		if hex.EncodeToString(k.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
 			log.Fatal(ctx, errors.New(""), "Test KEK used outside of INSECURE testing mode")
 		}
-		if hex.EncodeToString(c.Keys.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
+		if hex.EncodeToString(k.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
 			log.Fatal(ctx, errors.New(""), "Test ASK used outside of INSECURE testing mode")
 		}
-		if hex.EncodeToString(c.Keys.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
+		if hex.EncodeToString(k.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
 	}
+}
+
+// Reads object storage ID, key and certificate from file if not specified in the config
+func (o *ObjectStorage) ParseConfig() error {
+	if o.ID == "" {
+		id, err := ioutil.ReadFile("data/object_storage_id")
+		if err != nil {
+			return errors.New("could not read OBJECT_STORAGE_ID from file")
+		}
+		key, err := ioutil.ReadFile("data/object_storage_key")
+		if err != nil {
+			return errors.New("could not read OBJECT_STORAGE_KEY from file")
+		}
+		o.ID = strings.TrimSpace(string(id))
+		o.Key = strings.TrimSpace(string(key))
+	}
+	if len(o.Cert) == 0 {
+		cert, err := ioutil.ReadFile("data/object_storage.crt")
+		if err != nil {
+			return errors.New("could not read OBJECT_STORAGE_CERT from file")
+		}
+		o.Cert = cert
+	}
+
+	return nil
 }
