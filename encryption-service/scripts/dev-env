@@ -1,4 +1,4 @@
 # dev runtime env variables used by scripts and running the encryption service locally
 
-export ECTNZ_CONFIG=scripts/dev-config.toml
+export ECTNZ_CONFIGFILE=scripts/dev-config.toml
 export ECTNZ_SERVICE_INSECURE=1

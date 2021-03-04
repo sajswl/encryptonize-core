@@ -61,7 +61,7 @@ func LoadConfig(config interface{}) error {
 
 	// Load configuration file
 	configFile := "config.toml"
-	path, set := os.LookupEnv("ECTNZ_CONFIG")
+	path, set := os.LookupEnv("ECTNZ_CONFIGFILE")
 	if set {
 		configFile = path
 	}
