@@ -24,9 +24,9 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 
@@ -34,8 +34,8 @@ import (
 )
 
 type Config struct {
-	Keys          Keys `koanf:"keys"`
-	AuthStorage   AuthStorage `koanf:"authstorage"`
+	Keys          Keys          `koanf:"keys"`
+	AuthStorage   AuthStorage   `koanf:"authstorage"`
 	ObjectStorage ObjectStorage `koanf:"objectstorage"`
 }
 
@@ -56,6 +56,18 @@ type ObjectStorage struct {
 	Cert []byte `koanf:"cert"`
 }
 
+func ParseConfig() (*Config, error) {
+	config := Config{}
+	err := LoadConfig(&config)
+	if err != nil {
+		return nil, err
+	}
+	if err := config.ParseConfig(); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
 func LoadConfig(config interface{}) error {
 	var k = koanf.New(".")
 
@@ -68,15 +80,15 @@ func LoadConfig(config interface{}) error {
 
 	var parser koanf.Parser
 	switch filepath.Ext(configFile) {
-		case ".toml":
-			parser = toml.Parser()
-		case ".yaml":
-			parser = yaml.Parser()
-		case ".json":
-			parser = json.Parser()
-		default:
-			log.Warnf(context.TODO(), "Unknown config file extension, defaulting to TOML")
-			parser = toml.Parser()
+	case ".toml":
+		parser = toml.Parser()
+	case ".yaml":
+		parser = yaml.Parser()
+	case ".json":
+		parser = json.Parser()
+	default:
+		log.Warnf(context.TODO(), "Unknown config file extension, defaulting to TOML")
+		parser = toml.Parser()
 	}
 
 	log.Infof(context.TODO(), "Loading config from %v", configFile)
@@ -90,35 +102,29 @@ func LoadConfig(config interface{}) error {
 		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "ECTNZ_")), "_", ".", -1)
 	}), nil)
 	if err != nil {
-		return  err
+		return err
 	}
 
 	// Read configuration into interface
 	if err := k.Unmarshal("", &config); err != nil {
-		return  err
+		return err
 	}
 
 	return nil
 }
 
-func ParseConfig() (*Config, error) {
-	config := Config{}
-	err := LoadConfig(&config)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *Config) ParseConfig() error {
 	// Process subconfigurations
-	if err := config.Keys.ParseConfig(); err != nil {
-		return nil, err
+	if err := c.Keys.ParseConfig(); err != nil {
+		return err
 	}
-	config.Keys.CheckInsecure()
+	c.Keys.CheckInsecure()
 
-	if err := config.ObjectStorage.ParseConfig(); err != nil {
-		return nil, err
+	if err := c.ObjectStorage.ParseConfig(); err != nil {
+		return err
 	}
 
-	return &config, nil
+	return nil
 }
 
 // Converts keys as hex string values to bytes
