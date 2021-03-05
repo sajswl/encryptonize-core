@@ -421,7 +421,7 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 	return uid, password, nil
 }
 
-func (c *Client) LoginUser(username, password string) (string, error) {
+func (c *Client) LoginUser(uid, password string) (string, error) {
 	mth, err := c.findMethod("authn.Encryptonize", "LoginUser")
 	if err != nil {
 		return "", err
@@ -447,7 +447,7 @@ func (c *Client) LoginUser(username, password string) (string, error) {
 
 	// create argument
 	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("user_id", username)
+	msg.SetFieldByName("user_id", uid)
 	msg.SetFieldByName("password", password)
 
 	// invoke RPC

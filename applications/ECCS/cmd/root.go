@@ -28,7 +28,7 @@ var (
 	target   string
 
 	// User ags
-	username string
+	uid      string
 	password string
 
 	// Store args
@@ -135,7 +135,7 @@ var loginUserCmd = &cobra.Command{
 	Use:   "loginuser",
 	Short: "Logs in with uid and password and returns an access token",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := app.LoginUser(username, password)
+		err := app.LoginUser(uid, password)
 		if err != nil {
 			return err
 		}
@@ -204,7 +204,7 @@ func InitCmd() error {
 	createUserCmd.Flags().BoolVarP(&scopeUserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
 
 	// Set loginUser flags
-	loginUserCmd.Flags().StringVarP(&username, "uid", "u", "", "UID of the user to retrieve a token for")
+	loginUserCmd.Flags().StringVarP(&uid, "uid", "u", "", "UID of the user to retrieve a token for")
 	loginUserCmd.Flags().StringVarP(&password, "password", "p", "", "Password of the provided user")
 
 	return nil
