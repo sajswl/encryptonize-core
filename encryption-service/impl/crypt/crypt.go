@@ -30,10 +30,6 @@ type CrypterInterface interface {
 	Decrypt(ciphertext, aad, key []byte) ([]byte, error)
 }
 
-type UserHasher interface {
-	Random(n int) ([]byte, error)
-}
-
 type AESCrypter struct {
 }
 

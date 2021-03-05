@@ -133,7 +133,7 @@ var createUserCmd = &cobra.Command{
 
 var loginUserCmd = &cobra.Command{
 	Use:   "loginuser",
-	Short: "Logs in with uid and password and returns an access token",
+	Short: "Logs in with uid and password and prints and access token",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := app.LoginUser(uid, password)
 		if err != nil {

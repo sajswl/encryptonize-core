@@ -67,6 +67,9 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	}
 
 	wrapped, encrypted, err := ua.UserCryptor.Encrypt(buf.Bytes(), userID.Bytes())
+	if err != nil {
+		return nil, "", err
+	}
 
 	userData := users.UserData{
 		UserID:               userID,
@@ -114,10 +117,13 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 
 	var confidential users.ConfidentialUserData
 	err = dec.Decode(&confidential)
+	if err != nil {
+		return "", err
+	}
 
 	// password comparison
 	b64decoded, _ := base64.RawURLEncoding.DecodeString(providedPassword)
-	prv := crypt.HashPassword([]byte(b64decoded), confidential.Salt)
+	prv := crypt.HashPassword(b64decoded, confidential.Salt)
 
 	if crypt.ComparePasswords(prv, confidential.Password) != 1 {
 		return "", errors.New("Incorrect password")

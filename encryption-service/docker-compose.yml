@@ -31,20 +31,20 @@ x-service-variables: &service-variables
 
 services:
   # Encryption service
-  # encryption-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./encryption-service.dockerfile
-  #   environment:
-  #     <<: *service-variables
-  #   ports:
-  #     - 9000:9000
-  #   depends_on:
-  #     - cockroachdb-1
-  #     - cockroachdb-2
-  #     - cockroachdb-3
-  #     - minio
-  #   tty: true
+  encryption-service:
+    build:
+      context: .
+      dockerfile: ./encryption-service.dockerfile
+    environment:
+      <<: *service-variables
+    ports:
+      - 9000:9000
+    depends_on:
+      - cockroachdb-1
+      - cockroachdb-2
+      - cockroachdb-3
+      - minio
+    tty: true
 
   # CockroachDB
   cockroachdb-1:

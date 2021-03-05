@@ -63,8 +63,8 @@ func CreateUser(userAT string, read, create, index, objectPermissions, userManag
 	return nil
 }
 
+// LoginUser creates a new client and calls LoginUser
 func LoginUser(uid, password string) error {
-
 	client, err := NewClient("")
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("LoginUser failed"), err)
@@ -75,8 +75,8 @@ func LoginUser(uid, password string) error {
 		log.Fatalf("%v: %v", utils.Fail("LoginUser failed"), err)
 	}
 
-	// Print create user credentials back to user
-	log.Printf("%Uid: \"%s\" AT: \"%s\"", utils.Pass("Successfully logged in user!\n"), uid, uat)
+	// Print login user credentials back to user
+	log.Printf("%vUid: \"%s\" AT: \"%s\"", utils.Pass("Successfully logged in user!\n"), uid, uat)
 
 	return nil
 }
