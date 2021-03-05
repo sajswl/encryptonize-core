@@ -91,20 +91,17 @@ A coverage report for all tests can be generated using
 make coverage
 ```
 
-## The Encryption Service Environment
+## The Encryption Service Configuration
 
-The Encryption Service uses various environment variables to modify its behavior. The current environment variables are listed below:
+By default the Encryption Service reads its configuration from the TOML file `config.toml`. This
+behaviour can be modified by setting the environment variable `ECTNZ_CONFIGFILE`. The supported file
+formats are TOML, YAML, and JSON.
 
-| Name                | Description                           |
-| ------------------- | ------------------------------------- |
-| KEK                 | Key material as a 64 digit hex string |
-| ASK                 | Key material as a 64 digit hex string |
-| AUTH_STORAGE_URL    | Connection URL for the auth storage   |
-| OBJECT_STORAGE_URL  | Connection URL for the object store   |
-| OBJECT_STORAGE_ID   | Key ID for the object store           |
-| OBJECT_STORAGE_KEY  | Secret key for the object store       |
-| OBJECT_STORAGE_CERT | Certificate for the object store      |
+All configuration options are documented in the example configuration
+[`scripts/dev-config.toml`](sripts/dev-config.toml). All configuration options can be overwritten by
+a corresponding environment variable. For example, the hostname for the object storage can be
+overwritten by setting `ECTNZ_OBJECTSTORAGE_URL`.
 
-To modify the various `make` targets, set these environment variables in the relevant scripts in
-[`scripts`](scripts) (see e.g. [`scripts/run.sh`](scripts/run.sh). To modify the docker-compose setup, set the
-`x-service-variables` in [`docker-compose.yml`](docker-compose.yml).
+To modify the various `make` targets, modify the configuration in
+[`scripts/dev-config.toml`](sripts/dev-config.toml). Note that for the docker-compose setup, some
+options are overwritten by the `x-service-variables` in [`docker-compose.yml`](docker-compose.yml).
