@@ -163,8 +163,6 @@ func (c *Client) LoginUser(userid string, password string) (*authn.LoginUserResp
 		Password: password,
 	}
 
-	fmt.Println(loginUserRequest)
-
 	loginUserResponse, err := c.authClient.LoginUser(c.ctx, loginUserRequest)
 	if err != nil {
 		return nil, fmt.Errorf("LoginUser failed: %v", err)

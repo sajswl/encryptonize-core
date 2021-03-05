@@ -38,7 +38,6 @@ var methodScopeMap = map[string]users.ScopeType{
 	baseEncPath + "Store":            users.ScopeCreate,
 	baseEncPath + "Retrieve":         users.ScopeRead,
 	baseAppPath + "Version":          users.ScopeNone,
-	baseAuthPath + "LoginUser":       users.ScopeNone,
 }
 
 // CheckAccessToken verifies the authenticity of a token and
@@ -57,6 +56,11 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 	// Don't authenticate health checks
 	// IMPORTANT! This check MUST stay at the top of this function
 	if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
+		return ctx, nil
+	}
+
+	// not sure
+	if methodName == baseAuthPath+"LoginUser" {
 		return ctx, nil
 	}
 

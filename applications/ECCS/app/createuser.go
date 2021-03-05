@@ -52,13 +52,31 @@ func CreateUser(userAT string, read, create, index, objectPermissions, userManag
 	}
 
 	// Call Encryptonize and create a user
-	uid, at, err := client.CreateUser(scopes)
+	uid, password, err := client.CreateUser(scopes)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
 
 	// Print create user credentials back to user
-	log.Printf("%vUID: \"%s\" AT: \"%s\"", utils.Pass("Successfully created user!\n"), uid, at)
+	log.Printf("%vUID: \"%s\" Password: \"%s\"", utils.Pass("Successfully created user!\n"), uid, password)
+
+	return nil
+}
+
+func LoginUser(uid, password string) error {
+
+	client, err := NewClient("")
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("LoginUser failed"), err)
+	}
+
+	uat, err := client.LoginUser(uid, password)
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("LoginUser failed"), err)
+	}
+
+	// Print create user credentials back to user
+	log.Printf("%Uid: \"%s\" AT: \"%s\"", utils.Pass("Successfully logged in user!\n"), uid, uat)
 
 	return nil
 }
