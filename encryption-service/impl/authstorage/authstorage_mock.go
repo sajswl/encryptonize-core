@@ -30,8 +30,9 @@ type AuthStoreTxMock struct {
 	CommitFunc   func(ctx context.Context) error
 	RollbackFunc func(ctx context.Context) error
 
-	UserExistsFunc func(ctx context.Context, userID uuid.UUID) (bool, error)
-	UpsertUserFunc func(ctx context.Context, user users.UserData) error
+	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
+	UpsertUserFunc  func(ctx context.Context, user users.UserData) error
+	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
 	InsertAcccessObjectFunc func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
@@ -53,7 +54,7 @@ func (db *AuthStoreTxMock) UpsertUser(ctx context.Context, user users.UserData) 
 }
 
 func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
-	return db.GetUserData(ctx, userID)
+	return db.GetUserDataFunc(ctx, userID)
 }
 
 func (db *AuthStoreTxMock) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {

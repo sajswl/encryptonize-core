@@ -66,15 +66,15 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		log.Fatal(ctx, err, "Could not encode user data")
 	}
 
-	wrapped, encrypted, err := ua.UserCryptor.Encrypt(buf.Bytes(), userID.Bytes())
+	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(buf.Bytes(), userID.Bytes())
 	if err != nil {
 		return nil, "", err
 	}
 
 	userData := users.UserData{
 		UserID:               userID,
-		ConfidentialUserData: encrypted,
-		WrappedKey:           wrapped,
+		ConfidentialUserData: ciphertext,
+		WrappedKey:           wrappedKey,
 	}
 
 	// insert user for compatibility with the check in permissions_handler
@@ -102,6 +102,11 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
+	password, err := base64.RawURLEncoding.DecodeString(providedPassword)
+	if err != nil {
+		return "", err
+	}
+
 	user, key, err := authStorageTx.GetUserData(ctx, userID)
 	if err != nil {
 		return "", err
@@ -121,9 +126,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	// password comparison
-	b64decoded, _ := base64.RawURLEncoding.DecodeString(providedPassword)
-	prv := crypt.HashPassword(b64decoded, confidential.Salt)
+	prv := crypt.HashPassword(password, confidential.Salt)
 
 	if crypt.ComparePasswords(prv, confidential.Password) != 1 {
 		return "", errors.New("Incorrect password")
