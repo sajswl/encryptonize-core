@@ -99,7 +99,7 @@ func GenerateUserPassword() (string, []byte, error) {
 // HashPassword hashes a password according to
 // https://pages.nist.gov/800-63-3/sp800-63b.html#-5112-memorized-secret-verifiers
 func HashPassword(password string, salt []byte) []byte {
-	return pbkdf2.Key([]byte(password), salt, 10000, 256, sha3.New256)
+	return pbkdf2.Key([]byte(password), salt, 10000, 32, sha3.New256)
 }
 
 func CompareHashAndPassword(password string, hash []byte, salt []byte) int {
