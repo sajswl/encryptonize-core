@@ -66,7 +66,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 
 	err = enc.Encode(confidential)
 	if err != nil {
-		log.Fatal(ctx, err, "Could not encode user data")
+		return nil, "", err
 	}
 
 	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(buf.Bytes(), userID.Bytes())

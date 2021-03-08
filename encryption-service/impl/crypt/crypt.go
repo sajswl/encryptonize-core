@@ -17,12 +17,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
 
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/sha3"
 )
 
 // Interface representing crypto functionality
@@ -82,8 +82,7 @@ func AESGCMDecrypt(data, aad, nonce, key []byte, tagLen int) error {
 	return err
 }
 
-// GenerateUserPassword generates a password according to
-// https://www.ietf.org/rfc/rfc2898.txt
+// GenerateUserPassword generates a random base64 encoded password and a salt
 func GenerateUserPassword() (string, []byte, error) {
 	password, err := Random(32)
 	if err != nil {
@@ -97,8 +96,10 @@ func GenerateUserPassword() (string, []byte, error) {
 	return base64.RawURLEncoding.EncodeToString(password), salt, nil
 }
 
+// HashPassword hashes a password according to
+// https://pages.nist.gov/800-63-3/sp800-63b.html#-5112-memorized-secret-verifiers
 func HashPassword(password string, salt []byte) []byte {
-	return pbkdf2.Key([]byte(password), salt, 4096, sha256.Size, sha256.New)
+	return pbkdf2.Key([]byte(password), salt, 10000, 256, sha3.New256)
 }
 
 func CompareHashAndPassword(password string, hash []byte, salt []byte) int {
