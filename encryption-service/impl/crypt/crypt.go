@@ -19,6 +19,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
 
 	"golang.org/x/crypto/pbkdf2"
@@ -83,25 +84,24 @@ func AESGCMDecrypt(data, aad, nonce, key []byte, tagLen int) error {
 
 // GenerateUserPassword generates a password according to
 // https://www.ietf.org/rfc/rfc2898.txt
-func GenerateUserPassword() ([]byte, []byte, error) {
+func GenerateUserPassword() (string, []byte, error) {
 	password, err := Random(32)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
 
 	salt, err := Random(8)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, err
 	}
-
-	return password, salt, nil
+	return base64.RawURLEncoding.EncodeToString(password), salt, nil
 }
 
-func HashPassword(password, salt []byte) []byte {
-	return pbkdf2.Key(password, salt, 4096, sha256.Size, sha256.New)
+func HashPassword(password string, salt []byte) []byte {
+	return pbkdf2.Key([]byte(password), salt, 4096, sha256.Size, sha256.New)
 }
 
-func CompareHashAndPassword(password, hash []byte, salt []byte) int {
+func CompareHashAndPassword(password string, hash []byte, salt []byte) int {
 	return subtle.ConstantTimeCompare(HashPassword(password, salt), hash)
 }
 

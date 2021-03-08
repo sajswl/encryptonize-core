@@ -16,7 +16,6 @@ package authn
 import (
 	"bytes"
 	context "context"
-	"encoding/base64"
 	"encoding/gob"
 	"errors"
 	"time"
@@ -94,9 +93,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		return nil, "", err
 	}
 
-	spwd := base64.RawURLEncoding.EncodeToString(pwd)
-
-	return &userID, spwd, nil
+	return &userID, pwd, nil
 }
 
 // LoginUser logs in a user
@@ -104,11 +101,6 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
-	}
-
-	password, err := base64.RawURLEncoding.DecodeString(providedPassword)
-	if err != nil {
-		return "", err
 	}
 
 	user, key, err := authStorageTx.GetUserData(ctx, userID)
@@ -130,7 +122,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	if crypt.CompareHashAndPassword(password, confidential.Password, confidential.Salt) != 1 {
+	if crypt.CompareHashAndPassword(providedPassword, confidential.Password, confidential.Salt) != 1 {
 		return "", errors.New("Incorrect password")
 	}
 
