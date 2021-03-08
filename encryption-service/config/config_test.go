@@ -82,7 +82,7 @@ func TestReadTOML(t *testing.T) {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
-	if err := os.Setenv("ECTNZ_CONFIG", configPath); err != nil {
+	if err := os.Setenv("ECTNZ_CONFIGFILE", configPath); err != nil {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 	parsedConfig, err := ParseConfig()
@@ -102,7 +102,7 @@ func TestReadYAML(t *testing.T) {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
-	if err := os.Setenv("ECTNZ_CONFIG", configPath); err != nil {
+	if err := os.Setenv("ECTNZ_CONFIGFILE", configPath); err != nil {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 	parsedConfig, err := ParseConfig()
@@ -122,7 +122,7 @@ func TestReadJSON(t *testing.T) {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
-	if err := os.Setenv("ECTNZ_CONFIG", configPath); err != nil {
+	if err := os.Setenv("ECTNZ_CONFIGFILE", configPath); err != nil {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 	parsedConfig, err := ParseConfig()
@@ -142,7 +142,7 @@ func TestReadUnknownExtension(t *testing.T) {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
-	if err := os.Setenv("ECTNZ_CONFIG", configPath); err != nil {
+	if err := os.Setenv("ECTNZ_CONFIGFILE", configPath); err != nil {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 	parsedConfig, err := ParseConfig()
@@ -162,7 +162,7 @@ func TestReadEnv(t *testing.T) {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
-	if err := os.Setenv("ECTNZ_CONFIG", configPath); err != nil {
+	if err := os.Setenv("ECTNZ_CONFIGFILE", configPath); err != nil {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 
