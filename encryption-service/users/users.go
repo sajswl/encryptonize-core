@@ -26,9 +26,9 @@ type UserData struct {
 }
 
 type ConfidentialUserData struct {
-	Password []byte
-	Salt     []byte
-	Scopes   ScopeType
+	HashedPassword []byte
+	Salt           []byte
+	Scopes         ScopeType
 }
 
 func (us ScopeType) IsValid() error {

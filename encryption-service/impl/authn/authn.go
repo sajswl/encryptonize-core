@@ -55,9 +55,9 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	hashed := crypt.HashPassword(pwd, salt)
 
 	confidential := users.ConfidentialUserData{
-		Password: hashed,
-		Salt:     salt,
-		Scopes:   userscopes,
+		HashedPassword: hashed,
+		Salt:           salt,
+		Scopes:         userscopes,
 	}
 
 	var buf bytes.Buffer
@@ -122,7 +122,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	if crypt.CompareHashAndPassword(providedPassword, confidential.Password, confidential.Salt) != 1 {
+	if crypt.CompareHashAndPassword(providedPassword, confidential.HashedPassword, confidential.Salt) != 1 {
 		return "", errors.New("Incorrect password")
 	}
 
