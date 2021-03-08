@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -207,11 +206,11 @@ func (k *Keys) CheckInsecure() {
 // Reads object storage ID, key and certificate from file if not specified in the config
 func (o *ObjectStorage) ParseConfig() error {
 	if o.ID == "" {
-		id, err := ioutil.ReadFile("data/object_storage_id")
+		id, err := os.ReadFile("data/object_storage_id")
 		if err != nil {
 			return errors.New("could not read OBJECT_STORAGE_ID from file")
 		}
-		key, err := ioutil.ReadFile("data/object_storage_key")
+		key, err := os.ReadFile("data/object_storage_key")
 		if err != nil {
 			return errors.New("could not read OBJECT_STORAGE_KEY from file")
 		}
@@ -219,7 +218,7 @@ func (o *ObjectStorage) ParseConfig() error {
 		o.Key = strings.TrimSpace(string(key))
 	}
 	if len(o.Cert) == 0 {
-		cert, err := ioutil.ReadFile("data/object_storage.crt")
+		cert, err := os.ReadFile("data/object_storage.crt")
 		if err != nil {
 			return errors.New("could not read OBJECT_STORAGE_CERT from file")
 		}

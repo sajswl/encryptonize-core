@@ -15,8 +15,8 @@
 package app
 
 import (
-	"io/ioutil"
 	"log"
+	"io"
 	"os"
 
 	"eccs/utils"
@@ -24,7 +24,7 @@ import (
 
 // openFile loads a file into memory
 func openFile(filename string) []byte {
-	dat, err := ioutil.ReadFile(filename)
+	dat, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
 	}
@@ -44,7 +44,7 @@ func Store(userAT, filename, associatedData string, stdin bool) error {
 		plaintext = openFile(filename)
 	}
 	if stdin {
-		data, err := ioutil.ReadAll(os.Stdin)
+		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
 		}
