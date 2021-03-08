@@ -1,0 +1,24 @@
+# Cryptographic keys. Must be 64 hex digits (256 bits).
+[keys]
+kek = "0000000000000000000000000000000000000000000000000000000000000000"
+ask = "0000000000000000000000000000000000000000000000000000000000000001"
+tek = "0000000000000000000000000000000000000000000000000000000000000002"
+
+# Auth storage configuration
+[authstorage]
+# Connection string for the backend database
+url = "postgresql://root@localhost:26257/auth"
+
+# Object storage configuration
+[objectstorage]
+# Hostname for an S3 compatible endpoint
+url = "http://localhost:7000"
+
+# Key ID and secret key
+id = "storageid"
+key = "storagekey"
+
+# TLS certificate
+cert = '''-----BEGIN CERTIFICATE-----
+MIIBpjCCAVigAwIBAgIUQ3byU/Dxv0eA11bPDYVC4xD36dwwBQYDK2VwMGUxCzAJBgNVBAYTAkRLMQowCAYDVQQIDAEuMQowCAYDVQQHDAEuMQwwCgYDVQQKDANmb28xGjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMRQwEgYDVQQDDAtmb28uYmFyLmNvbTAeFw0yMDExMTgxNjM5MDVaFw0yMTExMTgxNjM5MDVaMGUxCzAJBgNVBAYTAkRLMQowCAYDVQQIDAEuMQowCAYDVQQHDAEuMQwwCgYDVQQKDANmb28xGjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMRQwEgYDVQQDDAtmb28uYmFyLmNvbTAqMAUGAytlcAMhAEeBiCvHWsxIRPH6tSqmalACa4ckUhXGLoqFUSLef5jyoxowGDAWBgNVHREEDzANggtmb28uYmFyLmNvbTAFBgMrZXADQQAdA1YAoyBCqsFlePrYO6AP1eUgYfCKEjRUttIeSltIv+M+AEzZIU8+JB3nH684qyi8y7XwWuZVC64639WbLxoL
+-----END CERTIFICATE-----'''

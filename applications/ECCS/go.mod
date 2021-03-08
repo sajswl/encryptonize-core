@@ -1,6 +1,6 @@
 module eccs
 
-go 1.14
+go 1.16
 
 require (
 	github.com/jhump/protoreflect v1.8.1

@@ -38,32 +38,30 @@ func main() {
 	log.Info(ctx, "Config parsed")
 
 	// Setup authentication storage DB Pool connection
-	authStore, err := buildtags.SetupAuthStore(context.Background(), config.AuthStorageURL)
+	authStore, err := buildtags.SetupAuthStore(context.Background(), config.AuthStorage)
 	if err != nil {
 		log.Fatal(ctx, err, "Authstorage connect failed")
 	}
 	defer authStore.Close()
 
-	accessObjectMAC, err := crypt.NewMessageAuthenticator(config.ASK, crypt.AccessObjectsDomain)
+	accessObjectMAC, err := crypt.NewMessageAuthenticator(config.Keys.ASK, crypt.AccessObjectsDomain)
 	if err != nil {
 		log.Fatal(ctx, err, "NewMessageAuthenticator failed")
 	}
 	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
 
-	tokenCryptor, err := crypt.NewAESCryptor(config.TEK)
+	tokenCryptor, err := crypt.NewAESCryptor(config.Keys.TEK)
 	if err != nil {
 		log.Fatal(ctx, err, "NewAESCryptor (token) failed")
 	}
 	userAuthenticator := &authnimpl.UserAuthenticator{Cryptor: tokenCryptor}
 
-	objectStore, err := buildtags.SetupObjectStore(
-		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,
-	)
+	objectStore, err := buildtags.SetupObjectStore("objects", config.ObjectStorage)
 	if err != nil {
 		log.Fatal(ctx, err, "Objectstorage connect failed")
 	}
 
-	dataCryptor, err := crypt.NewAESCryptor(config.KEK)
+	dataCryptor, err := crypt.NewAESCryptor(config.Keys.KEK)
 	if err != nil {
 		log.Fatal(ctx, err, "NewAESCryptor (data) failed")
 	}

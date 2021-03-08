@@ -18,17 +18,18 @@ package buildtags
 
 import (
 	"context"
+	"encryption-service/config"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/objectstorage"
 	log "encryption-service/logger"
 )
 
-func SetupAuthStore(ctx context.Context, URL string) (*authstorage.AuthStore, error) {
+func SetupAuthStore(ctx context.Context, config config.AuthStorage) (*authstorage.AuthStore, error) {
 	log.Info(ctx, "Setup AuthStore")
-	return authstorage.NewAuthStore(context.Background(), URL)
+	return authstorage.NewAuthStore(context.Background(), config.URL)
 }
 
-func SetupObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (*objectstorage.ObjectStore, error) {
+func SetupObjectStore(bucket string, config config.ObjectStorage) (*objectstorage.ObjectStore, error) {
 	log.Info(context.TODO(), "Setup ObjectStore")
-	return objectstorage.NewObjectStore(endpoint, bucket, accessID, accessKey, cert)
+	return objectstorage.NewObjectStore(config.URL, bucket, config.ID, config.Key, config.Cert)
 }

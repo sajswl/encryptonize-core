@@ -42,17 +42,12 @@ spec:
         ports:
         - containerPort: 9000
         volumeMounts:
-          - name: encryptonize-secrets
-            mountPath: /data/ca.crt
-            subPath: ca.crt
+          - name: encryptonize-config
+            mountPath: /config.toml
+            subPath: config.toml
             readOnly: true
           - name: encryptonize-secrets
-            mountPath: /data/client.root.crt
-            subPath: client.root.crt
-            readOnly: true
-          - name: encryptonize-secrets
-            mountPath: /data/client.root.key
-            subPath: client.root.key
+            mountPath: /data/
             readOnly: true
         readinessProbe:
           exec:
@@ -62,48 +57,10 @@ spec:
           exec:
             command: ["/grpc_health_probe", "-addr=:9000"]
           initialDelaySeconds: 10
-        env:
-          - name: AUTH_STORAGE_URL
-            valueFrom:
-              configMapKeyRef:
-                name: encryptonize-config
-                key: AUTH_STORAGE_URL
-          - name: OBJECT_STORAGE_URL
-            valueFrom:
-              configMapKeyRef:
-                name: encryptonize-config
-                key: OBJECT_STORAGE_URL
-          - name: OBJECT_STORAGE_ID
-            valueFrom:
-              secretKeyRef:
-                name: encryptonize-secrets
-                key: object_storage_id
-          - name: OBJECT_STORAGE_KEY
-            valueFrom:
-              secretKeyRef:
-                name: encryptonize-secrets
-                key: object_storage_key
-          - name: OBJECT_STORAGE_CERT
-            valueFrom:
-              secretKeyRef:
-                name: encryptonize-secrets
-                key: object_storage.crt
-          - name: KEK
-            valueFrom:
-              secretKeyRef:
-                name: encryptonize-secrets
-                key: KEK
-          - name: ASK
-            valueFrom:
-              secretKeyRef:
-                name: encryptonize-secrets
-                key: ASK
-          - name: TEK
-            valueFrom:
-              secretKeyRef:
-                name: encryptonize-secrets
-                key: TEK
       volumes:
+        - name: encryptonize-config
+          secret:
+            secretName: encryptonize-config
         - name: encryptonize-secrets
           secret:
             secretName: encryptonize-secrets

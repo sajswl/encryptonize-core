@@ -1,6 +1,6 @@
 module encryption-service
 
-go 1.14
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.35.15
@@ -9,6 +9,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/jackc/pgtype v1.5.0
 	github.com/jackc/pgx/v4 v4.9.0
+	github.com/knadh/koanf v0.15.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/sony/gobreaker v0.4.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
