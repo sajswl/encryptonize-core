@@ -83,19 +83,26 @@ func AESGCMDecrypt(data, aad, nonce, key []byte, tagLen int) error {
 
 // GenerateUserPassword generates a password according to
 // https://www.ietf.org/rfc/rfc2898.txt
-func GenerateUserPassword() ([]byte, []byte) {
-	password, _ := Random(32)
-	salt, _ := Random(8)
+func GenerateUserPassword() ([]byte, []byte, error) {
+	password, err := Random(32)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return password, salt
+	salt, err := Random(8)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return password, salt, nil
 }
 
 func HashPassword(password, salt []byte) []byte {
 	return pbkdf2.Key(password, salt, 4096, sha256.Size, sha256.New)
 }
 
-func ComparePasswords(first, second []byte) int {
-	return subtle.ConstantTimeCompare(first, second)
+func CompareHashAndPassword(password, hash []byte, salt []byte) int {
+	return subtle.ConstantTimeCompare(HashPassword(password, salt), hash)
 }
 
 // Encrypt encrypts a plaintext with additional associated data (aad) using the provided key returning the resulting ciphertext.

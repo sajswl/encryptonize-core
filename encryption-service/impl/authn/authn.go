@@ -48,7 +48,11 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 
 	// user password creation
 
-	pwd, salt := crypt.GenerateUserPassword()
+	pwd, salt, err := crypt.GenerateUserPassword()
+	if err != nil {
+		return nil, "", err
+	}
+
 	hashed := crypt.HashPassword(pwd, salt)
 
 	confidential := users.ConfidentialUserData{
@@ -126,9 +130,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	prv := crypt.HashPassword(password, confidential.Salt)
-
-	if crypt.ComparePasswords(prv, confidential.Password) != 1 {
+	if crypt.CompareHashAndPassword(password, confidential.Password, confidential.Salt) != 1 {
 		return "", errors.New("Incorrect password")
 	}
 
