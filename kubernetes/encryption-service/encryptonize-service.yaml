@@ -43,7 +43,8 @@ spec:
         - containerPort: 9000
         volumeMounts:
           - name: encryptonize-config
-            mountPath: /
+            mountPath: /config.toml
+            subPath: config.toml
             readOnly: true
           - name: encryptonize-secrets
             mountPath: /data/

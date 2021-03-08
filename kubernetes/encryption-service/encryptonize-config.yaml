@@ -29,7 +29,7 @@ kind: Secret
 metadata:
   name: encryptonize-config
   namespace: encryptonize
-data:
+stringData:
   # Fill out the configuration below
   config.toml: |
     [keys]
