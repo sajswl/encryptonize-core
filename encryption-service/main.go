@@ -61,7 +61,10 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (user) failed")
 	}
 
-	userAuthenticator := &authnimpl.UserAuthenticator{TokenCryptor: tokenCryptor, UserCryptor: userCryptor}
+	userAuthenticator := &authnimpl.UserAuthenticator{
+		TokenCryptor: tokenCryptor,
+		UserCryptor:  userCryptor,
+	}
 
 	objectStore, err := buildtags.SetupObjectStore(
 		config.ObjectStorageURL, "objects", config.ObjectStorageID, config.ObjectStorageKey, config.ObjectStorageCert,

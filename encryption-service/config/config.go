@@ -177,5 +177,8 @@ func CheckInsecure(config *Config) {
 		if hex.EncodeToString(config.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
+		if hex.EncodeToString(config.UEK) == "0000000000000000000000000000000000000000000000000000000000000003" {
+			log.Fatal(ctx, errors.New(""), "Test UEK used outside of INSECURE testing mode")
+		}
 	}
 }
