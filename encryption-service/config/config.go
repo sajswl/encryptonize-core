@@ -39,8 +39,13 @@ type Config struct {
 }
 
 type Keys struct {
+	// Used for key wrapping
 	KEK []byte `koanf:"kek"`
+
+	// Used for auth storage message authentication
 	ASK []byte `koanf:"ask"`
+
+	// Used for token encryption
 	TEK []byte `koanf:"tek"`
 }
 
@@ -118,10 +123,6 @@ func (c *Config) ParseConfig() error {
 		return err
 	}
 	c.Keys.CheckInsecure()
-
-	if err := c.ObjectStorage.ParseConfig(); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -201,29 +202,4 @@ func (k *Keys) CheckInsecure() {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
 	}
-}
-
-// Reads object storage ID, key and certificate from file if not specified in the config
-func (o *ObjectStorage) ParseConfig() error {
-	if o.ID == "" {
-		id, err := os.ReadFile("data/object_storage_id")
-		if err != nil {
-			return errors.New("could not read OBJECT_STORAGE_ID from file")
-		}
-		key, err := os.ReadFile("data/object_storage_key")
-		if err != nil {
-			return errors.New("could not read OBJECT_STORAGE_KEY from file")
-		}
-		o.ID = strings.TrimSpace(string(id))
-		o.Key = strings.TrimSpace(string(key))
-	}
-	if len(o.Cert) == 0 {
-		cert, err := os.ReadFile("data/object_storage.crt")
-		if err != nil {
-			return errors.New("could not read OBJECT_STORAGE_CERT from file")
-		}
-		o.Cert = cert
-	}
-
-	return nil
 }

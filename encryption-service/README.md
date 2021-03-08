@@ -99,8 +99,8 @@ formats are TOML, YAML, and JSON.
 
 All configuration options are documented in the example configuration
 [`scripts/dev-config.toml`](sripts/dev-config.toml). All configuration options can be overwritten by
-a corresponding environment variable. For example, the hostname for the object storage can be
-overwritten by setting `ECTNZ_OBJECTSTORAGE_URL`.
+a corresponding environment variable. For example, the URL for the object storage can be overwritten
+by setting `ECTNZ_OBJECTSTORAGE_URL`.
 
 To modify the various `make` targets, modify the configuration in
 [`scripts/dev-config.toml`](sripts/dev-config.toml). Note that for the docker-compose setup, some

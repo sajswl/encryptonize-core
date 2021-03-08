@@ -300,7 +300,7 @@ touch ./encryptonize-secrets/client.root.key && chmod 600 ./encryptonize-secrets
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.key}' | base64 -d > ./encryptonize-secrets/client.root.key
 ```
 
-Create three random 32 byte keys:
+Create random 32 byte keys:
 ```bash
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/ASK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/KEK

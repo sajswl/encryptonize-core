@@ -11,7 +11,7 @@ url = "postgresql://root@localhost:26257/auth"
 
 # Object storage configuration
 [objectstorage]
-# Hostname
+# Hostname for an S3 compatible endpoint
 url = "http://localhost:7000"
 
 # Key ID and secret key
