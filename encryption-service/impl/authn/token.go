@@ -146,22 +146,9 @@ func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*Acces
 		return nil, err
 	}
 
-	var userScopes users.ScopeType
-	for _, scope := range accessTokenClient.UserScopes {
-		switch scope {
-		case users.UserScope_READ:
-			userScopes |= users.ScopeRead
-		case users.UserScope_CREATE:
-			userScopes |= users.ScopeCreate
-		case users.UserScope_INDEX:
-			userScopes |= users.ScopeIndex
-		case users.UserScope_OBJECTPERMISSIONS:
-			userScopes |= users.ScopeObjectPermissions
-		case users.UserScope_USERMANAGEMENT:
-			userScopes |= users.ScopeUserManagement
-		default:
-			return nil, errors.New("Invalid Scopes in Token")
-		}
+	userScopes, err, _ := users.MapScopesToScopeType(accessTokenClient.UserScopes)
+	if err != nil {
+		return nil, errors.New("Error mapping scopes in Token")
 	}
 
 	expiryTime := time.Unix(accessTokenClient.ExpiryTime, 0)

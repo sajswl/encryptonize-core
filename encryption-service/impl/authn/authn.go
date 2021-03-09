@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"google.golang.org/protobuf/proto"
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/crypt"
@@ -57,19 +58,15 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	confidential := users.ConfidentialUserData{
 		HashedPassword: hashed,
 		Salt:           salt,
-		Scopes:         userscopes,
+		Scopes:         int32(userscopes),
 	}
 
-	var buf bytes.Buffer
-
-	enc := gob.NewEncoder(&buf)
-
-	err = enc.Encode(confidential)
+	buf, err := proto.Marshal(&confidential)
 	if err != nil {
 		return nil, "", err
 	}
 
-	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(buf.Bytes(), userID.Bytes())
+	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(buf, userID.Bytes())
 	if err != nil {
 		return nil, "", err
 	}
@@ -126,7 +123,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Incorrect password")
 	}
 
-	userscopes := confidential.Scopes
+	userscopes := users.ScopeType(confidential.Scopes)
 
 	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
 

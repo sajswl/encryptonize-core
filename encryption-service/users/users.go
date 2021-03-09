@@ -25,12 +25,6 @@ type UserData struct {
 	WrappedKey           []byte
 }
 
-type ConfidentialUserData struct {
-	HashedPassword []byte
-	Salt           []byte
-	Scopes         ScopeType
-}
-
 func (us ScopeType) IsValid() error {
 	if us < ScopeEnd {
 		return nil
@@ -40,4 +34,25 @@ func (us ScopeType) IsValid() error {
 
 func (us ScopeType) HasScopes(tar ScopeType) bool {
 	return (us & tar) == tar
+}
+
+func MapScopesToScopeType(scopes []UserScope) (ScopeType, error, UserScope) {
+	var userScopes ScopeType
+	for _, scope := range scopes {
+		switch scope {
+		case UserScope_READ:
+			userScopes |= ScopeRead
+		case UserScope_CREATE:
+			userScopes |= ScopeCreate
+		case UserScope_INDEX:
+			userScopes |= ScopeIndex
+		case UserScope_OBJECTPERMISSIONS:
+			userScopes |= ScopeObjectPermissions
+		case UserScope_USERMANAGEMENT:
+			userScopes |= ScopeUserManagement
+		default:
+			return 0, errors.New("Invalid Scopes in Token"), 0
+		}
+	}
+	return userScopes, nil, 0
 }

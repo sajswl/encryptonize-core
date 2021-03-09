@@ -29,3 +29,9 @@ message AccessTokenClient{
   repeated users.UserScope user_scopes = 2;
   int64 expiry_time = 3;
 }
+
+message ConfidentialUserData{
+  bytes hashed_password = 1;
+  bytes salt = 2;
+  int32 scopes = 3;
+}

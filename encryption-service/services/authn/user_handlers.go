@@ -29,24 +29,11 @@ import (
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	usertype := users.ScopeNone
-	for _, us := range request.UserScopes {
-		switch us {
-		case users.UserScope_READ:
-			usertype |= users.ScopeRead
-		case users.UserScope_CREATE:
-			usertype |= users.ScopeCreate
-		case users.UserScope_INDEX:
-			usertype |= users.ScopeIndex
-		case users.UserScope_OBJECTPERMISSIONS:
-			usertype |= users.ScopeObjectPermissions
-		case users.UserScope_USERMANAGEMENT:
-			usertype |= users.ScopeUserManagement
-		default:
-			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)
-			log.Error(ctx, errors.New("CreateUser: Invalid scope"), msg)
-			return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
-		}
+	usertype, err, invalidScope := users.MapScopesToScopeType(request.UserScopes)
+	if err != nil {
+		msg := fmt.Sprintf("CreateUser: Invalid scope %v", invalidScope)
+		log.Error(ctx, errors.New("CreateUser: Invalid scope"), msg)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 	}
 
 	userID, password, err := au.UserAuthenticator.NewUser(ctx, usertype)
