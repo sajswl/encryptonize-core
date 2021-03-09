@@ -14,9 +14,7 @@
 package authn
 
 import (
-	"bytes"
 	context "context"
-	"encoding/gob"
 	"errors"
 	"time"
 
@@ -113,11 +111,9 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	buf := bytes.NewBuffer(userData)
-	dec := gob.NewDecoder(buf)
-
 	var confidential users.ConfidentialUserData
-	err = dec.Decode(&confidential)
+	err = proto.Unmarshal(userData, &confidential)
+
 	if err != nil {
 		return "", err
 	}
