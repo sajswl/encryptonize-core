@@ -102,8 +102,9 @@ func HashPassword(password string, salt []byte) []byte {
 	return pbkdf2.Key([]byte(password), salt, 10000, 32, sha3.New256)
 }
 
-func CompareHashAndPassword(password string, hash []byte, salt []byte) int {
-	return subtle.ConstantTimeCompare(HashPassword(password, salt), hash)
+// CompareHashAndPassword returns true if hash and password are equal
+func CompareHashAndPassword(password string, hash []byte, salt []byte) bool {
+	return subtle.ConstantTimeCompare(HashPassword(password, salt), hash) == 1
 }
 
 // Encrypt encrypts a plaintext with additional associated data (aad) using the provided key returning the resulting ciphertext.

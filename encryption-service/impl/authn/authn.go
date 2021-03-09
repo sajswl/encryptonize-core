@@ -122,7 +122,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	if crypt.CompareHashAndPassword(providedPassword, confidential.HashedPassword, confidential.Salt) != 1 {
+	if !crypt.CompareHashAndPassword(providedPassword, confidential.HashedPassword, confidential.Salt) {
 		return "", errors.New("Incorrect password")
 	}
 
