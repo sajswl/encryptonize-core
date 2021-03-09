@@ -75,7 +75,10 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{TokenCryptor: c, UserCryptor: uc},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -102,7 +105,10 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 	goodTokenParts := strings.Split(goodToken, ".")
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{TokenCryptor: c, UserCryptor: uc},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	// for each position of the split token
@@ -149,7 +155,10 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	secondTokenParts := strings.Split(tokenSecond, ".")
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{TokenCryptor: c, UserCryptor: uc},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	// for each position of the split token
@@ -193,7 +202,10 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	token = "notBearer" + token[6:]
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{TokenCryptor: c, UserCryptor: uc},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -234,7 +246,10 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	failOnError("Error creating MessageAuthenticator", err, t)
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{TokenCryptor: c, UserCryptor: uc},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	for endpoint, rscope := range methodScopeMap {

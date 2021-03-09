@@ -76,5 +76,4 @@ func (au *Authn) LoginUser(ctx context.Context, request *LoginUserRequest) (*Log
 		AccessToken: token,
 	}
 	return resp, nil
-	// return nil, status.Errorf(codes.Unimplemented, "Not yet implemented")
 }
