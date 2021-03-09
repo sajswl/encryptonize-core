@@ -53,12 +53,15 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		return nil, "", err
 	}
 
-	hashed := crypt.HashPassword(pwd, salt)
+	scopes, err := users.MapScopetypeToScopes(userscopes)
+	if err != nil {
+		return nil, "", err
+	}
 
 	confidential := users.ConfidentialUserData{
-		HashedPassword: hashed,
+		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
-		Scopes:         int32(userscopes),
+		Scopes:         scopes,
 	}
 
 	buf, err := proto.Marshal(&confidential)
@@ -123,7 +126,10 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Incorrect password")
 	}
 
-	userscopes := users.ScopeType(confidential.Scopes)
+	userscopes, err := users.MapScopesToScopeType(confidential.Scopes)
+	if err != nil {
+		return "", err
+	}
 
 	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
 

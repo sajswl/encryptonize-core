@@ -33,5 +33,5 @@ message AccessTokenClient{
 message ConfidentialUserData{
   bytes hashed_password = 1;
   bytes salt = 2;
-  int32 scopes = 3;
+  repeated users.UserScope scopes = 3;
 }

@@ -71,26 +71,9 @@ func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface)
 		return "", errors.New("Invalid userID UUID")
 	}
 
-	userScope := []users.UserScope{}
-	// scopes is a bitmap. This checks each bit individually
-	for i := users.ScopeType(1); i < users.ScopeEnd; i <<= 1 {
-		if !at.HasScopes(i) {
-			continue
-		}
-		switch i {
-		case users.ScopeRead:
-			userScope = append(userScope, users.UserScope_READ)
-		case users.ScopeCreate:
-			userScope = append(userScope, users.UserScope_CREATE)
-		case users.ScopeIndex:
-			userScope = append(userScope, users.UserScope_INDEX)
-		case users.ScopeObjectPermissions:
-			userScope = append(userScope, users.UserScope_OBJECTPERMISSIONS)
-		case users.ScopeUserManagement:
-			userScope = append(userScope, users.UserScope_USERMANAGEMENT)
-		default:
-			return "", errors.New("Invalid scopes")
-		}
+	userScope, err := users.MapScopetypeToScopes(at.userScopes)
+	if err != nil {
+		return "", errors.New("Invalid scopes")
 	}
 
 	accessTokenClient := &users.AccessTokenClient{
@@ -146,7 +129,7 @@ func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*Acces
 		return nil, err
 	}
 
-	userScopes, err, _ := users.MapScopesToScopeType(accessTokenClient.UserScopes)
+	userScopes, err := users.MapScopesToScopeType(accessTokenClient.UserScopes)
 	if err != nil {
 		return nil, errors.New("Error mapping scopes in Token")
 	}

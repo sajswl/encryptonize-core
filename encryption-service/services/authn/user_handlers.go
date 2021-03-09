@@ -16,7 +16,6 @@ package authn
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -29,10 +28,9 @@ import (
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	usertype, err, invalidScope := users.MapScopesToScopeType(request.UserScopes)
+	usertype, err := users.MapScopesToScopeType(request.UserScopes)
 	if err != nil {
-		msg := fmt.Sprintf("CreateUser: Invalid scope %v", invalidScope)
-		log.Error(ctx, errors.New("CreateUser: Invalid scope"), msg)
+		log.Error(ctx, errors.New("CreateUser: Invalid scope"), err.Error())
 		return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 	}
 

@@ -2,6 +2,7 @@ package users
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gofrs/uuid"
 )
@@ -36,7 +37,7 @@ func (us ScopeType) HasScopes(tar ScopeType) bool {
 	return (us & tar) == tar
 }
 
-func MapScopesToScopeType(scopes []UserScope) (ScopeType, error, UserScope) {
+func MapScopesToScopeType(scopes []UserScope) (ScopeType, error) {
 	var userScopes ScopeType
 	for _, scope := range scopes {
 		switch scope {
@@ -51,8 +52,33 @@ func MapScopesToScopeType(scopes []UserScope) (ScopeType, error, UserScope) {
 		case UserScope_USERMANAGEMENT:
 			userScopes |= ScopeUserManagement
 		default:
-			return 0, errors.New("Invalid Scopes in Token"), 0
+			return 0, fmt.Errorf("CreateUser: Invalid scope %v", scopes)
 		}
 	}
-	return userScopes, nil, 0
+	return userScopes, nil
+}
+
+func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
+	userScope := []UserScope{}
+	// scopes is a bitmap. This checks each bit individually
+	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
+		if !scope.HasScopes(i) {
+			continue
+		}
+		switch i {
+		case ScopeRead:
+			userScope = append(userScope, UserScope_READ)
+		case ScopeCreate:
+			userScope = append(userScope, UserScope_CREATE)
+		case ScopeIndex:
+			userScope = append(userScope, UserScope_INDEX)
+		case ScopeObjectPermissions:
+			userScope = append(userScope, UserScope_OBJECTPERMISSIONS)
+		case ScopeUserManagement:
+			userScope = append(userScope, UserScope_USERMANAGEMENT)
+		default:
+			return nil, errors.New("Invalid scopes")
+		}
+	}
+	return userScope, nil
 }
