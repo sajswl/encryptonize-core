@@ -8,6 +8,14 @@ tek = "0000000000000000000000000000000000000000000000000000000000000002"
 [authstorage]
 # Connection string for the backend database
 url = "postgresql://root@localhost:26257/auth"
+username = "root"
+host = "localhost"
+port = "26257"
+database = "auth"
+sslmode = "disable"
+sslrootcert = ""
+sslcert = ""
+sslkey = ""
 
 # Object storage configuration
 [objectstorage]

@@ -54,6 +54,14 @@ type Keys struct {
 
 type AuthStorage struct {
 	URL string `koanf:"url"`
+	Username string `koanf:"username"`
+	Host string `koanf:"host"`
+	Port string `koanf:"port"`
+	Database string `koanf:"database"`
+	SSLMode string `koanf:"sslmode"`
+	SSLRootCert string `koanf:"sslrootcert"`
+	SSLCert string `koanf:"sslcert"`
+	SSLKey string `koanf:"sslkey"`
 }
 
 type ObjectStorage struct {
