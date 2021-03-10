@@ -48,7 +48,7 @@ metadata:
   name: ingress-config
   namespace: encryptonize
 data:
-  config : |
+  nginx.conf : |
     events {}
 
     http {
@@ -98,8 +98,7 @@ spec:
             - containerPort: 9000
           volumeMounts:
             - name: ingress-config
-              mountPath: /etc/nginx/nginx.conf
-              subPath: nginx.conf
+              mountPath: /etc/nginx/
               readOnly: true
             - name: ingress-certificate
               mountPath: /etc/ssl/certs/tls.crt
@@ -123,9 +122,6 @@ spec:
         - name: ingress-config
           configMap:
             name: ingress-config
-            items:
-              - key: config
-                path: nginx.conf
         - name: ingress-certificate
           secret:
             secretName: ingress-certificate

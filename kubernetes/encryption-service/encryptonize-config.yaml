@@ -25,11 +25,24 @@ imagePullSecrets:
 - name: gcr-json-key
 ---
 apiVersion: v1
-kind: ConfigMap
+kind: Secret
 metadata:
   name: encryptonize-config
   namespace: encryptonize
-data:
-  # Insert the hostnames assigned to the CockroachDB and Rook-Ceph clusters below
-  AUTH_STORAGE_URL: postgresql://root@${AUTH_STORAGE_HOSTNAME}:26257/auth?sslmode=verify-ca&sslrootcert=data/ca.crt&sslcert=data/client.root.crt&sslkey=data/client.root.key
-  OBJECT_STORAGE_URL: ${OBJECT_STORAGE_HOSTNAME}
+stringData:
+  # Fill out the configuration below
+  config.toml: |
+    [keys]
+    kek = "${KEK}"
+    ask = "${ASK}"
+    tek = "${TEK}"
+
+    [authstorage]
+    url = "postgresql://root@${AUTH_STORAGE_HOSTNAME}:26257/auth?sslmode=verify-ca&sslrootcert=data/ca.crt&sslcert=data/client.root.crt&sslkey=data/client.root.key"
+
+    [objectstorage]
+    url = "${OBJECT_STORAGE_HOSTNAME}"
+    id = "${OBJECT_STORAGE_ID}"
+    key = "${OBJECT_STORAGE_KEY}"
+    cert = '''${OBJECT_STORAGE_CERT}'''
+

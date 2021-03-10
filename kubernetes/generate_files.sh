@@ -31,13 +31,16 @@ export AUTH_STORAGE_HOSTNAME=db.example.com
 export ENCRYPTION_SERVICE_HOSTNAME=encryptonize.example.com
 export ELASTICSEARCH_HOSTNAME=elasticsearch.example.com
 export ENCRYPTION_SERVICE_IMAGE=example/encryptonize:latest
+export SECRETS_PATH=./encryptonize-secrets
 
 ##########################
 
-FILE_DIR=generated_files
+FILE_DIR=./generated_files
 mkdir -p ${FILE_DIR}/object-storage
 mkdir -p ${FILE_DIR}/encryption-service
 mkdir -p ${FILE_DIR}/logging
+
+echo "Generating files in '${FILE_DIR}'"
 
 envsubst '$STORAGE_CLASS' \
   < ./object-storage/cluster.yaml \
@@ -45,9 +48,6 @@ envsubst '$STORAGE_CLASS' \
 envsubst '$OBJECT_STORAGE_HOSTNAME' \
   < ./object-storage/ingress.yaml \
   > ${FILE_DIR}/object-storage/ingress.yaml
-envsubst '$AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME' \
-  < ./encryption-service/encryptonize-config.yaml \
-  > ${FILE_DIR}/encryption-service/encryptonize-config.yaml
 envsubst '$ENCRYPTION_SERVICE_HOSTNAME' \
   < ./encryption-service/encryptonize-ingress.yaml \
   > ${FILE_DIR}/encryption-service/encryptonize-ingress.yaml
@@ -60,3 +60,21 @@ envsubst '$ELASTICSEARCH_HOSTNAME' \
 envsubst '$ELASTICSEARCH_HOSTNAME' \
   < ./logging/fluent-bit-deploy.yaml \
   > ${FILE_DIR}/logging/fluent-bit-deploy.yaml
+
+# Generate encryptonize-config.yaml if secrets have been generated
+if [ -d "$SECRETS_PATH" ]; then
+  echo "Generating configuration from secrets in '${SECRETS_PATH}'"
+  export KEK=$(cat ${SECRETS_PATH}/KEK)
+  export ASK=$(cat ${SECRETS_PATH}/ASK)
+  export TEK=$(cat ${SECRETS_PATH}/TEK)
+  export OBJECT_STORAGE_ID=$(cat ${SECRETS_PATH}/object_storage_id)
+  export OBJECT_STORAGE_KEY=$(cat ${SECRETS_PATH}/object_storage_key)
+  # Indent lines of cert to match yaml, skipping the first line
+  export OBJECT_STORAGE_CERT=$(cat ${SECRETS_PATH}/object_storage.crt | sed -e '2,$s/^/    /')
+
+  envsubst '$KEK $ASK $TEK $AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME $OBJECT_STORAGE_ID $OBJECT_STORAGE_KEY $OBJECT_STORAGE_CERT' \
+    < ./encryption-service/encryptonize-config.yaml \
+    > ${FILE_DIR}/encryption-service/encryptonize-config.yaml
+else
+  echo "'${SECRETS_PATH}' not found, skipping configuration"
+fi

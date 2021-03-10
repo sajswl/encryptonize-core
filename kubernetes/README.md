@@ -82,7 +82,7 @@ below. Strings to replace are expressed with bash syntax (e.g `${VAR}`) such tha
 
 **1)** If needed, adjust the `storageClassName` in `object-storage/cluster.yaml` to fit your cloud
 provider:
-```
+```bash
 apiVersion: ceph.rook.io/v1
 kind: CephCluster
 metadata:
@@ -136,21 +136,7 @@ data:
 
 ```
 
-**3)** You need to point the Encryption Service to the CockroachDB and Rook-Ceph hostnames you will
-use. Set the hostnames in `encryption-service/encryptonize-config.yaml` as shown below:
-```bash
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: encryptonize-config
-  namespace: encryptonize
-data:
-  # Insert the hostnames assigned to the CockroachDB and Rook-Ceph clusters below
-  AUTH_STORAGE_URL: postgresql://root@${AUTH_STORAGE_HOSTNAME}:26257/authn?sslmode=verify-ca&sslrootcert=data/ca.crt&sslcert=data/client.root.crt&sslkey=data/client.root.key
-  OBJECT_STORAGE_URL: ${OBJECT_STORAGE_HOSTNAME}
-```
-
-**4)** Set the `dnsName` of the `ingress-certificate` in
+**3)** Set the `dnsName` of the `ingress-certificate` in
 `encryption-service/encryptonize-ingress.yaml` to the hostname you will be using for the encryption
 service:
 ```bash
@@ -167,7 +153,7 @@ spec:
   ...
 ```
 
-**5)** If you want to deploy the loggin setup, set the hostname you will be using for Elasticsearch
+**4)** If you want to deploy the loggin setup, set the hostname you will be using for Elasticsearch
 in `logging/elastic-search.yaml`:
 ```bash
 apiVersion: elasticsearch.k8s.elastic.co/v1
@@ -201,7 +187,8 @@ spec:
 
 ## CockroachDB Deployment
 
-You need a Kubernetes cluster in order to deploy CockroachDB. If you don't have one, we provide a quickstart guide to set one up:
+You need a Kubernetes cluster in order to deploy CockroachDB. If you don't have one, we provide a
+quickstart guide to set one up:
 
 1. [AWS cluster quickstart](aws_default_cluster_setup.md)
 2. [Azure cluster quickstart](azure_default_cluster_setup.md)
@@ -313,12 +300,28 @@ touch ./encryptonize-secrets/client.root.key && chmod 600 ./encryptonize-secrets
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.key}' | base64 -d > ./encryptonize-secrets/client.root.key
 ```
 
-Create two random 32 byte keys:
+Create random 32 byte keys:
 ```bash
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/ASK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/KEK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/TEK
 ```
+
+Finally, you need to define the Encryption Service configuration in `encryption-service/encryptonize-config.yaml`
+using the secrets you created above as well as the Rook-Ceph and CockroachDB hostnames:
+```bash
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: encryptonize-config
+  namespace: encryptonize
+data:
+  # Fill out the configuration below
+  config: |
+  ...
+```
+Note that the `generate_files.sh` script will also automatically create the configuration if the
+secrets have been generated.
 
 ### Set hostnames
 
@@ -403,13 +406,7 @@ Create a cluster secret for the Encryptonize files:
 kubectl -n encryptonize create secret generic encryptonize-secrets \
   --from-file=./encryptonize-secrets/ca.crt \
   --from-file=./encryptonize-secrets/client.root.crt \
-  --from-file=./encryptonize-secrets/client.root.key \
-  --from-file=./encryptonize-secrets/object_storage_id \
-  --from-file=./encryptonize-secrets/object_storage_key \
-  --from-file=./encryptonize-secrets/object_storage.crt \
-  --from-file=./encryptonize-secrets/KEK \
-  --from-file=./encryptonize-secrets/ASK \
-  --from-file=./encryptonize-secrets/TEK
+  --from-file=./encryptonize-secrets/client.root.key
 ```
 
 ### Deploy the service
@@ -462,7 +459,8 @@ kubectl -n elasticsearch get svc elasticsearch-es-http -o jsonpath="{.status.loa
 
 ### Fluentbit
 
-You will need to deploy fluentbit to each of the three clusters. First fetch the Elasticsearch certificates:
+You will need to deploy fluentbit to each of the three clusters. First fetch the Elasticsearch
+certificates:
 ```bash
 kubectl -n elasticsearch get secrets elasticsearch-es-http-certs-public -o jsonpath="{.data['tls\.crt']}" | base64 -d > es.crt
 kubectl -n elasticsearch get secrets elasticsearch-es-http-certs-public -o jsonpath="{.data['ca\.crt']}" | base64 -d > es-ca.crt
@@ -519,5 +517,10 @@ settings:
   built-in Docker log parser.
 * Input.Mem_Buf_Limit = 5MB: The ammount of log data Fluentbit can hold at a time. The total
   throughput is therefore a function of this number and Service.Flush.
-* Filter.Name = es: We use kubernetes filters to enrich the logs with extra fields such as container and pod names. The filter is also configured with custom parsers for the object-store, auth-store and the encryption-service.
-* Filter.Merge_Parser = <parser>: Selects a parser which will be used to parse the contents of the "log" field (which is the stdout of the service). If the parser cannot match the content, it will skip parsing and the "log" field is preserved as is. Otherwise, the "log" field is split up into several fields. 
+* Filter.Name = es: We use kubernetes filters to enrich the logs with extra fields such as container
+  and pod names. The filter is also configured with custom parsers for the object-store, auth-store
+  and the encryption-service.
+* Filter.Merge_Parser = <parser>: Selects a parser which will be used to parse the contents of the
+  "log" field (which is the stdout of the service). If the parser cannot match the content, it will
+  skip parsing and the "log" field is preserved as is. Otherwise, the "log" field is split up into
+  several fields.

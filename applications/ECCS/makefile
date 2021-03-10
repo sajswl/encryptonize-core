@@ -40,5 +40,3 @@ tests: build        ## Run function tests
 .PHONY: clean  ## Remove build artifacts
 clean :
 	rm -f $(binary)
-	rm -f $(protobufs)
-	rmdir authn
