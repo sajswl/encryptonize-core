@@ -305,6 +305,7 @@ Create random 32 byte keys:
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/ASK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/KEK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/TEK
+hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/UEK
 ```
 
 Finally, you need to define the Encryption Service configuration in `encryption-service/encryptonize-config.yaml`
