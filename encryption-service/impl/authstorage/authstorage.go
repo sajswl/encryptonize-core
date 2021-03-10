@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -121,6 +122,19 @@ func (store *AuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStor
 
 func (store *AuthStore) Close() {
 	store.pool.Close()
+}
+
+// ImportSchema reads a schema file and executes it
+func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) error {
+	log.Info(ctx, "ImportSchema started")
+	schemaData, err := os.ReadFile(schemaFile)
+	if err != nil {
+		return err
+	}
+
+	_, err = store.pool.Exec(ctx, string(schemaData))
+
+	return err
 }
 
 // Used as a defer function to rollback an unfinished transaction

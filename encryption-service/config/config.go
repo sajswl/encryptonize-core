@@ -51,6 +51,9 @@ type Keys struct {
 
 type AuthStorage struct {
 	URL string `koanf:"url"`
+
+	// Schema file that is imported on start if specified
+	SchemaFile string `koanf:"schema_file"`
 }
 
 type ObjectStorage struct {
