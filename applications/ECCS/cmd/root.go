@@ -27,6 +27,10 @@ var (
 	objectID string
 	target   string
 
+	// User ags
+	uid      string
+	password string
+
 	// Store args
 	filename       string
 	stdin          bool
@@ -127,6 +131,18 @@ var createUserCmd = &cobra.Command{
 	},
 }
 
+var loginUserCmd = &cobra.Command{
+	Use:   "loginuser",
+	Short: "Logs in with uid and password and prints and access token",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := app.LoginUser(uid, password)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
@@ -135,6 +151,7 @@ func InitCmd() error {
 	rootCmd.AddCommand(addPermissionCmd)
 	rootCmd.AddCommand(removePermissionCmd)
 	rootCmd.AddCommand(createUserCmd)
+	rootCmd.AddCommand(loginUserCmd)
 
 	// Set credential flags
 	rootCmd.PersistentFlags().StringVarP(&userAT, "token", "a", "", "User access token")
@@ -185,6 +202,10 @@ func InitCmd() error {
 	createUserCmd.Flags().BoolVarP(&scopeIndex, "index", "i", false, "Grants the Index scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeUserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
+
+	// Set loginUser flags
+	loginUserCmd.Flags().StringVarP(&uid, "uid", "u", "", "UID of the user to retrieve a token for")
+	loginUserCmd.Flags().StringVarP(&password, "password", "p", "", "Password of the provided user")
 
 	return nil
 }

@@ -28,8 +28,13 @@ func TestCreateUser(t *testing.T) {
 	failOnError("Create user request failed", err, t)
 	t.Logf("%v", createUserResponse)
 
+	// Test user login
+	loginUserResponse, err := client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Create user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
 	// Test that users can do stuff
-	uat2 := createUserResponse.AccessToken
+	uat2 := loginUserResponse.AccessToken
 	if err != nil {
 		t.Fatalf("Couldn't parse UAT: %v", err)
 	}
@@ -44,8 +49,13 @@ func TestCreateUser(t *testing.T) {
 	// Test admin creation
 	createAdminResponse, err := client.CreateUser(protoAdminScopes)
 	failOnError("Create admin request failed", err, t)
+
+	// Test admin login
+	loginAdminResponse, err := client.LoginUser(createAdminResponse.UserId, createAdminResponse.Password)
+	failOnError("Create admin request failed", err, t)
+
 	// Test that created Admin can do stuff
-	uatAdmin2 := createAdminResponse.AccessToken
+	uatAdmin2 := loginAdminResponse.AccessToken
 	clientAdmin2, err := NewClient(endpoint, uatAdmin2, https)
 	failOnError("Could not create client2", err, t)
 	defer closeClient(clientAdmin2, t)

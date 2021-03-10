@@ -16,46 +16,49 @@ package authn
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	log "encryption-service/logger"
-	"encryption-service/scopes"
+	"encryption-service/users"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	usertype := scopes.ScopeNone
-	for _, us := range request.UserScopes {
-		switch us {
-		case scopes.UserScope_READ:
-			usertype |= scopes.ScopeRead
-		case scopes.UserScope_CREATE:
-			usertype |= scopes.ScopeCreate
-		case scopes.UserScope_INDEX:
-			usertype |= scopes.ScopeIndex
-		case scopes.UserScope_OBJECTPERMISSIONS:
-			usertype |= scopes.ScopeObjectPermissions
-		case scopes.UserScope_USERMANAGEMENT:
-			usertype |= scopes.ScopeUserManagement
-		default:
-			msg := fmt.Sprintf("CreateUser: Invalid scope %v", us)
-			log.Error(ctx, errors.New("CreateUser: Invalid scope"), msg)
-			return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
-		}
+	usertype, err := users.MapScopesToScopeType(request.UserScopes)
+	if err != nil {
+		log.Error(ctx, errors.New("CreateUser: Invalid scope"), err.Error())
+		return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 	}
 
-	userID, token, err := au.UserAuthenticator.NewUser(ctx, usertype)
+	userID, password, err := au.UserAuthenticator.NewUser(ctx, usertype)
 	if err != nil {
 		log.Error(ctx, err, "CreateUser: Couldn't create new user")
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
 	}
 
 	return &CreateUserResponse{
-		UserId:      userID.String(),
-		AccessToken: token,
+		UserId:   userID.String(),
+		Password: password,
 	}, nil
+}
+
+func (au *Authn) LoginUser(ctx context.Context, request *LoginUserRequest) (*LoginUserResponse, error) {
+	uuid, err := uuid.FromString(request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	token, err := au.UserAuthenticator.LoginUser(ctx, uuid, request.Password)
+	if err != nil {
+		log.Error(ctx, err, "LoginUser: Couldn't login the user")
+		return nil, status.Errorf(codes.Internal, "error encountered while logging in user")
+	}
+
+	resp := &LoginUserResponse{
+		AccessToken: token,
+	}
+	return resp, nil
 }

@@ -381,8 +381,8 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 	}
 
 	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_id":      descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"access_token": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"user_id":  descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"password": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(mth.GetOutputType(), outExp) {
 		return "", "", errors.New("Unexpected output type of CreateUser method")
@@ -416,7 +416,54 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 	}
 
 	uid := res.GetFieldByName("user_id").(string)
+	password := res.GetFieldByName("password").(string)
+
+	return uid, password, nil
+}
+
+func (c *Client) LoginUser(uid, password string) (string, error) {
+	mth, err := c.findMethod("authn.Encryptonize", "LoginUser")
+	if err != nil {
+		return "", err
+	}
+
+	// sanitize input and outputs
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"user_id":  descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"password": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(inType, inExp) {
+		return "", errors.New("Unexpected input type of LoginUser method")
+	}
+
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"access_token": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+
+	if !sanitize(mth.GetOutputType(), outExp) {
+		return "", errors.New("Unexpected output type of LoginUser method")
+	}
+
+	// create argument
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("user_id", uid)
+	msg.SetFieldByName("password", password)
+
+	// invoke RPC
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return "", err
+	}
+
+	// deconstruct return value
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return "", err
+	}
+
 	at := res.GetFieldByName("access_token").(string)
 
-	return uid, at, nil
+	return at, nil
 }

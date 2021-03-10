@@ -20,7 +20,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/scopes"
+	"encryption-service/users"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -45,8 +45,11 @@ type AuthStoreTxInterface interface {
 	// Check if a user exists in the auth store
 	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
 
+	// Get user's confidential data
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error)
+
 	// Update or insert a user
-	UpsertUser(ctx context.Context, userID uuid.UUID) (err error)
+	UpsertUser(ctx context.Context, userData users.UserData) (err error)
 
 	//  Retrieve an existing access object
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
@@ -88,13 +91,16 @@ type KeyWrapperInterface interface {
 // Interface for authenticating and creating users
 type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
-	NewUser(ctx context.Context, userscopes scopes.ScopeType) (userID *uuid.UUID, token string, err error)
+	NewUser(ctx context.Context, userscopes users.ScopeType) (userID *uuid.UUID, password string, err error)
 
 	// Create a new user with admin rights
 	NewAdminUser(authStore AuthStoreInterface) (err error)
 
 	// Parses a token string into the internal data type
 	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
+
+	// Logs a user in with userID and password pair
+	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
 }
 
 type AccessObjectInterface interface {
@@ -141,8 +147,8 @@ type AccessTokenInterface interface {
 	UserID() (userID uuid.UUID)
 
 	// Get the scopes contained in the token
-	UserScopes() (scopes scopes.ScopeType)
+	UserScopes() (scopes users.ScopeType)
 
 	// Check if the token contains specific scopes
-	HasScopes(tar scopes.ScopeType) (res bool)
+	HasScopes(tar users.ScopeType) (res bool)
 }

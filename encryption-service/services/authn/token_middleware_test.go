@@ -29,7 +29,7 @@ import (
 	"encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
-	"encryption-service/scopes"
+	users "encryption-service/users"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -44,7 +44,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
-func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes scopes.ScopeType) (string, error) {
+func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes users.ScopeType) (string, error) {
 	accessToken := authn.NewAccessToken(userID, scopes, time.Minute*10)
 
 	token, err := accessToken.SerializeAccessToken(c)
@@ -60,10 +60,14 @@ func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes 
 // It ONLY tests the middleware and assumes that the LoginUser works as intended
 func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
+	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
+	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
+	failOnError("NewMessageAuthenticator errored", err, t)
+
+	uc, err := crypt.NewAESCryptor(UEK)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	token, err := CreateUserForTests(c, userID, userScope)
@@ -71,7 +75,10 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -82,11 +89,15 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 
 func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
+	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
+	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("NewMessageAuthenticator errored %v", err, t)
+
+	uc, err := crypt.NewAESCryptor(UEK)
+	failOnError("NewMessageAuthenticator errored", err, t)
 
 	goodToken, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
@@ -94,7 +105,10 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 	goodTokenParts := strings.Split(goodToken, ".")
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	// for each position of the split token
@@ -122,11 +136,15 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userIDFirst := uuid.Must(uuid.NewV4())
 	userIDSecond := uuid.Must(uuid.NewV4())
-	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
+	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
+	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("NewMessageAuthenticator errored %v", err, t)
+
+	uc, err := crypt.NewAESCryptor(UEK)
+	failOnError("NewMessageAuthenticator errored", err, t)
 
 	tokenFirst, err := CreateUserForTests(c, userIDFirst, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
@@ -137,7 +155,10 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	secondTokenParts := strings.Split(tokenSecond, ".")
 
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	// for each position of the split token
@@ -165,10 +186,14 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 // Tests that accesstoken of wrong type gets rejected
 func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := scopes.ScopeRead | scopes.ScopeCreate | scopes.ScopeIndex | scopes.ScopeObjectPermissions
+	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
+	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
+	failOnError("NewMessageAuthenticator errored", err, t)
+
+	uc, err := crypt.NewAESCryptor(UEK)
 	failOnError("NewMessageAuthenticator errored", err, t)
 
 	token, err := CreateUserForTests(c, userID, userScope)
@@ -177,7 +202,10 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	token = "notBearer" + token[6:]
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
@@ -210,20 +238,27 @@ func TestCheckAccessTokenInvalidATformat(t *testing.T) {
 // all tests should fail
 func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	ASK, _ := crypt.Random(32)
+	UEK, _ := crypt.Random(32)
 	c, err := crypt.NewAESCryptor(ASK)
 	failOnError("Error creating MessageAuthenticator", err, t)
 
+	uc, err := crypt.NewAESCryptor(UEK)
+	failOnError("Error creating MessageAuthenticator", err, t)
+
 	au := &Authn{
-		UserAuthenticator: &authn.UserAuthenticator{Cryptor: c},
+		UserAuthenticator: &authn.UserAuthenticator{
+			TokenCryptor: c,
+			UserCryptor:  uc,
+		},
 	}
 
 	for endpoint, rscope := range methodScopeMap {
-		if rscope == scopes.ScopeNone {
+		if rscope == users.ScopeNone {
 			// endpoints that only require logged in users are already covered
 			// by tests that check if authentication works
 			continue
 		}
-		tscopes := (scopes.ScopeEnd - 1) &^ rscope
+		tscopes := (users.ScopeEnd - 1) &^ rscope
 		tuid := uuid.Must(uuid.NewV4())
 		token, err := CreateUserForTests(c, tuid, tscopes)
 		failOnError("Error Creating User", err, t)
