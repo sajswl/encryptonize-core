@@ -174,9 +174,8 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	return true, nil
 }
 
-// Creates a user with a tag, updates the tag if the user exists
-// Returns an error if SQL query fails to execute in authstorage DB
-func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
+// InsertUser inserts a user into the auth store
+func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
 	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
 	return err
 }
