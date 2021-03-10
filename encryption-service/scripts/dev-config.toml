@@ -7,7 +7,7 @@ tek = "0000000000000000000000000000000000000000000000000000000000000002"
 # Auth storage configuration
 [authstorage]
 # Connection string for the backend database
-url = "postgresql://postgres:mysecretpassword@vm:5432/postgres"
+url = "postgresql://root@localhost:26257/auth"
 
 # Schema file executed on startup
 schema = "./data/auth_storage_basic.sql"
