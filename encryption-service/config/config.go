@@ -53,7 +53,7 @@ type AuthStorage struct {
 	URL string `koanf:"url"`
 
 	// Schema file that is imported on start if specified
-	SchemaFile string `koanf:"schema_file"`
+	Schema string `koanf:"schema"`
 }
 
 type ObjectStorage struct {

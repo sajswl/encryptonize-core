@@ -33,8 +33,8 @@ func SetupAuthStore(ctx context.Context, config config.AuthStorage) (*authstorag
 
 	// Import schema if a schema file was specified
 	// TODO: is this the right place for this feature?
-	if config.SchemaFile != "" {
-		err = authStore.ImportSchema(ctx, config.SchemaFile)
+	if config.Schema != "" {
+		err = authStore.ImportSchema(ctx, config.Schema)
 		if err != nil {
 			return nil, err
 		}
