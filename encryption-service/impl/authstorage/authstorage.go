@@ -136,7 +136,6 @@ func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) err
 	// Wait for DB to be up
 	// TODO: this is not ideal
 	for i := 0; i < 120; i++ {
-
 		// TODO: replace builtin pgxpool once this is released:
 		// https://github.com/jackc/pgx/commit/aa8604b5c22989167e7158ecb1f6e7b8ddfebf04
 		_, err := store.pool.Exec(ctx, ";")
