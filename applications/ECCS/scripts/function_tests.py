@@ -55,17 +55,37 @@ def create_user(token, flags=None):
 	if flags is not None:
 		cmd.append(flags)
 
-	# uid and token are returned on stderr so we need to get that
+	# uid and password are returned on stderr so we need to get that
 	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
 
 	uid = None
-	at = None
+	password = None
 	for match in re.finditer(r"UID: \"([^\"]+)\"", res.stderr):
 		if uid is not None:
 			print(f"multiple matches for the UID, aborting")
 			sys.exit(1)
 		uid = match.group(1)
 
+	for match in re.finditer(r"Password: \"([^\"]+)", res.stderr):
+		if password is not None:
+			print(f"multiple matches for the Password, aborting")
+			print(at)
+			print(match.group(0))
+			sys.exit(1)
+		password = match.group(1)
+
+	if uid is None or at is None:
+		print(f"unable to match UID or Password in {res}")
+		sys.exit(1)
+
+	return uid, password
+
+def login_user(uid, password):
+	cmd = ["./eccs", "-u", uid, "-p", password, "--token", "\"\"", "loginuser"]
+
+	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
+
+	at = None
 	for match in re.finditer(r"AT: \"([^\"]+)", res.stderr):
 		if at is not None:
 			print(f"multiple matches for the AT, aborting")
@@ -74,11 +94,7 @@ def create_user(token, flags=None):
 			sys.exit(1)
 		at = match.group(1)
 
-	if uid is None or at is None:
-		print(f"unable to match UID or AT in {res}")
-		sys.exit(1)
-
-	return uid, at
+	return at
 
 def create_object(token, data):
 	cmd = ["./eccs", "-a", token, "store", "-s"]
@@ -104,16 +120,20 @@ def create_object(token, data):
 
 if __name__ == "__main__":
 	at = init()
-	uid1, at1 = create_user(at, "-rcip")
-	print(f"[+] created first user:  UID {uid1}, AT {at1}")
-	uid2, at2 = create_user(at, "-r")
-	print(f"[+] created second user: UID {uid2}, AT {at2}")
+	uid1, password1 = create_user(at, "-rcip")
+	print(f"[+] created first user:  UID {uid1}, Password {password1}")
+	uid2, password2 = create_user(at, "-r")
+	print(f"[+] created second user: UID {uid2}, Password {password2}")
 	try:
-		uid3, at3 = create_user(at) # expecting a subprocess.CalledProcessError when calling without scope
+		create_user(at) # expecting a subprocess.CalledProcessError when calling without scope
 		print(f"[-] A user without any scope was created, but an error was expected, aborting")
 		sys.exit(1)
 	except subprocess.CalledProcessError:
 		print("[+] did not create a third user without scopes")
+
+	at1 = login_user(uid1, password1)
+	print(f"[+] logged in as first user:  UID {uid1}, AT {at1}")
+
 	oid = create_object(at1, "no one has the intention to store bytes here.")
 	print(f"[+] object created:      OID {oid}")
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)

@@ -21,10 +21,10 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
-	"encryption-service/scopes"
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
 	"encryption-service/services/enc"
+	"encryption-service/users"
 )
 
 // Client for making test gRPC calls to the encryption service
@@ -144,7 +144,7 @@ func (c *Client) RemovePermission(oid, target string) (*enc.RemovePermissionResp
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(userscopes []scopes.UserScope) (*authn.CreateUserResponse, error) {
+func (c *Client) CreateUser(userscopes []users.UserScope) (*authn.CreateUserResponse, error) {
 	createUserRequest := &authn.CreateUserRequest{
 		UserScopes: userscopes,
 	}
@@ -154,6 +154,20 @@ func (c *Client) CreateUser(userscopes []scopes.UserScope) (*authn.CreateUserRes
 		return nil, fmt.Errorf("CreateUser failed: %v", err)
 	}
 	return createUserResponse, nil
+}
+
+// Perform a `LoginUser` request.
+func (c *Client) LoginUser(userid string, password string) (*authn.LoginUserResponse, error) {
+	loginUserRequest := &authn.LoginUserRequest{
+		UserId:   userid,
+		Password: password,
+	}
+
+	loginUserResponse, err := c.authClient.LoginUser(c.ctx, loginUserRequest)
+	if err != nil {
+		return nil, fmt.Errorf("LoginUser failed: %v", err)
+	}
+	return loginUserResponse, nil
 }
 
 // Perform a `Version` request.

@@ -30,6 +30,7 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
+	"encryption-service/users"
 )
 
 // TODO: Tune circuit breaker
@@ -161,7 +162,8 @@ func (storeTx *AuthStoreTx) NewQuery(query string) string {
 func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	var fetchedID []byte
 
-	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT * FROM users WHERE id = $1"), userID)
+	// TODO: COUNT could be more appropriate
+	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1"), userID)
 	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -174,9 +176,24 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 
 // Creates a user with a tag, updates the tag if the user exists
 // Returns an error if SQL query fails to execute in authstorage DB
-func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, userID uuid.UUID) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id) VALUES ($1)"), userID)
+func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
 	return err
+}
+
+// Gets user's confidential data
+func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error) {
+	var data, key []byte
+	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1"), userID)
+	err := row.Scan(&data, &key)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, interfaces.ErrNotFound
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return data, key, err
 }
 
 // GetAccessObject fetches data, tag of an Access Object with given Object ID

@@ -16,18 +16,29 @@ syntax = "proto3";
 package authn;
 option go_package = "encryption-service/authn";
 
-import "scopes/scopes.proto";
+import "users/users.proto";
 
 service Encryptonize{
   // Creates a new user on the service
   rpc CreateUser (CreateUserRequest) returns (CreateUserResponse){}
+
+  rpc LoginUser (LoginUserRequest) returns (LoginUserResponse){}
 }
 
 message CreateUserRequest{
-  repeated scopes.UserScope user_scopes = 1;
+  repeated users.UserScope user_scopes = 1;
 }
 
 message CreateUserResponse{
   string user_id = 1;
-  string access_token = 2;
+  string password = 2;
+}
+
+message LoginUserRequest{
+  string user_id = 1;
+  string password = 2;
+}
+
+message LoginUserResponse{
+  string access_token = 1;
 }

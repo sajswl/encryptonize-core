@@ -47,6 +47,9 @@ type Keys struct {
 
 	// Used for token encryption
 	TEK []byte `koanf:"tek"`
+
+	// Used for confidential user data encryption
+	UEK []byte `koanf:"uek"`
 }
 
 type AuthStorage struct {
@@ -157,6 +160,14 @@ func (k *Keys) ParseConfig() error {
 		return errors.New("TEK must be 32 bytes (64 hex digits) long")
 	}
 
+	k.UEK, err = hex.DecodeString(string(k.UEK))
+	if err != nil {
+		return errors.New("UEK couldn't be parsed (decode hex)")
+	}
+	if len(k.UEK) != 32 {
+		return errors.New("UEK must be 32 bytes (64 hex digits) long")
+	}
+
 	return nil
 }
 
@@ -203,6 +214,9 @@ func (k *Keys) CheckInsecure() {
 		}
 		if hex.EncodeToString(k.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
+		}
+		if hex.EncodeToString(k.UEK) == "0000000000000000000000000000000000000000000000000000000000000003" {
+			log.Fatal(ctx, errors.New(""), "Test UEK used outside of INSECURE testing mode")
 		}
 	}
 }

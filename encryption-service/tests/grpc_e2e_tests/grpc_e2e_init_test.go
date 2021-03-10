@@ -14,19 +14,19 @@
 package grpce2e
 
 import (
+	"encryption-service/users"
 	"log"
 	"os"
 	"testing"
-
-	"encryption-service/scopes"
 )
 
 var endpoint = "127.0.0.1:9000"
 var uid string
 var uat string
+var pwd string
 var adminAT = "wgiB4kxBTb3A0lJQNLj1Bm24g1zt-IljDda0fqoS84VfAJ_OoQsbBw.ysFgUjsYhQ_-irx0Yrf3xSeJ-CR-ZnMbq9mbBcHrPKV6g2hdBJnD0jznJJuhnLHlvJd7l20B1w"
-var protoUserScopes = []scopes.UserScope{scopes.UserScope_READ, scopes.UserScope_CREATE, scopes.UserScope_INDEX, scopes.UserScope_OBJECTPERMISSIONS}
-var protoAdminScopes = []scopes.UserScope{scopes.UserScope_USERMANAGEMENT}
+var protoUserScopes = []users.UserScope{users.UserScope_READ, users.UserScope_CREATE, users.UserScope_INDEX, users.UserScope_OBJECTPERMISSIONS}
+var protoAdminScopes = []users.UserScope{users.UserScope_USERMANAGEMENT}
 var https = false
 
 /**************************/
@@ -58,8 +58,16 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Couldn't create test user: %v", err)
 	}
-	uat = createUserResponse.AccessToken
+
 	uid = createUserResponse.UserId
+	pwd = createUserResponse.Password
+
+	loginUserResponse, err := client.LoginUser(uid, pwd)
+	if err != nil {
+		log.Fatalf("Couldn't login with test user: %v", err)
+	}
+
+	uat = loginUserResponse.AccessToken
 
 	os.Exit(m.Run())
 }

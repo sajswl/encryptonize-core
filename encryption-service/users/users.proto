@@ -13,8 +13,8 @@
 // limitations under the License.
 syntax = "proto3";
 
-package scopes;
-option go_package = "encryption-service/scopes";
+package users;
+option go_package = "encryption-service/users";
 
 enum UserScope{
   READ = 0;
@@ -26,6 +26,12 @@ enum UserScope{
 
 message AccessTokenClient{
   bytes user_id = 1;
-  repeated scopes.UserScope user_scopes = 2;
+  repeated users.UserScope user_scopes = 2;
   int64 expiry_time = 3;
+}
+
+message ConfidentialUserData{
+  bytes hashed_password = 1;
+  bytes salt = 2;
+  repeated users.UserScope scopes = 3;
 }

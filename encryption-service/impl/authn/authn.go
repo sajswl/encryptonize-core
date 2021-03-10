@@ -19,19 +19,22 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"google.golang.org/protobuf/proto"
 
 	"encryption-service/contextkeys"
+	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/scopes"
+	"encryption-service/users"
 )
 
 type UserAuthenticator struct {
-	Cryptor interfaces.CryptorInterface
+	TokenCryptor interfaces.CryptorInterface
+	UserCryptor  interfaces.CryptorInterface
 }
 
 // NewUser creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.ScopeType) (*uuid.UUID, string, error) {
+func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
@@ -41,17 +44,44 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 		return nil, "", err
 	}
 
-	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
+	// user password creation
 
-	token, err := accessToken.SerializeAccessToken(ua.Cryptor)
+	pwd, salt, err := crypt.GenerateUserPassword()
 	if err != nil {
 		return nil, "", err
+	}
+
+	scopes, err := users.MapScopetypeToScopes(userscopes)
+	if err != nil {
+		return nil, "", err
+	}
+
+	confidential := users.ConfidentialUserData{
+		HashedPassword: crypt.HashPassword(pwd, salt),
+		Salt:           salt,
+		Scopes:         scopes,
+	}
+
+	buf, err := proto.Marshal(&confidential)
+	if err != nil {
+		return nil, "", err
+	}
+
+	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(buf, userID.Bytes())
+	if err != nil {
+		return nil, "", err
+	}
+
+	userData := users.UserData{
+		UserID:               userID,
+		ConfidentialUserData: ciphertext,
+		WrappedKey:           wrappedKey,
 	}
 
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorageTx.UpsertUser(ctx, userID)
+	err = authStorageTx.UpsertUser(ctx, userData)
 	if err != nil {
 		return nil, "", err
 	}
@@ -61,7 +91,50 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes scopes.Scop
 		return nil, "", err
 	}
 
-	return &userID, token, nil
+	return &userID, pwd, nil
+}
+
+// LoginUser logs in a user
+func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+	}
+
+	user, key, err := authStorageTx.GetUserData(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+
+	userData, err := ua.UserCryptor.Decrypt(key, user, userID.Bytes())
+	if err != nil {
+		return "", err
+	}
+
+	var confidential users.ConfidentialUserData
+	err = proto.Unmarshal(userData, &confidential)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !crypt.CompareHashAndPassword(providedPassword, confidential.HashedPassword, confidential.Salt) {
+		return "", errors.New("Incorrect password")
+	}
+
+	userscopes, err := users.MapScopesToScopeType(confidential.Scopes)
+	if err != nil {
+		return "", err
+	}
+
+	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
+
+	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 // NewAdminUser creates a new admin users with random credentials
@@ -88,7 +161,7 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	}()
 
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
-	adminScope := scopes.ScopeUserManagement
+	adminScope := users.ScopeUserManagement
 	userID, accessToken, err := ua.NewUser(ctx, adminScope)
 	if err != nil {
 		log.Fatal(ctx, err, "Create user failed")
@@ -106,5 +179,5 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 // also is.
 // TODO: this is name is bad
 func (ua *UserAuthenticator) ParseAccessToken(token string) (interfaces.AccessTokenInterface, error) {
-	return ParseAccessToken(ua.Cryptor, token)
+	return ParseAccessToken(ua.TokenCryptor, token)
 }
