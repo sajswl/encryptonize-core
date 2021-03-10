@@ -133,7 +133,17 @@ func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) err
 		return err
 	}
 
-	// TODO: wait for DB there?
+	// Wait for DB to be up
+	// TODO: this is not ideal
+	for i := 0; i < 240; i++ {
+		_, err := store.pool.Exec(ctx, ";")
+		if err == nil {
+			break
+		}
+
+		log.Debugf(ctx, "Connecting: %v", err)
+		time.Sleep(time.Millisecond * 500)
+	}
 	_, err = store.pool.Exec(ctx, string(schemaData))
 
 	return err

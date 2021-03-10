@@ -2,8 +2,8 @@
 
 CREATE TABLE IF NOT EXISTS users  (
     id UUID PRIMARY KEY,
-    data BYTES,
-    key BYTES
+    data BYTEA,
+    key BYTEA
 );
 
 CREATE TABLE IF NOT EXISTS access_objects  (
