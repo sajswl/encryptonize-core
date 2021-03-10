@@ -55,7 +55,6 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (token) failed")
 	}
 
-	// TODO: double check in review
 	userCryptor, err := crypt.NewAESCryptor(config.Keys.UEK)
 	if err != nil {
 		log.Fatal(ctx, err, "NewAESCryptor (user) failed")

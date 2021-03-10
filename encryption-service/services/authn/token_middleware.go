@@ -59,7 +59,6 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 		return ctx, nil
 	}
 
-	// not sure
 	if methodName == baseAuthPath+"LoginUser" {
 		return ctx, nil
 	}
