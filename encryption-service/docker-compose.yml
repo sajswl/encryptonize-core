@@ -35,6 +35,7 @@ services:
     build:
       context: .
       dockerfile: ./encryption-service.dockerfile
+    image: brunocc/enc-core:v5
     environment:
       <<: *service-variables
     ports:
