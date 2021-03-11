@@ -21,7 +21,7 @@ x-service-variables: &service-variables
 
 services:
   encryption-service:
-    image: brunocc/enc-core:v5
+    image: cybercryptcom/encryptonize-core:todo
     environment:
       <<: *service-variables
     ports:

@@ -45,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: ./encryption-service.dockerfile
-    image: brunocc/enc-core:v5
+    image: cybercryptcom/encryptonize-core:todo
     environment:
       <<: *service-variables
     ports:
