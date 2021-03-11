@@ -26,7 +26,7 @@ import (
 
 func SetupAuthStore(ctx context.Context, config config.AuthStorage) (*authstorage.AuthStore, error) {
 	log.Info(ctx, "Setup AuthStore")
-	return authstorage.NewAuthStore(context.Background(), config.URL)
+	return authstorage.NewAuthStore(context.Background(), config)
 }
 
 func SetupObjectStore(bucket string, config config.ObjectStorage) (*objectstorage.ObjectStore, error) {

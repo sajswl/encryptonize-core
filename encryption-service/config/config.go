@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,15 +53,14 @@ type Keys struct {
 }
 
 type AuthStorage struct {
-	URL string
-	Username string `koanf:"username"`
-	Host string `koanf:"host"`
-	Port string `koanf:"port"`
-	Database string `koanf:"database"`
-	SSLMode string `koanf:"sslmode"`
+	Username    string `koanf:"username"`
+	Host        string `koanf:"host"`
+	Port        string `koanf:"port"`
+	Database    string `koanf:"database"`
+	SSLMode     string `koanf:"sslmode"`
 	SSLRootCert string `koanf:"sslrootcert"`
-	SSLCert string `koanf:"sslcert"`
-	SSLKey string `koanf:"sslkey"`
+	SSLCert     string `koanf:"sslcert"`
+	SSLKey      string `koanf:"sslkey"`
 }
 
 type ObjectStorage struct {
@@ -135,10 +133,6 @@ func (c *Config) ParseConfig() error {
 		return err
 	}
 	c.Keys.CheckInsecure()
-
-	if err := c.AuthStorage.ParseConfig(); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -229,37 +223,4 @@ func (k *Keys) CheckInsecure() {
 			log.Fatal(ctx, errors.New(""), "Test UEK used outside of INSECURE testing mode")
 		}
 	}
-}
-
-func (a *AuthStorage) ParseConfig() error {
-	if a.Username == "" {
-		return errors.New("Auth storage username cannot be empty")
-	}
-	if a.Host == "" {
-		return errors.New("Auth storage host cannot be empty")
-	}
-	if a.Database == "" {
-		return errors.New("Auth storage database cannot be empty")
-	}
-	if a.SSLMode == "" {
-		return errors.New("Auth storage sslmode cannot be empty")
-	}
-
-	a.URL = fmt.Sprintf("postgresql://%s@%s:%s/%s?sslmode=%s", a.Username, a.Host, a.Port, a.Database, a.SSLMode)
-
-	if a.SSLMode != "disable" {
-		if a.SSLRootCert == "" {
-			return errors.New("Auth storage sslrootcert cannot be empty")
-		}
-		if a.SSLCert == "" {
-			return errors.New("Auth storage sslcert cannot be empty")
-		}
-		if a.SSLKey == "" {
-			return errors.New("Auth storage sslkey cannot be empty")
-		}
-
-		a.URL += fmt.Sprintf("&sslrootcert=%s&sslcert=%s&sslkey=%s", a.SSLRootCert, a.SSLCert, a.SSLKey)
-	}
-
-	return nil
 }

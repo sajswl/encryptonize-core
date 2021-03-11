@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -91,15 +90,14 @@ var testConfig = Config{
 		UEK: []byte{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
 	},
 	AuthStorage: AuthStorage{
-		URL: "postgresql://authstorage.username@authstorage.host:authstorage.port/authstorage.database?sslmode=authstorage.sslmode&sslrootcert=authstorage.sslrootcert&sslcert=authstorage.sslcert&sslkey=authstorage.sslkey",
-		Username: "authstorage.username",
-		Host: "authstorage.host",
-		Port: "authstorage.port",
-		Database: "authstorage.database",
-		SSLMode: "authstorage.sslmode",
+		Username:    "authstorage.username",
+		Host:        "authstorage.host",
+		Port:        "authstorage.port",
+		Database:    "authstorage.database",
+		SSLMode:     "authstorage.sslmode",
 		SSLRootCert: "authstorage.sslrootcert",
-		SSLCert: "authstorage.sslcert",
-		SSLKey: "authstorage.sslkey",
+		SSLCert:     "authstorage.sslcert",
+		SSLKey:      "authstorage.sslkey",
 	},
 	ObjectStorage: ObjectStorage{
 		URL:  "objectstorage.url",
@@ -220,7 +218,6 @@ func TestReadEnv(t *testing.T) {
 
 	testConfig.ObjectStorage.URL = "another object url"
 	testConfig.AuthStorage.Host = "another auth host"
-	testConfig.AuthStorage.URL = strings.ReplaceAll(testConfig.AuthStorage.URL, "authstorage.host", "another auth host")
 
 	if !reflect.DeepEqual(testConfig, *parsedConfig) {
 		t.Fatalf("%v != %v", testConfig, parsedConfig)
