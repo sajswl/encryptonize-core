@@ -7,9 +7,16 @@ x-service-variables: &service-variables
   ECTNZ_KEYS_TEK: "0000000000000000000000000000000000000000000000000000000000000002"
   ECTNZ_KEYS_UEK: "0000000000000000000000000000000000000000000000000000000000000003"
 
-  ECTNZ_AUTHSTORAGE_URL: "postgresql://postgres:password@auth-storage/postgres"
+  # Auth storage
+  ECTNZ_AUTHSTORAGE_USERNAME: "postgres"
+  ECTNZ_AUTHSTORAGE_USERNAME: "password"
+  ECTNZ_AUTHSTORAGE_HOST: "auth-storage"
+  ECTNZ_AUTHSTORAGE_PORT: "5432"
+  ECTNZ_AUTHSTORAGE_DATABASE: "postgres"
+  ECTNZ_AUTHSTORAGE_SSLMODE: "disable"
   ECTNZ_AUTHSTORAGE_SCHEMA: "/data/auth_storage_basic.sql"
 
+  # Object storage
   ECTNZ_OBJECTSTORAGE_URL: "http://object-storage:9000"
   ECTNZ_OBJECTSTORAGE_ID: &storage_id "storageid"
   ECTNZ_OBJECTSTORAGE_KEY: &storage_key "storagekey"
