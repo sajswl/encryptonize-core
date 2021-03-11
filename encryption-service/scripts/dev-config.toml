@@ -10,6 +10,9 @@ uek = "0000000000000000000000000000000000000000000000000000000000000003"
 # Connection string for the backend database
 url = "postgresql://root@localhost:26257/auth"
 
+# Schema file executed on startup
+schema = "./data/auth_storage_basic.sql"
+
 # Object storage configuration
 [objectstorage]
 # Hostname for an S3 compatible endpoint

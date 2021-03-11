@@ -26,7 +26,21 @@ import (
 
 func SetupAuthStore(ctx context.Context, config config.AuthStorage) (*authstorage.AuthStore, error) {
 	log.Info(ctx, "Setup AuthStore")
-	return authstorage.NewAuthStore(context.Background(), config.URL)
+	authStore, err := authstorage.NewAuthStore(context.Background(), config.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	// Import schema if a schema file was specified
+	// TODO: is this the right place for this feature?
+	if config.Schema != "" {
+		err = authStore.ImportSchema(ctx, config.Schema)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return authStore, nil
 }
 
 func SetupObjectStore(bucket string, config config.ObjectStorage) (*objectstorage.ObjectStore, error) {
