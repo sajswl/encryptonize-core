@@ -26,7 +26,7 @@ import (
 
 func SetupAuthStore(ctx context.Context, config config.AuthStorage) (*authstorage.AuthStore, error) {
 	log.Info(ctx, "Setup AuthStore")
-	authStore, err := authstorage.NewAuthStore(context.Background(), config.URL)
+	authStore, err := authstorage.NewAuthStore(context.Background(), config)
 	if err != nil {
 		return nil, err
 	}

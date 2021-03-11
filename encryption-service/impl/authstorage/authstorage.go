@@ -27,6 +27,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sony/gobreaker"
 
+	"encryption-service/config"
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
@@ -65,15 +66,18 @@ type AuthStoreTx struct {
 	requestID uuid.UUID
 }
 
-// NewAuthStore creates a new DB pool for the DB URL (postgresql://...).
+// NewAuthStore creates a new DB pool for the given database configuration.
 // Additionally, it configures the pool to use `gofrs-uuid` for handling UUIDs.
 // TODO: configure connection pool (min, max connections etc.)
-func NewAuthStore(ctx context.Context, URL string) (*AuthStore, error) {
-	config, err := pgxpool.ParseConfig(URL)
+func NewAuthStore(ctx context.Context, config config.AuthStorage) (*AuthStore, error) {
+	connectionString := fmt.Sprintf("postgresql://%s@%s:%s/%s?sslmode=%s&sslrootcert=%s&sslcert=%s&sslkey=%s",
+		config.Username, config.Host, config.Port, config.Database, config.SSLMode, config.SSLRootCert, config.SSLCert, config.SSLKey)
+
+	pgxConfig, err := pgxpool.ParseConfig(connectionString)
 	if err != nil {
 		return nil, err
 	}
-	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+	pgxConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		conn.ConnInfo().RegisterDataType(pgtype.DataType{
 			Value: &pgtypeuuid.UUID{},
 			Name:  "uuid",
@@ -81,10 +85,10 @@ func NewAuthStore(ctx context.Context, URL string) (*AuthStore, error) {
 		})
 		return nil
 	}
-	config.LazyConnect = true                                                 // Don't need to connect immediately
-	config.ConnConfig.Config.ConnectTimeout = time.Duration(10) * time.Second // If we cannot connect in 10 seconds, then we most likely cannot connect at all
-	pool, err := pgxpool.ConnectConfig(ctx, config)
+	pgxConfig.LazyConnect = true                                                 // Don't need to connect immediately
+	pgxConfig.ConnConfig.Config.ConnectTimeout = time.Duration(10) * time.Second // If we cannot connect in 10 seconds, then we most likely cannot connect at all
 
+	pool, err := pgxpool.ConnectConfig(ctx, pgxConfig)
 	if err != nil {
 		return nil, err
 	}
