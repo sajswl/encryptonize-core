@@ -7,7 +7,7 @@ data across multiple cloud environments while simultaneously removing the need t
 providers with encryption keys. Encryptonize® provides an Encryption Service with a simple gRPC
 interface that allows multiple workloads or users to store and retrieve data securely using cloud storage,
 leveraging S3 compatible storage like [Rook](https://rook.io/) with [Ceph](https://ceph.io/) and
-a PostgreSQL compatible database storage.
+a PostgreSQL compatible database.
 
 ## How to Use This Image
 The following Docker Compose file illustrates how to setup an example Encryptonize® deployment.
