@@ -65,7 +65,7 @@ type AuthStoreTx struct {
 	requestID uuid.UUID
 }
 
-// NewAuthStore creates a new DB pool for the DB URL (postgresql://...).
+// NewAuthStore creates a new DB pool for the given database configuration.
 // Additionally, it configures the pool to use `gofrs-uuid` for handling UUIDs.
 // TODO: configure connection pool (min, max connections etc.)
 func NewAuthStore(ctx context.Context, config config.AuthStorage) (*AuthStore, error) {

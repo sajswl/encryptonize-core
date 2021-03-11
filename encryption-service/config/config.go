@@ -53,13 +53,28 @@ type Keys struct {
 }
 
 type AuthStorage struct {
+	// The SQL user that will own the client session.
 	Username    string `koanf:"username"`
+
+	// The host name or address of an SQL database.
 	Host        string `koanf:"host"`
+
+	// The port number of the SQL interface
 	Port        string `koanf:"port"`
+
+	// The name of the database to connect to. Use "auth" if in doubt.
 	Database    string `koanf:"database"`
+
+	// The SSL mode to use: disable, require, verify-ca, or verify-full
 	SSLMode     string `koanf:"sslmode"`
+
+	// Path to the CA certificate, when sslmode is not "disable"
 	SSLRootCert string `koanf:"sslrootcert"`
+
+	// Path to the client certificate, when sslmode is not "disable"
 	SSLCert     string `koanf:"sslcert"`
+
+	// Path to the client private key, when sslmode is not "disable"
 	SSLKey      string `koanf:"sslkey"`
 }
 
