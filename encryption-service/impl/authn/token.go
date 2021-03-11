@@ -38,12 +38,15 @@ type AccessToken struct {
 }
 
 // NewAccessToken instantiates a new access token with user ID, user scopes and validity period
-func NewAccessToken(userID uuid.UUID, userScopes users.ScopeType, validityPeriod time.Duration) *AccessToken {
-	expiryTime := time.Now().Add(validityPeriod).Unix()
+func NewAccessTokenDuration(userID uuid.UUID, userScopes users.ScopeType, validityPeriod time.Duration) *AccessToken {
+	return NewAccessToken(userID, userScopes, time.Now().Add(validityPeriod))
+}
+
+func NewAccessToken(userID uuid.UUID, userScopes users.ScopeType, expiryTime time.Time) *AccessToken {
 	return &AccessToken{
 		userID:     userID,
 		userScopes: userScopes,
-		expiryTime: expiryTime,
+		expiryTime: expiryTime.Unix(),
 	}
 }
 

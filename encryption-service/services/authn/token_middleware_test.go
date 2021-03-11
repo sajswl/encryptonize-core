@@ -45,7 +45,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes users.ScopeType) (string, error) {
-	accessToken := authn.NewAccessToken(userID, scopes, time.Minute*10)
+	accessToken := authn.NewAccessTokenDuration(userID, scopes, time.Minute*10)
 
 	token, err := accessToken.SerializeAccessToken(c)
 	if err != nil {
