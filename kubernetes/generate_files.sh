@@ -73,7 +73,7 @@ if [ -d "$SECRETS_PATH" ]; then
   # Indent lines of cert to match yaml, skipping the first line
   export OBJECT_STORAGE_CERT=$(cat ${SECRETS_PATH}/object_storage.crt | sed -e '2,$s/^/    /')
 
-  envsubst '$KEK $ASK $TEK $AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME $OBJECT_STORAGE_ID $OBJECT_STORAGE_KEY $OBJECT_STORAGE_CERT' \
+  envsubst '$KEK $ASK $TEK $UEK $AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME $OBJECT_STORAGE_ID $OBJECT_STORAGE_KEY $OBJECT_STORAGE_CERT' \
     < ./encryption-service/encryptonize-config.yaml \
     > ${FILE_DIR}/encryption-service/encryptonize-config.yaml
 else
