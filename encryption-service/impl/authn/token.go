@@ -37,7 +37,7 @@ type AccessToken struct {
 	expiryTime int64
 }
 
-// NewAccessToken instantiates a new access token with user ID, user scopes and validity period
+// NewAccessTokenDuration instantiates a new access token with user ID, user scopes and validity period
 func NewAccessTokenDuration(userID uuid.UUID, userScopes users.ScopeType, validityPeriod time.Duration) *AccessToken {
 	return NewAccessToken(userID, userScopes, time.Now().Add(validityPeriod))
 }
