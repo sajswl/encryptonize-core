@@ -1,4 +1,4 @@
-# admin credentials from -- Create an Initial Admin User
+# admin credentials -- From: Create an Initial Admin User
 ADMIN_USER_ID='FILL_ME_IN'
 ADMIN_PASSWORD='FILL_ME_IN'
 
