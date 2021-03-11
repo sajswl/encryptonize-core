@@ -31,7 +31,7 @@ type AuthStoreTxMock struct {
 	RollbackFunc func(ctx context.Context) error
 
 	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
-	UpsertUserFunc  func(ctx context.Context, user users.UserData) error
+	InsertUserFunc  func(ctx context.Context, user users.UserData) error
 	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
@@ -49,8 +49,8 @@ func (db *AuthStoreTxMock) Rollback(ctx context.Context) error {
 func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	return db.UserExistsFunc(ctx, userID)
 }
-func (db *AuthStoreTxMock) UpsertUser(ctx context.Context, user users.UserData) error {
-	return db.UpsertUserFunc(ctx, user)
+func (db *AuthStoreTxMock) InsertUser(ctx context.Context, user users.UserData) error {
+	return db.InsertUserFunc(ctx, user)
 }
 
 func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
@@ -115,7 +115,8 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 	return data.ConfidentialUserData, data.WrappedKey, nil
 }
 
-func (m *MemoryAuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
+func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
+	// TODO: check if already contained
 	m.data.Store(user.UserID, user)
 	return nil
 }

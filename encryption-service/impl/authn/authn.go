@@ -81,7 +81,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorageTx.UpsertUser(ctx, userData)
+	err = authStorageTx.InsertUser(ctx, userData)
 	if err != nil {
 		return nil, "", err
 	}

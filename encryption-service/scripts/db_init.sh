@@ -18,7 +18,8 @@
 COCKROACH_EXEC="docker-compose exec -T cockroachdb-1 /bin/sh -c"
 docker-compose exec -T cockroachdb-1 ./cockroach init --insecure || true
 ${COCKROACH_EXEC} "echo 'CREATE DATABASE IF NOT EXISTS auth;' | /cockroach/cockroach sql --insecure"
-${COCKROACH_EXEC} "/cockroach/cockroach sql --insecure --database auth" < ./data/auth_storage.sql
+${COCKROACH_EXEC} "/cockroach/cockroach sql --insecure --database auth" < ./data/auth_storage_basic.sql
+${COCKROACH_EXEC} "/cockroach/cockroach sql --insecure --database auth" < ./data/auth_storage_extended.sql
 
 # Bootstrap admin user
 UserID='00000000-0000-4000-8000-000000000002'
