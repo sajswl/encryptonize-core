@@ -15,7 +15,14 @@ tek = "0303030303030303030303030303030303030303030303030303030303030303"
 uek = "0404040404040404040404040404040404040404040404040404040404040404"
 
 [authstorage]
-url = "authstorage.url"
+username = "authstorage.username"
+host = "authstorage.host"
+port = "authstorage.port"
+database = "authstorage.database"
+sslmode = "authstorage.sslmode"
+sslrootcert = "authstorage.sslrootcert"
+sslcert = "authstorage.sslcert"
+sslkey = "authstorage.sslkey"
 
 [objectstorage]
 url = "objectstorage.url"
@@ -32,7 +39,14 @@ keys:
   uek: "0404040404040404040404040404040404040404040404040404040404040404"
 
 authstorage:
-  url: "authstorage.url"
+  username: "authstorage.username"
+  host: "authstorage.host"
+  port: "authstorage.port"
+  database: "authstorage.database"
+  sslmode: "authstorage.sslmode"
+  sslrootcert: "authstorage.sslrootcert"
+  sslcert: "authstorage.sslcert"
+  sslkey: "authstorage.sslkey"
 
 objectstorage:
   url: "objectstorage.url"
@@ -50,7 +64,14 @@ var testConfigJSON = `
 		"uek": "0404040404040404040404040404040404040404040404040404040404040404"
 	},
 	"authstorage": {
-		"url": "authstorage.url"
+		"username": "authstorage.username",
+		"host": "authstorage.host",
+		"port": "authstorage.port",
+		"database": "authstorage.database",
+		"sslmode": "authstorage.sslmode",
+		"sslrootcert": "authstorage.sslrootcert",
+		"sslcert": "authstorage.sslcert",
+		"sslkey": "authstorage.sslkey"
 	},
 	"objectstorage": {
 		"url": "objectstorage.url",
@@ -69,7 +90,14 @@ var testConfig = Config{
 		UEK: []byte{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
 	},
 	AuthStorage: AuthStorage{
-		URL: "authstorage.url",
+		Username:    "authstorage.username",
+		Host:        "authstorage.host",
+		Port:        "authstorage.port",
+		Database:    "authstorage.database",
+		SSLMode:     "authstorage.sslmode",
+		SSLRootCert: "authstorage.sslrootcert",
+		SSLCert:     "authstorage.sslcert",
+		SSLKey:      "authstorage.sslkey",
 	},
 	ObjectStorage: ObjectStorage{
 		URL:  "objectstorage.url",
@@ -175,7 +203,7 @@ func TestReadEnv(t *testing.T) {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 
-	if err := os.Setenv("ECTNZ_AUTHSTORAGE_URL", "another auth url"); err != nil {
+	if err := os.Setenv("ECTNZ_AUTHSTORAGE_HOST", "another auth host"); err != nil {
 		t.Fatalf("Failed to set env: %v", err)
 	}
 
@@ -189,7 +217,7 @@ func TestReadEnv(t *testing.T) {
 	}
 
 	testConfig.ObjectStorage.URL = "another object url"
-	testConfig.AuthStorage.URL = "another auth url"
+	testConfig.AuthStorage.Host = "another auth host"
 
 	if !reflect.DeepEqual(testConfig, *parsedConfig) {
 		t.Fatalf("%v != %v", testConfig, parsedConfig)

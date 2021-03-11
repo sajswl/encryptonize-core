@@ -36,9 +36,17 @@ stringData:
     kek = "${KEK}"
     ask = "${ASK}"
     tek = "${TEK}"
+    uek = "${UEK}"
 
     [authstorage]
-    url = "postgresql://root@${AUTH_STORAGE_HOSTNAME}:26257/auth?sslmode=verify-ca&sslrootcert=data/ca.crt&sslcert=data/client.root.crt&sslkey=data/client.root.key"
+    username = "root"
+    host = "${AUTH_STORAGE_HOSTNAME}"
+    port = "26257"
+    database = "auth"
+    sslmode = "verify-ca"
+    sslrootcert = "data/ca.crt"
+    sslcert = "data/client.root.crt"
+    sslkey = "data/client.root.key"
 
     [objectstorage]
     url = "${OBJECT_STORAGE_HOSTNAME}"

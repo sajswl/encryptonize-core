@@ -61,7 +61,7 @@ func TestSerializeParse(t *testing.T) {
 			t.Fatalf("NewAESCryptor errored: %v", err)
 		}
 
-		accessToken := NewAccessToken(userID, s, time.Second*30)
+		accessToken := NewAccessTokenDuration(userID, s, time.Second*30)
 		token, err := accessToken.SerializeAccessToken(cryptor)
 		if err != nil {
 			t.Fatalf("NewSerializeToken errored: %v", err)
@@ -90,7 +90,7 @@ func TestParseExpiry(t *testing.T) {
 		t.Fatalf("NewAESCryptor errored: %v", err)
 	}
 
-	accessToken := NewAccessToken(userID, users.ScopeCreate, time.Second)
+	accessToken := NewAccessTokenDuration(userID, users.ScopeCreate, time.Second)
 	token, err := accessToken.SerializeAccessToken(cryptor)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)
@@ -120,7 +120,7 @@ func TestParseModified(t *testing.T) {
 		t.Fatalf("NewAESCryptor errored: %v", err)
 	}
 
-	accessToken := NewAccessToken(userID, users.ScopeCreate, time.Second*30)
+	accessToken := NewAccessTokenDuration(userID, users.ScopeCreate, time.Second*30)
 	token, err := accessToken.SerializeAccessToken(cryptor)
 	if err != nil {
 		t.Fatalf("SerializeAccessToken errored: %v", err)

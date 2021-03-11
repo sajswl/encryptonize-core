@@ -3,12 +3,26 @@
 kek = "0000000000000000000000000000000000000000000000000000000000000000"
 ask = "0000000000000000000000000000000000000000000000000000000000000001"
 tek = "0000000000000000000000000000000000000000000000000000000000000002"
+uek = "0000000000000000000000000000000000000000000000000000000000000003"
 
 # Auth storage configuration
 [authstorage]
-# Connection string for the backend database
-url = "postgresql://root@localhost:26257/auth"
-
+# The SQL user that will own the client session.
+username = "root"
+# The host name or address of an SQL database.
+host = "localhost"
+# The port number of the SQL interface
+port = "26257"
+# The name of the database to connect to. Use "auth" if in doubt.
+database = "auth"
+# The SSL mode to use: disable, require, verify-ca, or verify-full
+sslmode = "disable"
+# Path to the CA certificate, when sslmode is not "disable"
+sslrootcert = ""
+# Path to the client certificate, when sslmode is not "disable"
+sslcert = ""
+# Path to the client private key, when sslmode is not "disable"
+sslkey = ""
 # Schema file executed on startup
 schema = "./data/auth_storage_basic.sql"
 
