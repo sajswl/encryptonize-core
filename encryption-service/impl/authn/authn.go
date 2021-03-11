@@ -81,7 +81,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorageTx.UpsertUser(ctx, userData)
+	err = authStorageTx.InsertUser(ctx, userData)
 	if err != nil {
 		return nil, "", err
 	}
@@ -127,7 +127,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	accessToken := NewAccessToken(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
+	accessToken := NewAccessTokenDuration(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
 
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {

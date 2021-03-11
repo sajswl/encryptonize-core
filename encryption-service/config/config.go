@@ -76,6 +76,9 @@ type AuthStorage struct {
 
 	// Path to the client private key, when sslmode is not "disable"
 	SSLKey      string `koanf:"sslkey"`
+	
+	// Schema file that is imported on start if specified
+	Schema string `koanf:"schema"`
 }
 
 type ObjectStorage struct {

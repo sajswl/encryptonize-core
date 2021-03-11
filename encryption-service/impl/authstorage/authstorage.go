@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -128,6 +129,32 @@ func (store *AuthStore) Close() {
 	store.pool.Close()
 }
 
+// ImportSchema reads a schema file and executes it
+func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) error {
+	log.Info(ctx, "ImportSchema started")
+	schemaData, err := os.ReadFile(schemaFile)
+	if err != nil {
+		return err
+	}
+
+	// Wait for DB to be up
+	// TODO: this is not ideal
+	for i := 0; i < 120; i++ {
+		// TODO: replace builtin pgxpool once this is released:
+		// https://github.com/jackc/pgx/commit/aa8604b5c22989167e7158ecb1f6e7b8ddfebf04
+		_, err := store.pool.Exec(ctx, ";")
+		if err == nil {
+			break
+		}
+
+		log.Debugf(ctx, "Auth Storage ping failed (retrying ...) - %v", err)
+		time.Sleep(time.Second)
+	}
+	_, err = store.pool.Exec(ctx, string(schemaData))
+
+	return err
+}
+
 // Used as a defer function to rollback an unfinished transaction
 func (storeTx *AuthStoreTx) Rollback(ctx context.Context) error {
 	err := storeTx.tx.Rollback(ctx)
@@ -163,10 +190,9 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	return true, nil
 }
 
-// Creates a user with a tag, updates the tag if the user exists
-// Returns an error if SQL query fails to execute in authstorage DB
-func (storeTx *AuthStoreTx) UpsertUser(ctx context.Context, user users.UserData) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
+// InsertUser inserts a user into the auth store
+func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
+	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
 	return err
 }
 

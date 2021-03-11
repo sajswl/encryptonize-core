@@ -48,6 +48,7 @@ LABEL git-tag=${TAG}
 
 COPY --from=build-env /encryption-service/encryption-service /
 COPY --from=build-env /bin/grpc_health_probe /grpc_health_probe
+COPY data/*.sql /data/
 
 USER 5000:5000
 

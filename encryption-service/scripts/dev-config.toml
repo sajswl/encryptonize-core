@@ -23,6 +23,8 @@ sslrootcert = ""
 sslcert = ""
 # Path to the client private key, when sslmode is not "disable"
 sslkey = ""
+# Schema file executed on startup
+schema = "./data/auth_storage_basic.sql"
 
 # Object storage configuration
 [objectstorage]
