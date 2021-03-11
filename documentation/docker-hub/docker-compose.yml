@@ -9,7 +9,7 @@ x-service-variables: &service-variables
 
   # Auth storage
   ECTNZ_AUTHSTORAGE_USERNAME: "postgres"
-  ECTNZ_AUTHSTORAGE_USERNAME: "password"
+  ECTNZ_AUTHSTORAGE_PASSWORD: "password"
   ECTNZ_AUTHSTORAGE_HOST: "auth-storage"
   ECTNZ_AUTHSTORAGE_PORT: "5432"
   ECTNZ_AUTHSTORAGE_DATABASE: "postgres"
