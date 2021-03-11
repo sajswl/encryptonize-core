@@ -42,6 +42,7 @@ func NewAccessTokenDuration(userID uuid.UUID, userScopes users.ScopeType, validi
 	return NewAccessToken(userID, userScopes, time.Now().Add(validityPeriod))
 }
 
+// NewAccessToken does the same as NewAccessTokenDuration, except it takes a point in time at which the access token exires
 func NewAccessToken(userID uuid.UUID, userScopes users.ScopeType, expiryTime time.Time) *AccessToken {
 	return &AccessToken{
 		userID:     userID,
