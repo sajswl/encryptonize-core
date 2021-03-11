@@ -7,7 +7,7 @@ data across multiple cloud environments while simultaneously removing the need t
 providers with encryption keys. Encryptonize® provides an Encryption Service with a simple gRPC
 interface that allows multiple workloads or users to store and retrieve data securely using cloud storage,
 leveraging S3 compatible storage like [Rook](https://rook.io/) with [Ceph](https://ceph.io/) and
-a PostgreSQL compatible database resilient storage.
+a PostgreSQL compatible database.
 
 ## How to Use This Image
 The following Docker Compose file illustrates how to setup an example Encryptonize® deployment.
@@ -16,7 +16,7 @@ It uses [MinIO](https://min.io/) as its objects store and [PostgreSQL](https://w
 **Warning**: The example just illustrates a quick way for trying out Encryptonize® and it not meant for any production usage!
 It's not secure (especially the provided test key material) and doesn't keep any data if the containers are removed.
 
-For a detailed manual how to securely deploy Encryptonize® check out [the deployment README](https://github.com/cyber-crypt-com/encryptonize-core/blob/master/kubernetes/README.md).
+For a detailed manual on how to securely deploy Encryptonize® check out [the deployment README](https://github.com/cyber-crypt-com/encryptonize-core/blob/master/kubernetes/README.md).
 
 ```
 version: "3.8"
