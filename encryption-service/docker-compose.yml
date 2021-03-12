@@ -28,6 +28,7 @@ x-service-variables: &service-variables
   ECTNZ_AUTHSTORAGE_PORT: "26257"
   ECTNZ_AUTHSTORAGE_DATABASE: "auth"
   ECTNZ_AUTHSTORAGE_SSLMODE: "disable"
+  ECTNZ_AUTHSTORAGE_SCHEMA: "./data/auth_storage_basic.sql"
 
   # Object storage
   ECTNZ_OBJECTSTORAGE_URL: "http://minio:9000"
@@ -50,10 +51,8 @@ services:
     ports:
       - 9000:9000
     depends_on:
-      - cockroachdb-1
-      - cockroachdb-2
-      - cockroachdb-3
-      - minio
+      - cockroachdb-init
+      - minio-init
     tty: true
 
   # CockroachDB
@@ -77,6 +76,20 @@ services:
     volumes:
       - /cockroach/cockroach-data
     command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
+
+  cockroachdb-init:
+    image: cockroachdb/cockroach:v20.2.0
+    environment:
+      CRDB: "/cockroach/cockroach --host cockroachdb-1"
+    entrypoint: |
+      /bin/sh -c "
+      $${CRDB} init --insecure || true;
+      echo 'CREATE DATABASE IF NOT EXISTS auth;' | $${CRDB} sql --insecure;
+      "
+    depends_on:
+      - cockroachdb-1
+      - cockroachdb-2
+      - cockroachdb-3
 
   # Object storage
   minio:
