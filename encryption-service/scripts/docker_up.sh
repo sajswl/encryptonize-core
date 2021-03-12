@@ -29,5 +29,3 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 # Start the docker containers
 docker-compose build --build-arg COMMIT="$(git rev-list -1 HEAD)" --build-arg TAG="$(git tag --points-at HEAD)"
 docker-compose up $@
-
-source $(dirname "$(realpath $0)")/db_init.sh
