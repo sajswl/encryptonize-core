@@ -65,6 +65,9 @@ type AuthStorage struct {
 	// The name of the database to connect to. Use "auth" if in doubt.
 	Database string `koanf:"database"`
 
+	// Password for the SQL user.
+	Password string `koanf:"password"`
+
 	// The SSL mode to use: disable, require, verify-ca, or verify-full
 	SSLMode string `koanf:"sslmode"`
 
