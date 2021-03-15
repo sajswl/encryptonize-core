@@ -77,6 +77,9 @@ func NewAuthStore(ctx context.Context, config config.AuthStorage) (*AuthStore, e
 	if err != nil {
 		return nil, err
 	}
+	if config.Password != "" {
+		pgxConfig.ConnConfig.Password = config.Password
+	}
 	pgxConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		conn.ConnInfo().RegisterDataType(pgtype.DataType{
 			Value: &pgtypeuuid.UUID{},
