@@ -15,6 +15,7 @@ package authstorage
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/gofrs/uuid"
@@ -108,10 +109,15 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 
 func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
 	user, ok := m.data.Load(userID)
-	data := user.(users.UserData)
 	if !ok {
-		return nil, nil, nil
+		return nil, nil, interfaces.ErrNotFound
 	}
+
+	data, ok := user.(users.UserData)
+	if !ok {
+		return nil, nil, errors.New("unable to cast to UserData")
+	}
+
 	return data.ConfidentialUserData, data.WrappedKey, nil
 }
 
