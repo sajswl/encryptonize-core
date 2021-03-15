@@ -15,6 +15,8 @@ host = "localhost"
 port = "26257"
 # The name of the database to connect to. Use "auth" if in doubt.
 database = "auth"
+# Password for the SQL user.
+password = ""
 # The SSL mode to use: disable, require, verify-ca, or verify-full
 sslmode = "disable"
 # Path to the CA certificate, when sslmode is not "disable"
