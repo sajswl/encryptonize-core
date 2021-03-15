@@ -11,7 +11,7 @@ a PostgreSQL compatible database.
 
 ## How to Use This Image
 The following Docker Compose file illustrates how to setup an example Encryptonize® deployment.
-It uses [MinIO](https://min.io/) as its objects store and [PostgreSQL](https://www.postgresql.org/) for auth storage.
+It uses [MinIO](https://min.io/) as its object store and [PostgreSQL](https://www.postgresql.org/) for auth storage.
 
 **Warning**: The example just illustrates a quick way for trying out Encryptonize® and it not meant for any production usage!
 It's not secure (especially the provided test key material) and doesn't keep any data if the containers are removed.
