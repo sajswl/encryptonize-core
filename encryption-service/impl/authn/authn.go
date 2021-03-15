@@ -162,14 +162,16 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
 	adminScope := users.ScopeUserManagement
-	userID, accessToken, err := ua.NewUser(ctx, adminScope)
+	userID, password, err := ua.NewUser(ctx, adminScope)
 	if err != nil {
 		log.Fatal(ctx, err, "Create user failed")
 	}
 
+	// I create a new context so that the user isn't confused by the requestId in the output
+	ctx = context.TODO()
 	log.Info(ctx, "Created admin user:")
-	log.Infof(ctx, "    User ID:      %v", userID)
-	log.Infof(ctx, "    Access Token: %v", accessToken)
+	log.Infof(ctx, "    User ID:  %v", userID)
+	log.Infof(ctx, "    Password: %v", password)
 
 	return nil
 }
