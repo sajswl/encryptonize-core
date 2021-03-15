@@ -9,7 +9,7 @@ x-service-variables: &service-variables
 
   # Auth storage
   ECTNZ_AUTHSTORAGE_USERNAME: "postgres"
-  ECTNZ_AUTHSTORAGE_PASSWORD: "password"
+  ECTNZ_AUTHSTORAGE_PASSWORD: &auth_storage_password "password"
   ECTNZ_AUTHSTORAGE_HOST: "auth-storage"
   ECTNZ_AUTHSTORAGE_PORT: "5432"
   ECTNZ_AUTHSTORAGE_DATABASE: "postgres"
@@ -41,7 +41,7 @@ services:
   auth-storage:
     image: postgres:13
     environment:
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: *auth_storage_password
 
   object-storage:
     image: minio/minio
