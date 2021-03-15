@@ -146,32 +146,56 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	requestID, err := uuid.NewV4()
 	if err != nil {
 		log.Fatal(ctx, err, "Could not generate uuid")
+		return err
 	}
 	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
 
-	authStoreTx, err := authStore.NewTransaction(ctx)
+	authStoreTxCreate, err := authStore.NewTransaction(ctx)
 	if err != nil {
 		log.Fatal(ctx, err, "Authstorage Begin failed")
+		return err
 	}
 	defer func() {
-		err := authStoreTx.Rollback(ctx)
+		err := authStoreTxCreate.Rollback(ctx)
 		if err != nil {
 			log.Fatal(ctx, err, "Performing rollback")
 		}
 	}()
 
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctxCreate := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTxCreate)
 	adminScope := users.ScopeUserManagement
-	userID, password, err := ua.NewUser(ctx, adminScope)
+	userID, password, err := ua.NewUser(ctxCreate, adminScope)
 	if err != nil {
-		log.Fatal(ctx, err, "Create user failed")
+		log.Fatal(ctxCreate, err, "Create user failed")
+		return err
+	}
+
+	// NewUser commits the transaction so we need a fresh one for login
+	authStoreTxLogin, err := authStore.NewTransaction(ctx)
+	if err != nil {
+		log.Fatal(ctx, err, "Authstorage Begin failed")
+		return err
+	}
+	defer func() {
+		err := authStoreTxLogin.Rollback(ctx)
+		if err != nil {
+			log.Fatal(ctx, err, "Performing rollback")
+		}
+	}()
+
+	ctxLogin := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTxLogin)
+	accessToken, err := ua.LoginUser(ctxLogin, *userID, password)
+	if err != nil {
+		log.Fatal(ctx, err, "LoginUser for newly created admin failed")
+		return err
 	}
 
 	// I create a new context so that the user isn't confused by the requestId in the output
 	ctx = context.TODO()
 	log.Info(ctx, "Created admin user:")
-	log.Infof(ctx, "    User ID:  %v", userID)
-	log.Infof(ctx, "    Password: %v", password)
+	log.Infof(ctx, "    User ID:      %v", userID)
+	log.Infof(ctx, "    Password:     %v", password)
+	log.Infof(ctx, "    Access Token: %v", accessToken)
 
 	return nil
 }
