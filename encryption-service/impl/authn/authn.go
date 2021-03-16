@@ -146,14 +146,12 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	requestID, err := uuid.NewV4()
 	if err != nil {
 		log.Fatal(ctx, err, "Could not generate uuid")
-		return err
 	}
 	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
 
 	authStoreTxCreate, err := authStore.NewTransaction(ctx)
 	if err != nil {
 		log.Fatal(ctx, err, "Authstorage Begin failed")
-		return err
 	}
 	defer func() {
 		err := authStoreTxCreate.Rollback(ctx)
@@ -167,14 +165,12 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	userID, password, err := ua.NewUser(ctxCreate, adminScope)
 	if err != nil {
 		log.Fatal(ctxCreate, err, "Create user failed")
-		return err
 	}
 
 	// NewUser commits the transaction so we need a fresh one for login
 	authStoreTxLogin, err := authStore.NewTransaction(ctx)
 	if err != nil {
 		log.Fatal(ctx, err, "Authstorage Begin failed")
-		return err
 	}
 	defer func() {
 		err := authStoreTxLogin.Rollback(ctx)
@@ -187,7 +183,6 @@ func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterfac
 	accessToken, err := ua.LoginUser(ctxLogin, *userID, password)
 	if err != nil {
 		log.Fatal(ctx, err, "LoginUser for newly created admin failed")
-		return err
 	}
 
 	// I create a new context so that the user isn't confused by the requestId in the output
