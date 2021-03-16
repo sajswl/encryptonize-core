@@ -17,7 +17,7 @@ jobs:
         password: ${{ secrets.GHCR_PULL_TOKEN }}
 
     steps:
-    - name: notify-premium
+    - name: notify-premium-x
       uses: peter-evans/repository-dispatch@v1
       with:
         token: ${{ secrets.CYBOT_TOKEN }}
