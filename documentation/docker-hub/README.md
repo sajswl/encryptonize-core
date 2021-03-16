@@ -9,6 +9,10 @@ interface that allows multiple workloads or users to store and retrieve data sec
 leveraging S3 compatible storage like [Rook](https://rook.io/) with [Ceph](https://ceph.io/) and
 a PostgreSQL compatible database.
 
+## Explore Further
+* [Encryptonize® Core GitHub Repository](https://github.com/cyber-crypt-com/encryptonize-core)
+* [Encryptonize® Product Page](https://cyber-crypt.com/encryptonize/)
+
 ## How to Use This Image
 The following Docker Compose file illustrates how to setup an example Encryptonize® deployment.
 It uses [MinIO](https://min.io/) as its object store and [PostgreSQL](https://www.postgresql.org/) for auth storage.
