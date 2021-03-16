@@ -17,84 +17,92 @@ jobs:
         password: ${{ secrets.GHCR_PULL_TOKEN }}
 
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
+    - name: notify-premium
+      uses: peter-evans/repository-dispatch@v1
+      with:
+        token: ${{ secrets.CYBOT_TOKEN }}
+        repository: cyber-crypt-com/encryptonize-premium
+        event-type: repository_dispatch
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
 
-    - name: Lint
-      run: make lint
+  #   - name: Check out repository
+  #     uses: actions/checkout@v2
 
-    - name: Build
-      run: make build
+  #   - name: Lint
+  #     run: make lint
 
-  esb-eccs-build:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
-      credentials:
-        username: USERNAME
-        password: ${{ secrets.GHCR_PULL_TOKEN }}
-    defaults:
-      run:
-        working-directory: applications/ECCS
+  #   - name: Build
+  #     run: make build
 
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
+  # esb-eccs-build:
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: ghcr.io/cyber-crypt-com/github-runner:1.3
+  #     credentials:
+  #       username: USERNAME
+  #       password: ${{ secrets.GHCR_PULL_TOKEN }}
+  #   defaults:
+  #     run:
+  #       working-directory: applications/ECCS
 
-    - name: Lint
-      run: make lint
+  #   steps:
+  #   - name: Check out repository
+  #     uses: actions/checkout@v2
 
-    - name: Build
-      run: make build
+  #   - name: Lint
+  #     run: make lint
 
-  esb-unit-test:
-    needs: esb-build
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
-      credentials:
-        username: USERNAME
-        password: ${{ secrets.GHCR_PULL_TOKEN }}
+  #   - name: Build
+  #     run: make build
 
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
+  # esb-unit-test:
+  #   needs: esb-build
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: ghcr.io/cyber-crypt-com/github-runner:1.3
+  #     credentials:
+  #       username: USERNAME
+  #       password: ${{ secrets.GHCR_PULL_TOKEN }}
 
-    - name: Test
-      run: make unit-tests
+  #   steps:
+  #   - name: Check out repository
+  #     uses: actions/checkout@v2
 
-  esb-end-to-end-and-eccs:
-    needs: [esb-build, esb-eccs-build]
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
-      credentials:
-        username: USERNAME
-        password: ${{ secrets.GHCR_PULL_TOKEN }}
+  #   - name: Test
+  #     run: make unit-tests
 
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
+  # esb-end-to-end-and-eccs:
+  #   needs: [esb-build, esb-eccs-build]
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: ghcr.io/cyber-crypt-com/github-runner:1.3
+  #     credentials:
+  #       username: USERNAME
+  #       password: ${{ secrets.GHCR_PULL_TOKEN }}
 
-    - name: Start docker containers
-      run: make docker-up
+  #   steps:
+  #   - name: Check out repository
+  #     uses: actions/checkout@v2
 
-    - name: Run eccs tests
-      # Small hack to get docker-compose next to docker to work. We cannot attach to the host
-      # network due to the way the workflow container is started, so we fetch the ip of the docker0
-      # interface instead. See https://stackoverflow.com/a/31328031 for more information.
-      run: |
-        export ECCS_ENDPOINT=$(ip route show | awk '/default/ {print $3}'):9000
-        make eccs-tests
+  #   - name: Start docker containers
+  #     run: make docker-up
 
-    - name: Run end-to-end tests
-      run: |
-        export E2E_TEST_URL=$(ip route show | awk '/default/ {print $3}'):9000
-        make e2e-tests
+  #   - name: Run eccs tests
+  #     # Small hack to get docker-compose next to docker to work. We cannot attach to the host
+  #     # network due to the way the workflow container is started, so we fetch the ip of the docker0
+  #     # interface instead. See https://stackoverflow.com/a/31328031 for more information.
+  #     run: |
+  #       export ECCS_ENDPOINT=$(ip route show | awk '/default/ {print $3}'):9000
+  #       make eccs-tests
 
-    - name: Log on failure
-      if: ${{ failure() }}
-      run: docker-compose logs
+  #   - name: Run end-to-end tests
+  #     run: |
+  #       export E2E_TEST_URL=$(ip route show | awk '/default/ {print $3}'):9000
+  #       make e2e-tests
 
-    - name: Stop docker containers
-      run: make docker-down
+  #   - name: Log on failure
+  #     if: ${{ failure() }}
+  #     run: docker-compose logs
+
+  #   - name: Stop docker containers
+  #     run: make docker-down
