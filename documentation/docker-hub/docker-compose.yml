@@ -28,7 +28,7 @@ x-service-variables: &service-variables
 
 services:
   encryption-service:
-    image: cybercryptcom/encryptonize-core:todo
+    image: cybercryptcom/encryptonize-core:v2.5
     environment:
       <<: *service-variables
     ports:
