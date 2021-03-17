@@ -98,3 +98,15 @@ jobs:
 
     - name: Stop docker containers
       run: make docker-down
+    
+    - name: Get short SHA
+      id: slug
+      run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+
+    - name: build-premium
+      uses: peter-evans/repository-dispatch@v1
+      with:
+        token: ${{ secrets.CYBOT_TOKEN }}
+        repository: cyber-crypt-com/encryptonize-premium
+        event-type: core run ${{ github.run_number }}-${{ steps.slug.outputs.sha8 }}
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
