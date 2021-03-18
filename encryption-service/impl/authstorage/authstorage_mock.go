@@ -72,23 +72,23 @@ func (db *AuthStoreTxMock) UpdateAccessObject(ctx context.Context, objectID uuid
 
 // MemoryAuthStoreTx is used by tests to mock the AutnStore in memory
 type MemoryAuthStore struct {
-	data sync.Map // 	map[uuid.UUID][][]byte
+	Data sync.Map // 	map[uuid.UUID][][]byte
 }
 
 func NewMemoryAuthStore() *MemoryAuthStore {
 	return &MemoryAuthStore{
-		data: sync.Map{},
+		Data: sync.Map{},
 	}
 }
 
 func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
-	return &MemoryAuthStoreTx{data: &store.data}, nil
+	return &MemoryAuthStoreTx{Data: &store.Data}, nil
 }
 
 func (store *MemoryAuthStore) Close() {}
 
 type MemoryAuthStoreTx struct {
-	data *sync.Map
+	Data *sync.Map
 }
 
 func (m *MemoryAuthStoreTx) Commit(ctx context.Context) error {
@@ -99,7 +99,7 @@ func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 }
 
 func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	_, ok := m.data.Load(userID)
+	_, ok := m.Data.Load(userID)
 	if !ok {
 		return false, nil
 	}
@@ -108,7 +108,7 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 }
 
 func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
-	user, ok := m.data.Load(userID)
+	user, ok := m.Data.Load(userID)
 	if !ok {
 		return nil, nil, interfaces.ErrNotFound
 	}
@@ -123,12 +123,12 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 
 func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
 	// TODO: check if already contained
-	m.data.Store(user.UserID, user)
+	m.Data.Store(user.UserID, user)
 	return nil
 }
 
 func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-	t, ok := m.data.Load(objectID)
+	t, ok := m.Data.Load(objectID)
 	if !ok {
 		return nil, nil, interfaces.ErrNotFound
 	}
@@ -149,7 +149,7 @@ func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uu
 	tagCopy := make([]byte, len(tag))
 	copy(tagCopy, tag)
 
-	m.data.Store(objectID, [][]byte{dataCopy, tagCopy})
+	m.Data.Store(objectID, [][]byte{dataCopy, tagCopy})
 	return nil
 }
 

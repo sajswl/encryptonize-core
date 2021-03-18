@@ -57,13 +57,13 @@ var cb *gobreaker.CircuitBreaker = initCircuitBreaker()
 
 // Implementation of the AuthStoreInterface
 type AuthStore struct {
-	pool *pgxpool.Pool
+	Pool *pgxpool.Pool
 }
 
 // Implementation of AuthStoreTxInterface
 type AuthStoreTx struct {
-	tx        pgx.Tx
-	requestID uuid.UUID
+	Tx        pgx.Tx
+	RequestID uuid.UUID
 }
 
 // NewAuthStore creates a new DB pool for the given database configuration.
@@ -95,14 +95,14 @@ func NewAuthStore(ctx context.Context, config config.AuthStorage) (*AuthStore, e
 	if err != nil {
 		return nil, err
 	}
-	return &AuthStore{pool: pool}, nil
+	return &AuthStore{Pool: pool}, nil
 }
 
 // NewTransaction starts a new Transaction (tx) in the pool and instances an AuthStoreTx with it
 func (store *AuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
 	// Wrap DB connection in a circuit breaker. By default, it trips to "open" state after 5 consecutive failures.
 	tx, err := cb.Execute(func() (interface{}, error) {
-		tx, err := store.pool.Begin(ctx)
+		tx, err := store.Pool.Begin(ctx)
 
 		if err != nil {
 			return nil, err
@@ -121,15 +121,15 @@ func (store *AuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStor
 	}
 
 	authStorage := &AuthStoreTx{
-		tx:        tx.(pgx.Tx),
-		requestID: requestID,
+		Tx:        tx.(pgx.Tx),
+		RequestID: requestID,
 	}
 
 	return authStorage, nil
 }
 
 func (store *AuthStore) Close() {
-	store.pool.Close()
+	store.Pool.Close()
 }
 
 // ImportSchema reads a schema file and executes it
@@ -145,7 +145,7 @@ func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) err
 	for i := 0; i < 120; i++ {
 		// TODO: replace builtin pgxpool once this is released:
 		// https://github.com/jackc/pgx/commit/aa8604b5c22989167e7158ecb1f6e7b8ddfebf04
-		_, err := store.pool.Exec(ctx, ";")
+		_, err := store.Pool.Exec(ctx, ";")
 		if err == nil {
 			break
 		}
@@ -153,14 +153,14 @@ func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) err
 		log.Debugf(ctx, "Auth Storage ping failed (retrying ...) - %v", err)
 		time.Sleep(time.Second)
 	}
-	_, err = store.pool.Exec(ctx, string(schemaData))
+	_, err = store.Pool.Exec(ctx, string(schemaData))
 
 	return err
 }
 
 // Used as a defer function to rollback an unfinished transaction
 func (storeTx *AuthStoreTx) Rollback(ctx context.Context) error {
-	err := storeTx.tx.Rollback(ctx)
+	err := storeTx.Tx.Rollback(ctx)
 	if errors.Is(err, pgx.ErrTxClosed) {
 		return nil
 	}
@@ -169,12 +169,12 @@ func (storeTx *AuthStoreTx) Rollback(ctx context.Context) error {
 
 // Commit commits the encapsulated transcation
 func (storeTx *AuthStoreTx) Commit(ctx context.Context) error {
-	return storeTx.tx.Commit(ctx)
+	return storeTx.Tx.Commit(ctx)
 }
 
 // Enriches the query with request id for tracing to the SQL audit log
 func (storeTx *AuthStoreTx) NewQuery(query string) string {
-	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storeTx.requestID.String(), query)
+	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storeTx.RequestID.String(), query)
 }
 
 // Fetches a user from the database
@@ -182,7 +182,7 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	var fetchedID []byte
 
 	// TODO: COUNT could be more appropriate
-	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1"), userID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1"), userID)
 	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -195,14 +195,14 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 
 // InsertUser inserts a user into the auth store
 func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
 	return err
 }
 
 // Gets user's confidential data
 func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error) {
 	var data, key []byte
-	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1"), userID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1"), userID)
 	err := row.Scan(&data, &key)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, interfaces.ErrNotFound
@@ -218,7 +218,7 @@ func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	var data, tag []byte
 
-	row := storeTx.tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
 	err := row.Scan(&data, &tag)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, interfaces.ErrNotFound
@@ -232,12 +232,12 @@ func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 
 // InsertAcccessObject inserts an Access Object (Object ID, data, tag)
 func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)"), objectID, data, tag)
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)"), objectID, data, tag)
 	return err
 }
 
 // UpdateAccessObject updates an Access Object with Object ID and sets data, tag
 func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storeTx.tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3"), data, tag, objectID)
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3"), data, tag, objectID)
 	return err
 }
