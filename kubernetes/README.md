@@ -80,7 +80,7 @@ You will need to edit a few settings in the provided Kubernetes files. The chang
 below. Strings to replace are expressed with bash syntax (e.g `${VAR}`) such that tools like
 `envsubst` can process them automatically. The script `generate_files.sh` provides this functionality.
 
-**1)** For easy deployment you can use our public docker image found at `[Docker Hub](https://hub.docker.com/r/cybercryptcom/encryptonize-core)`. Set the image name of the desired version in `encryption-service/encryption-service.yaml`:
+**1)** For easy deployment you can use our public docker image found at [Docker Hub](https://hub.docker.com/r/cybercryptcom/encryptonize-core). Set the image name of the desired version in `encryption-service/encryption-service.yaml`:
 ```bash
 apiVersion: apps/v1
 kind: Deployment
