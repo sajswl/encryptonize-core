@@ -80,7 +80,23 @@ You will need to edit a few settings in the provided Kubernetes files. The chang
 below. Strings to replace are expressed with bash syntax (e.g `${VAR}`) such that tools like
 `envsubst` can process them automatically. The script `generate_files.sh` provides this functionality.
 
-**1)** If needed, adjust the `storageClassName` in `object-storage/cluster.yaml` to fit your cloud
+**1)** For easy deployment you can use our public docker image found at [Docker Hub](https://hub.docker.com/r/cybercryptcom/encryptonize-core). Set the image name of the desired version in `encryption-service/encryption-service.yaml`:
+```bash
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: encryptonize-deployment
+  namespace: encryptonize
+spec:
+  ...
+  containers:
+  - name: encryptonize-container
+    # Insert Encryption Service image name here
+    image: ${ENCRYPTION_SERVICE_IMAGE}
+  ...
+```
+
+**2)** If needed, adjust the `storageClassName` in `object-storage/cluster.yaml` to fit your cloud
 provider:
 ```bash
 apiVersion: ceph.rook.io/v1
@@ -104,7 +120,7 @@ spec:
   ...
 ```
 
-**2)** Set the `dnsName` of the `ingress-certificate` in `object-storage/ingress.yaml` to the
+**3)** Set the `dnsName` of the `ingress-certificate` in `object-storage/ingress.yaml` to the
 hostname you will be using for the Rock-Ceph object store:
 ```bash
 apiVersion: cert-manager.io/v1
@@ -136,7 +152,7 @@ data:
 
 ```
 
-**3)** Set the `dnsName` of the `ingress-certificate` in
+**4)** Set the `dnsName` of the `ingress-certificate` in
 `encryption-service/encryptonize-ingress.yaml` to the hostname you will be using for the encryption
 service:
 ```bash
@@ -153,7 +169,7 @@ spec:
   ...
 ```
 
-**4)** If you want to deploy the loggin setup, set the hostname you will be using for Elasticsearch
+**5)** If you want to deploy the loggin setup, set the hostname you will be using for Elasticsearch
 in `logging/elastic-search.yaml`:
 ```bash
 apiVersion: elasticsearch.k8s.elastic.co/v1
@@ -294,7 +310,7 @@ kubectl -n rook-ceph get secret ingress-certificate -o jsonpath="{.data['tls\.cr
 
 Connect `kubectl` to the CockroachDB cluster and retrieve the CA certificate, client certificate, and client key:
 ```bash
-kubectl -n cockroachdb exec -it cockroachdb-0 -- cat /cockroach/cockroach-certs/ca.crt -c cockroachdb  > ./encryptonize-secrets/ca.crt
+kubectl -n cockroachdb exec -it cockroachdb-0 -c cockroachdb -- cat /cockroach/cockroach-certs/ca.crt > ./encryptonize-secrets/ca.crt
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.cert}' | base64 -d > ./encryptonize-secrets/client.root.crt
 touch ./encryptonize-secrets/client.root.key && chmod 600 ./encryptonize-secrets/client.root.key
 kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.key}' | base64 -d > ./encryptonize-secrets/client.root.key
@@ -351,41 +367,9 @@ Using the CockroachDB CLI tool (see install instructions
 HOSTNAME=<CockroachDB Hostname>
 TLSOPTS="sslmode=verify-ca&sslrootcert=encryptonize-secrets/ca.crt&sslcert=encryptonize-secrets/client.root.crt&sslkey=encryptonize-secrets/client.root.key"
 echo 'CREATE DATABASE IF NOT EXISTS auth;' | cockroach sql --url "postgresql://root@${HOSTNAME}:26257/?${TLSOPTS}"
-cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryption-service/data/auth_storage.sql
+cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryption-service/data/auth_storage_basic.sql
+cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryption-service/data/auth_storage_extended.sql
 ```
-
-### Push Encryption Service Docker Image
-Your cluster will need access to the Encryption Service image. Build the image (see the Encryption
-Service README) and push it to your registry. Set the image name in
-`encryption-service/encryption-service.yaml`:
-```bash
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: encryptonize-deployment
-  namespace: encryptonize
-spec:
-  ...
-  containers:
-  - name: encryptonize-container
-    # Insert Encryption Service image name here
-    image: ${ENCRYPTION_SERVICE_IMAGE}
-  ...
-```
-
-If your registry is private, you will need to give the Encryptonize service account access. By
-default, the service account expects an `imagePullSecret` called `gcr-json-key`. As an example, if
-you are using Google's Container Registry, creating this secret might look something like:
-```bash
-kubectl -n encryptonize create secret \
-  docker-registry gcr-json-key \
-  --docker-server=eu.gcr.io --docker-username=_json_key \
-  --docker-password="$(cat gcr-access-key.json)"
-```
-
-To read more about image pull secrets, see
-[here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/).
-
 
 ### Set up the cluster
 You need a Kubernetes cluster in order to deploy Ceph. If you don't have one,
