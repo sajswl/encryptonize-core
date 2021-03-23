@@ -134,7 +134,7 @@ func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData)
 }
 
 func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
-	// No concurrency safety!!
+	// TODO: unsafe for concurrent usage
 	user, ok := m.Data.Load(userID)
 	if !ok {
 		return interfaces.ErrNotFound
