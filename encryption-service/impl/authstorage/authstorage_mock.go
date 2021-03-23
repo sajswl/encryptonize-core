@@ -137,7 +137,7 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 	// No concurrency safety!!
 	user, ok := m.Data.Load(userID)
 	if !ok {
-		return interfaces.ErrNoUserFound
+		return interfaces.ErrNotFound
 	}
 
 	userData, ok := user.(users.UserData)
