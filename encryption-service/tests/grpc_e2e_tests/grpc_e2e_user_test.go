@@ -30,7 +30,7 @@ func TestCreateUser(t *testing.T) {
 
 	// Test user login
 	loginUserResponse, err := client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
-	failOnError("Create user request failed", err, t)
+	failOnError("Login user request failed", err, t)
 	t.Logf("%v", loginUserResponse)
 
 	// Test that users can do stuff
@@ -127,4 +127,30 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	failOnSuccess("Admin could add object permissions", err, t)
 	_, err = clientAdmin.RemovePermission(storeResponse.ObjectId, uid2)
 	failOnSuccess("Admin could add object permissions", err, t)
+}
+
+func TestRemoveUser(t *testing.T) {
+	client, err := NewClient(endpoint, adminAT, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	// Test user creation
+	createUserResponse, err := client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+	t.Logf("%v", createUserResponse)
+
+	// Test user login
+	loginUserResponse, err := client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnError("Login user request failed", err, t)
+	t.Logf("%v", loginUserResponse)
+
+	// Test user removal
+	removeUserResponse, err := client.RemoveUser(createUserResponse.UserId)
+	failOnError("Remove user request failed", err, t)
+	t.Logf("%v", removeUserResponse)
+
+	// Test user login again
+	loginUserResponse, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	failOnSuccess("Login user request suceeded on a deleted user", err, t)
+	t.Logf("%v", loginUserResponse)
 }
