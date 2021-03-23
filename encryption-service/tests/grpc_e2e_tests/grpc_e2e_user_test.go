@@ -151,6 +151,6 @@ func TestRemoveUser(t *testing.T) {
 
 	// Test user login again
 	loginUserResponse, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
-	failOnSuccess("Login user request suceeded on a deleted user", err, t)
+	failOnSuccess("Login user request succeeded on a deleted user", err, t)
 	t.Logf("%v", loginUserResponse)
 }

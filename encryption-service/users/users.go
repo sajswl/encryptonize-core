@@ -25,7 +25,7 @@ type UserData struct {
 	UserID               uuid.UUID
 	ConfidentialUserData []byte
 	WrappedKey           []byte
-	DeletedAt            time.Time
+	DeletedAt            *time.Time
 }
 
 func (us ScopeType) IsValid() error {

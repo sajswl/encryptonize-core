@@ -17,7 +17,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/gofrs/uuid"
 
@@ -124,6 +123,10 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 		return nil, nil, errors.New("unable to cast to UserData")
 	}
 
+	if data.DeletedAt != nil {
+		return nil, nil, errors.New("User has been deleted")
+	}
+
 	return data.ConfidentialUserData, data.WrappedKey, nil
 }
 
@@ -145,7 +148,10 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 		return errors.New("unable to cast to UserData")
 	}
 
-	userData.DeletedAt = time.Now()
+	if userData.DeletedAt != nil {
+		return errors.New("User has been deleted")
+	}
+
 	m.Data.Store(userID, userData)
 	return nil
 }
