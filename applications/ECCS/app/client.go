@@ -467,3 +467,37 @@ func (c *Client) LoginUser(uid, password string) (string, error) {
 
 	return at, nil
 }
+
+func (c *Client) RemoveUser(uid string) error {
+	mth, err := c.findMethod("authn.Encryptonize", "RemoveUser")
+	if err != nil {
+		return err
+	}
+
+	// sanitize input and outputs
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"user_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(inType, inExp) {
+		return errors.New("Unexpected input type of RemoveUser method")
+	}
+
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
+	if !sanitize(mth.GetOutputType(), outExp) {
+		return errors.New("Unexpected output type of RemoveUser method")
+	}
+
+	// create argument
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("user_id", uid)
+
+	// invoke RPC and disregard nonexisting return values
+	stub := grpcdynamic.NewStub(c.connection)
+	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

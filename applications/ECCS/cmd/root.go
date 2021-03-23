@@ -143,6 +143,18 @@ var loginUserCmd = &cobra.Command{
 	},
 }
 
+var removeUserCmd = &cobra.Command{
+	Use:   "removeuser",
+	Short: "Removes a user from the serivce",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := app.RemoveUser(userAT, uid)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
 func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
@@ -152,6 +164,7 @@ func InitCmd() error {
 	rootCmd.AddCommand(removePermissionCmd)
 	rootCmd.AddCommand(createUserCmd)
 	rootCmd.AddCommand(loginUserCmd)
+	rootCmd.AddCommand(removeUserCmd)
 
 	// Set credential flags
 	rootCmd.PersistentFlags().StringVarP(&userAT, "token", "a", "", "User access token")
@@ -206,6 +219,9 @@ func InitCmd() error {
 	// Set loginUser flags
 	loginUserCmd.Flags().StringVarP(&uid, "uid", "u", "", "UID of the user to retrieve a token for")
 	loginUserCmd.Flags().StringVarP(&password, "password", "p", "", "Password of the provided user")
+
+	// Set removeUser flags
+	removeUserCmd.Flags().StringVarP(&uid, "target", "t", "", "Target UID of the user to be removed")
 
 	return nil
 }

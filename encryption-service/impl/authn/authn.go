@@ -137,6 +137,25 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 	return token, nil
 }
 
+func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) error {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+	}
+
+	err := authStorageTx.RemoveUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	err = authStorageTx.Commit(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // NewAdminUser creates a new admin users with random credentials
 // This function is intended to be used for cli operation
 func (ua *UserAuthenticator) NewAdminUser(authStore interfaces.AuthStoreInterface) error {

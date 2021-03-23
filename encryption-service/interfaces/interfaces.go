@@ -51,6 +51,9 @@ type AuthStoreTxInterface interface {
 	// Insert a user
 	InsertUser(ctx context.Context, userData users.UserData) (err error)
 
+	// Removes a user
+	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
+
 	//  Retrieve an existing access object
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
 
@@ -101,6 +104,8 @@ type UserAuthenticatorInterface interface {
 
 	// Logs a user in with userID and password pair
 	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
+
+	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 }
 
 type AccessObjectInterface interface {

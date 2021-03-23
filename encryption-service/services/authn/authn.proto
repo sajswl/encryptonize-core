@@ -22,7 +22,11 @@ service Encryptonize{
   // Creates a new user on the service
   rpc CreateUser (CreateUserRequest) returns (CreateUserResponse){}
 
+  // Logs in a user to the service
   rpc LoginUser (LoginUserRequest) returns (LoginUserResponse){}
+
+  // Deletes a user in the service
+  rpc RemoveUser (RemoveUserRequest) returns (RemoveUserResponse){}
 }
 
 message CreateUserRequest{
@@ -42,3 +46,9 @@ message LoginUserRequest{
 message LoginUserResponse{
   string access_token = 1;
 }
+
+message RemoveUserRequest{
+  string user_id = 1;
+}
+
+message RemoveUserResponse{}

@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/gofrs/uuid"
 
@@ -34,6 +35,7 @@ type AuthStoreTxMock struct {
 	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
 	InsertUserFunc  func(ctx context.Context, user users.UserData) error
 	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error)
+	RemoveUserFunc  func(ctx context.Context, userID uuid.UUID) error
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
 	InsertAcccessObjectFunc func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
@@ -52,6 +54,10 @@ func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bo
 }
 func (db *AuthStoreTxMock) InsertUser(ctx context.Context, user users.UserData) error {
 	return db.InsertUserFunc(ctx, user)
+}
+
+func (db *AuthStoreTxMock) RemoveUser(ctx context.Context, userID uuid.UUID) error {
+	return db.RemoveUserFunc(ctx, userID)
 }
 
 func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
@@ -124,6 +130,23 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
 	// TODO: check if already contained
 	m.Data.Store(user.UserID, user)
+	return nil
+}
+
+func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
+	// No concurrency safety!!
+	user, ok := m.Data.Load(userID)
+	if !ok {
+		return interfaces.ErrNoUserFound
+	}
+
+	userData, ok := user.(users.UserData)
+	if !ok {
+		return errors.New("unable to cast to UserData")
+	}
+
+	userData.DeletedAt = time.Now()
+	m.Data.Store(userID, userData)
 	return nil
 }
 

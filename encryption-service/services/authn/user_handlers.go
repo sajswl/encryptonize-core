@@ -62,3 +62,19 @@ func (au *Authn) LoginUser(ctx context.Context, request *LoginUserRequest) (*Log
 	}
 	return resp, nil
 }
+
+func (au *Authn) RemoveUser(ctx context.Context, request *RemoveUserRequest) (*RemoveUserResponse, error) {
+	target, err := uuid.FromString(request.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = au.UserAuthenticator.RemoveUser(ctx, target)
+	if err != nil {
+		log.Error(ctx, err, "RemoveUser: Couldn't remove the user")
+		return nil, status.Errorf(codes.Internal, "error encountered while removing user")
+	}
+
+	resp := &RemoveUserResponse{}
+	return resp, nil
+}
