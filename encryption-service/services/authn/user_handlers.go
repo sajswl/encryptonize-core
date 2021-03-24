@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"encryption-service/interfaces"
 	log "encryption-service/logger"
 	"encryption-service/users"
 )
@@ -71,6 +72,10 @@ func (au *Authn) RemoveUser(ctx context.Context, request *RemoveUserRequest) (*R
 
 	err = au.UserAuthenticator.RemoveUser(ctx, target)
 	if err != nil {
+		if errors.Is(err, interfaces.ErrNotFound) {
+			log.Error(ctx, err, "RemoveUser: target with given UID doesn't exist")
+			return nil, status.Errorf(codes.NotFound, "Target user not found")
+		}
 		log.Error(ctx, err, "RemoveUser: Couldn't remove the user")
 		return nil, status.Errorf(codes.Internal, "error encountered while removing user")
 	}
