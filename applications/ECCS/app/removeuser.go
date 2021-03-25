@@ -31,7 +31,7 @@ func RemoveUser(userAT, uid string) error {
 		log.Fatalf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	// Print login user credentials back to user
+	// Print removal success to user
 	log.Printf("%vUid: \"%s\"", utils.Pass("Successfully removed user!\n"), uid)
 
 	return nil
