@@ -105,6 +105,7 @@ type UserAuthenticatorInterface interface {
 	// Logs a user in with userID and password pair
 	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
 
+	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 }
 

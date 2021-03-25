@@ -215,7 +215,7 @@ func (storeTx *AuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 // Gets user's confidential data
 func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error) {
 	var data, key []byte
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1 AND deleted_at is null"), userID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1 AND deleted_at IS NULL"), userID)
 	err := row.Scan(&data, &key)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, interfaces.ErrNotFound
