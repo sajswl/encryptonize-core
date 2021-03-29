@@ -104,8 +104,17 @@ func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 }
 
 func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	_, ok := m.Data.Load(userID)
+	user, ok := m.Data.Load(userID)
 	if !ok {
+		return false, nil
+	}
+
+	userData, ok := user.(users.UserData)
+	if !ok {
+		return false, errors.New("unable to cast to UserData")
+	}
+
+	if userData.DeletedAt != nil {
 		return false, nil
 	}
 

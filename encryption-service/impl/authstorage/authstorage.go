@@ -182,7 +182,7 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	var fetchedID []byte
 
 	// TODO: COUNT could be more appropriate
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1"), userID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL"), userID)
 	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
