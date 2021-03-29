@@ -154,3 +154,16 @@ func TestRemoveUser(t *testing.T) {
 	failOnSuccess("Login user request succeeded on a deleted user", err, t)
 	t.Logf("%v", loginUserResponse)
 }
+
+func TestRemoveUserNonExisting(t *testing.T) {
+	nonExistingUser := "00000000-0000-0000-0000-000000000000"
+
+	client, err := NewClient(endpoint, adminAT, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	// Test user removal
+	removeUserResponse, err := client.RemoveUser(nonExistingUser)
+	failOnSuccess("Remove user request succeeded on a non existing user", err, t)
+	t.Logf("%v", removeUserResponse)
+}
