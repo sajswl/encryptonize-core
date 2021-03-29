@@ -2,8 +2,8 @@
 
 CREATE TABLE IF NOT EXISTS users  (
     id UUID PRIMARY KEY,
-    data BYTEA,
-    key BYTEA,
+    data BYTEA NOT NULL,
+    key BYTEA NOT NULL,
     deleted_at TIMESTAMP
 );
 

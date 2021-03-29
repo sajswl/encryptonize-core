@@ -124,7 +124,7 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 	}
 
 	if data.DeletedAt != nil {
-		return nil, nil, errors.New("User has been deleted")
+		return nil, nil, interfaces.ErrNotFound
 	}
 
 	return data.ConfidentialUserData, data.WrappedKey, nil
@@ -149,7 +149,7 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 	}
 
 	if userData.DeletedAt != nil {
-		return errors.New("User has been deleted")
+		return interfaces.ErrNotFound
 	}
 
 	m.Data.Store(userID, userData)
