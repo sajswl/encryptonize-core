@@ -3,6 +3,7 @@ package users
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gofrs/uuid"
 )
@@ -24,6 +25,7 @@ type UserData struct {
 	UserID               uuid.UUID
 	ConfidentialUserData []byte
 	WrappedKey           []byte
+	DeletedAt            *time.Time
 }
 
 func (us ScopeType) IsValid() error {

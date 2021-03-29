@@ -34,6 +34,7 @@ import os
 import subprocess
 import sys
 import re
+import uuid
 
 # Initializes the server
 # Sets the endpoint if it is unset
@@ -141,4 +142,5 @@ if __name__ == "__main__":
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
 	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)
+	subprocess.run(["./eccs", "-a", at, "removeuser", "-t", uid2], check=True)
 	print("[+] all tests succeeded")

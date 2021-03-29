@@ -170,6 +170,18 @@ func (c *Client) LoginUser(userid string, password string) (*authn.LoginUserResp
 	return loginUserResponse, nil
 }
 
+func (c *Client) RemoveUser(target string) (*authn.RemoveUserResponse, error) {
+	removeUserRequest := &authn.RemoveUserRequest{
+		UserId: target,
+	}
+
+	removeUserResponse, err := c.authClient.RemoveUser(c.ctx, removeUserRequest)
+	if err != nil {
+		return nil, fmt.Errorf("RemoveUser failed: %v", err)
+	}
+	return removeUserResponse, nil
+}
+
 // Perform a `Version` request.
 func (c *Client) GetVersion() (*app.VersionResponse, error) {
 	versionResponse, err := c.appClient.Version(c.ctx, &app.VersionRequest{})

@@ -32,6 +32,7 @@ const baseAuthPath string = "/authn.Encryptonize/"
 
 var methodScopeMap = map[string]users.ScopeType{
 	baseAuthPath + "CreateUser":      users.ScopeUserManagement,
+	baseAuthPath + "RemoveUser":      users.ScopeUserManagement,
 	baseEncPath + "GetPermissions":   users.ScopeIndex,
 	baseEncPath + "AddPermission":    users.ScopeObjectPermissions,
 	baseEncPath + "RemovePermission": users.ScopeObjectPermissions,

@@ -182,7 +182,7 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	var fetchedID []byte
 
 	// TODO: COUNT could be more appropriate
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1"), userID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL"), userID)
 	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -199,10 +199,23 @@ func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, user users.UserData)
 	return err
 }
 
+// RemoveUser performs a soft delete by setting a deletion date
+func (storeTx *AuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
+	now := time.Now()
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE users SET deleted_at = $1 WHERE id = $2"), now, userID)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() < 1 {
+		return interfaces.ErrNotFound
+	}
+	return nil
+}
+
 // Gets user's confidential data
 func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error) {
 	var data, key []byte
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1"), userID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1 AND deleted_at IS NULL"), userID)
 	err := row.Scan(&data, &key)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, interfaces.ErrNotFound
