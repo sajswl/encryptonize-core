@@ -93,6 +93,15 @@ spec:
       serviceAccountName: encryptonize-sa
       containers:
         - name: nginx
+          securityContext:
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - all
+              add:
+                - "CHOWN"
+                - "SETGID"
+                - "SETUID"
           image: nginx
           ports:
             - containerPort: 9000
@@ -133,6 +142,8 @@ metadata:
   namespace: encryptonize
 spec:
   type: LoadBalancer
+  loadBalancerSourceRanges:
+    - 0.0.0.0/0
   selector:
     app: encryptonize-ingress
   ports:

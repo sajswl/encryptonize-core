@@ -29,6 +29,11 @@ spec:
       serviceAccountName: encryptonize-sa
       containers:
       - name: encryptonize-container
+        securityContext:
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - all
         # Insert Encryption Service image name here
         image: ${ENCRYPTION_SERVICE_IMAGE}
         imagePullPolicy: Always
