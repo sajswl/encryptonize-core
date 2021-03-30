@@ -14,7 +14,7 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        args: --file=./encryption-service/go.mo
+        args: --file=./encryption-service/go.mod
         
     - name: Build Encryptonize Docker image
       run: make docker-build
