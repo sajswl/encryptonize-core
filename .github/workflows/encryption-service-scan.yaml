@@ -2,11 +2,6 @@ name: Snyk scan
 
 on: push
 
-defaults:
-  run:
-    shell: bash
-    working-directory: encryption-service
-
 jobs:
   dependency-scan:
     runs-on: ubuntu-latest
@@ -18,6 +13,8 @@ jobs:
       uses: snyk/actions/golang@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --file=./encryption-service/go.mo
         
     - name: Build Encryptonize Docker image
       run: make docker-build
