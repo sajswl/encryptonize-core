@@ -18,8 +18,6 @@ jobs:
       uses: snyk/actions/golang@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --file=go.mod
         
     - name: Build Encryptonize Docker image
       run: make docker-build
