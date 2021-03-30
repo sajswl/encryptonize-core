@@ -1,0 +1,30 @@
+name: Snyk scan
+
+on: push
+
+defaults:
+  run:
+    shell: bash
+    working-directory: encryption-service
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    # - name: Check for golang dependency vulnerabilities
+    #   uses: snyk/actions/golang@master
+    #   env:
+    #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+	
+    - name: Build Encryptonize Docker image
+      run: make docker-build
+
+    # - name: Check for image dependency vulnerabilities
+    #   uses: snyk/actions/docker@master
+    #   env:
+    #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    #   with:
+    #     image: encryptonize
