@@ -13,17 +13,21 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
-    # - name: Check for golang dependency vulnerabilities
-    #   uses: snyk/actions/golang@master
-    #   env:
-    #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    - name: Check for golang dependency vulnerabilities
+      uses: snyk/actions/golang@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --file=go.mod
         
     - name: Build Encryptonize Docker image
       run: make docker-build
 
-    # - name: Check for image dependency vulnerabilities
-    #   uses: snyk/actions/docker@master
-    #   env:
-    #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-    #   with:
-    #     image: encryptonize
+    - name: Check for image dependency vulnerabilities
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: encryptonize
+    
