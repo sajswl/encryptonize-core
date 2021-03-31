@@ -26,11 +26,3 @@ jobs:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         image: encryptonize
-
-    - name: Check for IaC vulnerabilities
-      uses: snyk/actions/iac@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: ./kubernetes/encryption-service --severity-threshold=medium
-    
