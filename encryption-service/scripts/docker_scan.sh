@@ -16,4 +16,4 @@
 
 set -euo pipefail
 
-snyk container test encryptonize
+docker run -it -e SNYK_TOKEN=$SNYK_TOKEN -v $(pwd):/project -v /var/run/docker.sock:/var/run/docker.sock snyk/snyk-cli:docker test --docker encryptonize

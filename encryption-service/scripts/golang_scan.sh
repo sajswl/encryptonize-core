@@ -16,4 +16,4 @@
 
 set -euo pipefail
 
-snyk test --file=go.mod
+docker run -it -e SNYK_TOKEN=$SNYK_TOKEN -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock snyk/snyk:golang-1.13
