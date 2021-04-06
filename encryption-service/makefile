@@ -52,6 +52,14 @@ $(protobufs): $(protosource)
 docker-build:  ## Build the Encryption Service docker image
 	./scripts/docker_build.sh
 
+.PHONY: snyk-scan-image
+snyk-scan-image: docker-build ## Scan the encryptonize image for vulnerable dependencies
+	./scripts/docker_scan.sh
+
+.PHONY: snyk-scan-golang
+snyk-scan-golang:  ## Scan the golang dependencies for known vulnerabilities
+	./scripts/golang_scan.sh
+
 # Only pull credentials if they don't exist already
 .PHONY: credentials
 credentials: | $(credentials)  ## See scripts/get_credentials.sh for details
