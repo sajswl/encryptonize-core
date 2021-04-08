@@ -22,7 +22,7 @@ set -euo pipefail
 source ./scripts/build-env
 source ./scripts/dev-env
 
-export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|e2e_tests')
+export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|tests')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'
