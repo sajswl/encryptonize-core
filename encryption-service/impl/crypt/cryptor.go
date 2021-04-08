@@ -14,8 +14,8 @@
 package crypt
 
 import (
-	"errors"
 	"crypto/rand"
+	"errors"
 
 	"encryption-service/interfaces"
 )

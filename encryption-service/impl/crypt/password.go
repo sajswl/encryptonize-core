@@ -45,4 +45,3 @@ func HashPassword(password string, salt []byte) []byte {
 func CompareHashAndPassword(password string, hash []byte, salt []byte) bool {
 	return subtle.ConstantTimeCompare(HashPassword(password, salt), hash) == 1
 }
-
