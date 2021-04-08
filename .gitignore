@@ -31,6 +31,12 @@ client.root.key
 object_storage_key
 object_storage.key
 
+# Snyk output
+snyk-error.log
+snyk-result.json
+snyk_report.css
+snyk_report.html
+
 # Other
 ca.crt
 client.root.crt
