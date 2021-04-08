@@ -26,7 +26,7 @@ source ./scripts/dev-env
 # Start storage servers
 docker-compose up --detach cockroachdb-1 cockroachdb-2 cockroachdb-3 cockroachdb-init minio minio-init
 
-export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|e2e_tests')
+export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|tests')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'
