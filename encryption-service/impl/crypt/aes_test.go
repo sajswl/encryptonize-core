@@ -55,6 +55,23 @@ func TestEncryptDecrypt(t *testing.T) {
 	}
 }
 
+func TestWrongTag(t *testing.T) {
+	crypter := &AESCrypter{}
+	plaintext := append([]byte(nil), plaintext...)
+	ciphertext, err := crypter.Encrypt(plaintext, aad, oek)
+	if err != nil {
+		t.Fatalf("Encrypt: %v", err)
+	}
+
+	// Change a bit in the ciphertext
+	ciphertext[0] ^= 1
+
+	_, err = crypter.Decrypt(ciphertext, aad, oek)
+	if err == nil {
+		t.Fatalf("Decryption of modified ciphertext should have failed")
+	}
+}
+
 func TestAssociatedDataSizes(t *testing.T) {
 	crypter := &AESCrypter{}
 
