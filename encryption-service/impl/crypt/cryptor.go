@@ -14,14 +14,24 @@
 package crypt
 
 import (
+	"crypto/rand"
 	"errors"
 
 	"encryption-service/interfaces"
 )
 
+// Random returns n cryptographically secure random bytes
+func Random(n int) ([]byte, error) {
+	bytes := make([]byte, n)
+	if _, err := rand.Read(bytes); err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 type AESCryptor struct {
 	keyWrap interfaces.KeyWrapperInterface
-	crypter CrypterInterface // TODO: remove this by pulling it into the implementation?
+	crypter *AESCrypter
 }
 
 func NewAESCryptor(KEK []byte) (*AESCryptor, error) {
