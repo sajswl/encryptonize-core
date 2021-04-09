@@ -73,6 +73,9 @@ func (c *AESCrypter) Decrypt(ciphertext, aad, key []byte) ([]byte, error) {
 	}
 
 	_, err = aesgcm.Open(data[:0], nonce, data, aad)
+	if err != nil {
+		return nil, err
+	}
 
 	return ciphertext[:len(ciphertext)-Overhead], err
 }
