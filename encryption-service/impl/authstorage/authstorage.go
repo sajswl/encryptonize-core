@@ -143,12 +143,13 @@ func (store *AuthStore) ImportSchema(ctx context.Context, schemaFile string) err
 	// Wait for DB to be up
 	// TODO: this is not ideal
 	for i := 0; i < 120; i++ {
+		// We don't use ping here, as that would succeed even if the right database has not been created yet.
 		_, err = store.Pool.Exec(ctx, string(schemaData))
 		if err == nil {
 			break
 		}
 
-		log.Debugf(ctx, "Auth Storage ping failed (retrying ...) - %v", err)
+		log.Debugf(ctx, "Auth Storage setup failed (retrying ...) - %v", err)
 		time.Sleep(time.Second)
 	}
 
