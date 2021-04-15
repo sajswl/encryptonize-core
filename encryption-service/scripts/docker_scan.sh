@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2021 CYBERCRYPT
+# Copyright 2020 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,4 @@
 
 set -euo pipefail
 
-# Nicer docker builds
-export DOCKER_BUILDKIT=1
-
-COMMIT=$(git rev-list -1 HEAD)
-TAG=$(git tag --points-at HEAD)
-docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t encryptonize -f encryption-service.dockerfile .
+docker run -it -e SNYK_TOKEN=$SNYK_TOKEN -v $(pwd):/project -v /var/run/docker.sock:/var/run/docker.sock snyk/snyk-cli:docker test --docker encryptonize

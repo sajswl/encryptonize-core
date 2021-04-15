@@ -1,4 +1,4 @@
-# Copyright 2020 CYBERCRYPT
+# Copyright 2021 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,11 @@ spec:
       serviceAccountName: encryptonize-sa
       containers:
       - name: encryptonize-container
+        securityContext:
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - all
         # Insert Encryption Service image name here
         image: ${ENCRYPTION_SERVICE_IMAGE}
         imagePullPolicy: Always

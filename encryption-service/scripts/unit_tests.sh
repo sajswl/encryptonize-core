@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 CYBERCRYPT
+# Copyright 2021 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ set -euo pipefail
 source ./scripts/build-env
 source ./scripts/dev-env
 
-export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|e2e_tests')
+export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|tests')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'
