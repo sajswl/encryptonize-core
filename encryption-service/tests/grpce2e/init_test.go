@@ -54,6 +54,12 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
 	defer client.Close()
+
+	// Check if the server is alive
+	if err := client.HealthCheck(); err != nil {
+		log.Fatalf("Couldn't ping test server: %v", err)
+	}
+
 	createUserResponse, err := client.CreateUser(protoUserScopes)
 	if err != nil {
 		log.Fatalf("Couldn't create test user: %v", err)

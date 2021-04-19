@@ -17,7 +17,7 @@
 set -euo pipefail
 
 # Run all unit tests and end-to-end tests, generating a merged test coverage report. Usage:
-#   ./tests/run-all-tests.sh
+#   ./tests/coverage.sh
 
 
 source ./scripts/build-env
@@ -37,11 +37,7 @@ export COMMIT=$(git rev-list -1 HEAD)
 export TAG=$(git tag --points-at HEAD)
 go test -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" -coverpkg=./... -coverprofile=coverage-e2e.out -v &
 
-until $(docker run --net=host --rm amothic/grpc-health-probe@sha256:c56a6e93c199cf35a555655de2710528e2f37e50de9f95e3dfb66534803f6155 -addr=:9000); do
-    echo '[*] waiting for the server to be up'
-    sleep 1
-done
-
+echo '[*] running end-to-end tests'
 go test -count=1 -v ./tests/...
 
 while pkill -f -SIGINT encryption-service.test; do
