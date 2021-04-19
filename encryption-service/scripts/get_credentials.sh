@@ -17,7 +17,7 @@
 # Fetches certificates and credentials from encryptonize clusters. Supposed to be used with the
 # setup described in `kubernetes/README.md`. Set the the `PROJECT` environment variable before
 # running the script. Usage:
-#     ./_scripts/get_db_certificates.sh
+#     ./_scripts/get_credentials.sh
 
 set -euo pipefail
 

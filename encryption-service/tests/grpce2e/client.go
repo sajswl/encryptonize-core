@@ -16,9 +16,12 @@ package grpce2e
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 
 	"encryption-service/services/app"
@@ -29,11 +32,12 @@ import (
 
 // Client for making test gRPC calls to the encryption service
 type Client struct {
-	connection *grpc.ClientConn
-	appClient  app.EncryptonizeClient
-	encClient  enc.EncryptonizeClient
-	authClient authn.EncryptonizeClient
-	ctx        context.Context
+	connection   *grpc.ClientConn
+	appClient    app.EncryptonizeClient
+	encClient    enc.EncryptonizeClient
+	authClient   authn.EncryptonizeClient
+	healthClient grpc_health_v1.HealthClient
+	ctx          context.Context
 }
 
 // Create a new client.
@@ -59,15 +63,17 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 	appClient := app.NewEncryptonizeClient(connection)
 	encClient := enc.NewEncryptonizeClient(connection)
 	authClient := authn.NewEncryptonizeClient(connection)
+	healthClient := grpc_health_v1.NewHealthClient(connection)
 	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
 	return &Client{
-		connection: connection,
-		appClient:  appClient,
-		encClient:  encClient,
-		authClient: authClient,
-		ctx:        ctx,
+		connection:   connection,
+		appClient:    appClient,
+		encClient:    encClient,
+		authClient:   authClient,
+		healthClient: healthClient,
+		ctx:          ctx,
 	}, nil
 }
 
@@ -191,4 +197,23 @@ func (c *Client) GetVersion() (*app.VersionResponse, error) {
 	}
 
 	return versionResponse, err
+}
+
+// HealthCheck performs a check to see if the server is alive
+func (c *Client) HealthCheck() error {
+	var err error
+	var response *grpc_health_v1.HealthCheckResponse
+
+	log.Println("Trying to ping server...")
+	for i := 0; i < 120; i++ {
+		response, err = c.healthClient.Check(c.ctx, &grpc_health_v1.HealthCheckRequest{})
+		if err == nil && response.Status == grpc_health_v1.HealthCheckResponse_SERVING {
+			log.Println("Server is alive!")
+			return nil
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	return err
 }
