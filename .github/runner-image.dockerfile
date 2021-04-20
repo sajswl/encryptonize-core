@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Dependencies
 RUN apt-get update && \
-  apt-get install --no-install-recommends -y ca-certificates wget curl git make python3 python3-crypto python3-pycryptodome iproute2 build-essential clang && \
+  apt-get install --no-install-recommends -y ca-certificates wget curl git make python3 python3-crypto python3-pycryptodome iproute2 build-essential clang openssh-client && \
   rm -rf /var/lib/apt/lists/*
 
 # GCloud
