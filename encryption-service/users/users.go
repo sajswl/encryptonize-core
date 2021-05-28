@@ -18,6 +18,7 @@ const (
 	ScopeIndex
 	ScopeObjectPermissions
 	ScopeUserManagement
+	ScopeUpdate
 	ScopeEnd
 )
 
@@ -47,6 +48,8 @@ func MapScopesToScopeType(scopes []UserScope) (ScopeType, error) {
 			userScopes |= ScopeRead
 		case UserScope_CREATE:
 			userScopes |= ScopeCreate
+		case UserScope_UPDATE:
+			userScopes |= ScopeUpdate
 		case UserScope_INDEX:
 			userScopes |= ScopeIndex
 		case UserScope_OBJECTPERMISSIONS:
@@ -72,6 +75,8 @@ func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
 			userScope = append(userScope, UserScope_READ)
 		case ScopeCreate:
 			userScope = append(userScope, UserScope_CREATE)
+		case ScopeUpdate:
+			userScope = append(userScope, UserScope_UPDATE)
 		case ScopeIndex:
 			userScope = append(userScope, UserScope_INDEX)
 		case ScopeObjectPermissions:
