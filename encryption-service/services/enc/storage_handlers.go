@@ -141,22 +141,22 @@ func (enc *Enc) Update(ctx context.Context, request *UpdateRequest) (*UpdateResp
 
 	ciphertext, err := enc.DataCryptor.EncryptWithKey(request.Object.Plaintext, request.Object.AssociatedData, accessObject.GetWOEK())
 	if err != nil {
-		log.Error(ctx, err, "Store: Failed to encrypt object")
+		log.Error(ctx, err, "Update: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	if err := enc.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
-		log.Error(ctx, err, "Store: Failed to store associated data")
+		log.Error(ctx, err, "Update: Failed to store associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	if err := enc.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
-		log.Error(ctx, err, "Store: Failed to store object")
+		log.Error(ctx, err, "Update: Failed to store object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
-	log.Info(ctx, "Store: Object stored")
+	log.Info(ctx, "Update: Object stored")
 
 	return &UpdateResponse{ObjectId: objectIDString}, nil
 }
