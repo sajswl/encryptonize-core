@@ -128,9 +128,10 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 	}, nil
 }
 
-// API exposed function, retrieves a package from storage solution
+// API exposed function, replaces the object with the provided object ID with
+// new data that is encrypted and placed into the object store
 // Assumes that user credentials are to be found in context metadata
-// Errors if authentication, authorization, or retrieving the object fails
+// Errors if authentication, authorization, or retrieving the access object fails
 func (enc *Enc) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	objectIDString := request.ObjectId
 	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
