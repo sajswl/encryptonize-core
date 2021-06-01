@@ -21,7 +21,8 @@ A primary change from 1.0 of the Encryptonize API is to introduce gRPC instead o
 The current service address is `app.Encryptonize`. The Encryptonize API defines the following functions:
 
 * `rpc Store (StoreRequest) returns (StoreResponse)`
-* `rpc Retrieve (RetriveRequest) returns (RetriveResponse)`
+* `rpc Retrieve (RetrieveRequest) returns (RetrieveResponse)`
+* `rpc Delete (DeleteRequest) returns (DeleteResponse){}`
 * `rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)`
 * `rpc AddPermission (AddPermissionRequest) returns (ReturnCode)`
 * `rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)`
@@ -51,6 +52,7 @@ A user is created with a chosen set of scopes that governs the endpoints this us
 Any combination of the different scopes is valid. The scopes are:
 - `READ`
 - `CREATE`
+- `DELETE`
 - `INDEX`
 - `OBJECTPERMISSIONS`
 - `USERMANAGEMENT`
@@ -61,6 +63,7 @@ To access the endpoints the following permissions are necessary:
 |------------------|-------------------|
 | Store            | CREATE            |
 | Retrieve         | READ              |
+| Delete           | DELETE            |
 | GetPermission    | INDEC             |
 | AddPermission    | OBJECTPERMISSIONS |
 | RemovePermission | OBJECTPERMISSIONS |
@@ -130,6 +133,13 @@ the request.
 | Name             | Type             | Description           |
 |------------------|------------------|-----------------------|
 | object           | Object           | The object            |
+
+## DeleteRequest
+The structure used as an argument for a `Delete` request. It containers the Object ID of the Object the client wishes to delete.
+
+| Name      | Type   | Description           |
+|-----------|--------|-----------------------|
+| object_id | string | The object identifier |
 
 ## CreateUserRequest
 The structure used as an argument for a `CreateUser` request. It contains a list of scopes defining
@@ -209,6 +219,15 @@ the Encryption Service cannot reach the object storage. In these cases, an error
 
 ```
 rpc Retrieve (RetriveRequest) returns (RetriveResponse)
+```
+
+# Delete
+
+Deletes a previously Stored `Object`. This call does not fail if the specified object does not exist. It can fail if the caller does not have access permission to that object or if
+the Encryption Service cannot reach the object storage. In these cases, an error is returned.
+
+```
+rpc Delete (DeleteRequest) returns (DeleteResponse)
 ```
 
 # Get Permission
