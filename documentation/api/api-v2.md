@@ -22,6 +22,7 @@ The current service address is `app.Encryptonize`. The Encryptonize API defines 
 
 * `rpc Store (StoreRequest) returns (StoreResponse)`
 * `rpc Retrieve (RetriveRequest) returns (RetriveResponse)`
+* `rpc Update (UpdateRequest) returns (UpdateResponse)`
 * `rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)`
 * `rpc AddPermission (AddPermissionRequest) returns (ReturnCode)`
 * `rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)`
@@ -51,6 +52,7 @@ A user is created with a chosen set of scopes that governs the endpoints this us
 Any combination of the different scopes is valid. The scopes are:
 - `READ`
 - `CREATE`
+- `UPDATE`
 - `INDEX`
 - `OBJECTPERMISSIONS`
 - `USERMANAGEMENT`
@@ -61,6 +63,7 @@ To access the endpoints the following permissions are necessary:
 |------------------|-------------------|
 | Store            | CREATE            |
 | Retrieve         | READ              |
+| Update           | UPDATE            |
 | GetPermission    | INDEC             |
 | AddPermission    | OBJECTPERMISSIONS |
 | RemovePermission | OBJECTPERMISSIONS |
@@ -209,6 +212,17 @@ the Encryption Service cannot reach the object storage. In these cases, an error
 
 ```
 rpc Retrieve (RetriveRequest) returns (RetriveResponse)
+```
+
+# Update
+
+Takes an `Object`  and an `Object ID` and Stores it in encrypted form, replacing the previous `Object` that was stored with that `Object ID`. This call can fail if the specified `Object ID` does not currently exist,  if the caller does not have access permission to that object, or if
+the Encryption Service cannot reach the object storage. In these cases, an error is returned.
+
+> DISCLAIMER: Current implementation of Update does not ensure safe concurrent access.
+
+```
+rpc Update (UpdateRequest) returns (UpdateResponse)
 ```
 
 # Get Permission
