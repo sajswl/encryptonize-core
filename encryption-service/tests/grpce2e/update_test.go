@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-// Test the we can store an object and retrieve it later
+// Test the we can store an object, update and retrieve it later
 func TestStoreAndUpdate(t *testing.T) {
 	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
@@ -106,7 +106,7 @@ func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
 
 	plaintext2 := []byte("foo2")
 
-	// Add another user to object permission list
+	// Update the object from the new user
 	_, err = client2.Update(oid, plaintext2, associatedData)
 	failOnError("Store operation failed", err, t)
 

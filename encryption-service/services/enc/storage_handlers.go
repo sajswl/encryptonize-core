@@ -159,5 +159,5 @@ func (enc *Enc) Update(ctx context.Context, request *UpdateRequest) (*UpdateResp
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
 	log.Info(ctx, "Update: Object stored")
 
-	return &UpdateResponse{ObjectId: objectIDString}, nil
+	return &UpdateResponse{}, nil
 }

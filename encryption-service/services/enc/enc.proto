@@ -59,7 +59,6 @@ message UpdateRequest{
 }
 
 message UpdateResponse{
-  string object_id = 1;
 }
 
 message GetPermissionsRequest{

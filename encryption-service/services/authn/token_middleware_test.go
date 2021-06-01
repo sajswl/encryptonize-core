@@ -60,7 +60,7 @@ func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes 
 // It ONLY tests the middleware and assumes that the LoginUser works as intended
 func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions | users.ScopeUpdate
+	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
