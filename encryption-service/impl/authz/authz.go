@@ -138,3 +138,12 @@ func (a *Authorizer) UpsertAccessObject(ctx context.Context, objectID uuid.UUID,
 
 	return nil
 }
+
+func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+	}
+
+	return authStorageTx.DeleteAccessObject(ctx, objectID)
+}

@@ -75,6 +75,8 @@ func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
 			userScope = append(userScope, UserScope_READ)
 		case ScopeCreate:
 			userScope = append(userScope, UserScope_CREATE)
+		case ScopeDelete:
+			userScope = append(userScope, UserScope_DELETE)
 		case ScopeIndex:
 			userScope = append(userScope, UserScope_INDEX)
 		case ScopeObjectPermissions:

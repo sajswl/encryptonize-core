@@ -30,5 +30,23 @@ func TestStoreDeleteRetrieve(t *testing.T) {
 	failOnError("Store operation failed", err, t)
 	oid := storeResponse.ObjectId
 	_, err = client.Delete(oid)
-	failOnError("Retrieve operation failed", err, t)
+	failOnError("Delete operation failed", err, t)
+}
+
+func TestStoreDeleteTwice(t *testing.T) {
+	client, err := NewClient(endpoint, uat, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	plaintext := []byte("foo")
+	associatedData := []byte("bar")
+
+	storeResponse, err := client.Store(plaintext, associatedData)
+	failOnError("Store operation failed", err, t)
+	oid := storeResponse.ObjectId
+	_, err = client.Delete(oid)
+	failOnError("Delete operation failed", err, t)
+
+	_, err = client.Delete(oid)
+	failOnSuccess("Delete operation succeeded twice", err, t)
 }

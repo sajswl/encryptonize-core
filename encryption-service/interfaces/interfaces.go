@@ -62,6 +62,9 @@ type AuthStoreTxInterface interface {
 
 	// Update an existing access object
 	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+
+	// Delete an existing access object
+	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
 }
 
 // Interface representing a connection to the object store
@@ -139,6 +142,9 @@ type AccessObjectAuthenticatorInterface interface {
 
 	// Updates or inserts the AccessObject into backend storage
 	UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject AccessObjectInterface) (err error)
+
+	// Deletes an existing Access Object
+	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
 }
 
 // Interface for authentication of data
