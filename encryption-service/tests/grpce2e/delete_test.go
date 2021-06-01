@@ -47,6 +47,7 @@ func TestStoreDeleteTwice(t *testing.T) {
 	_, err = client.Delete(oid)
 	failOnError("Delete operation failed", err, t)
 
+	// The endpoint should not return an error if the OID does not exist
 	_, err = client.Delete(oid)
-	failOnSuccess("Delete operation succeeded twice", err, t)
+	failOnError("Delete operation failed because OID doesn't exist", err, t)
 }
