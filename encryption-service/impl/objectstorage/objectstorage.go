@@ -19,10 +19,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"github.com/gofrs/uuid"
 	"net/http"
 
+	"github.com/gofrs/uuid"
+
 	"encryption-service/contextkeys"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -109,4 +111,18 @@ func (o *ObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, er
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (o *ObjectStore) Delete(ctx context.Context, objectID string) error {
+	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	if !ok {
+		return errors.New("Could not typecast requestID to uuid.UUID")
+	}
+
+	_, err := o.client.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+		Bucket: &o.bucket,
+		Key:    &objectID,
+	}, request.WithSetRequestHeaders(map[string]string{"Request-ID": requestID.String()}))
+
+	return err
 }

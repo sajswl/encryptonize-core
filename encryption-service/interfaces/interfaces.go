@@ -71,6 +71,9 @@ type ObjectStoreInterface interface {
 
 	// Retrieve an object with a given object ID
 	Retrieve(ctx context.Context, objectID string) (object []byte, err error)
+
+	// Delete an object with a given object ID
+	Delete(ctx context.Context, objectID string) (err error)
 }
 
 // CryptorInterface offers an API to encrypt / decrypt data and additional associated data with a (wrapped) random key

@@ -38,6 +38,7 @@ var methodScopeMap = map[string]users.ScopeType{
 	baseEncPath + "RemovePermission": users.ScopeObjectPermissions,
 	baseEncPath + "Store":            users.ScopeCreate,
 	baseEncPath + "Retrieve":         users.ScopeRead,
+	baseEncPath + "Delete":           users.ScopeDelete,
 	baseAppPath + "Version":          users.ScopeNone,
 }
 

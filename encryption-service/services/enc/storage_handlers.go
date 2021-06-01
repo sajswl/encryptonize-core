@@ -127,3 +127,23 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 		},
 	}, nil
 }
+
+// API exposed function, deletes a package from a storage solution
+// Assumes that user credentials are to be found in context metadata
+// Errors if authentication, authorization, or deleting the object fails
+func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
+	objectIDString := request.ObjectId
+	_, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	if err != nil {
+		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+		return nil, err
+	}
+
+	err = enc.ObjectStore.Delete(ctx, objectIDString)
+	if err != nil {
+		log.Error(ctx, err, "Retrieve: Failed to delete object")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
+	}
+
+	return &DeleteResponse{}, nil
+}

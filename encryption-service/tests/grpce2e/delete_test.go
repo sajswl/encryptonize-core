@@ -11,28 +11,24 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-syntax = "proto3";
+package grpce2e
 
-package users;
-option go_package = "encryption-service/users";
+import (
+	"testing"
+)
 
-enum UserScope{
-  READ = 0;
-  CREATE = 1;
-  INDEX = 2;
-  OBJECTPERMISSIONS = 3;
-  USERMANAGEMENT = 4;
-  DELETE = 5;
-}
+// Test the we can store an object and delete it later
+func TestStoreDeleteRetrieve(t *testing.T) {
+	client, err := NewClient(endpoint, uat, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
 
-message AccessTokenClient{
-  bytes user_id = 1;
-  repeated users.UserScope user_scopes = 2;
-  int64 expiry_time = 3;
-}
+	plaintext := []byte("foo")
+	associatedData := []byte("bar")
 
-message ConfidentialUserData{
-  bytes hashed_password = 1;
-  bytes salt = 2;
-  repeated users.UserScope scopes = 3;
+	storeResponse, err := client.Store(plaintext, associatedData)
+	failOnError("Store operation failed", err, t)
+	oid := storeResponse.ObjectId
+	_, err = client.Delete(oid)
+	failOnError("Retrieve operation failed", err, t)
 }
