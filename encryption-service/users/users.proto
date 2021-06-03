@@ -22,7 +22,8 @@ enum UserScope{
   INDEX = 2;
   OBJECTPERMISSIONS = 3;
   USERMANAGEMENT = 4;
-  DELETE = 5;
+  UPDATE = 5;
+  DELETE = 6;
 }
 
 message AccessTokenClient{

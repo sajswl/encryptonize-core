@@ -15,6 +15,7 @@ const ScopeNone ScopeType = 0
 const (
 	ScopeRead ScopeType = 1 << iota
 	ScopeCreate
+	ScopeUpdate
 	ScopeDelete
 	ScopeIndex
 	ScopeObjectPermissions
@@ -48,6 +49,8 @@ func MapScopesToScopeType(scopes []UserScope) (ScopeType, error) {
 			userScopes |= ScopeRead
 		case UserScope_CREATE:
 			userScopes |= ScopeCreate
+		case UserScope_UPDATE:
+			userScopes |= ScopeUpdate
 		case UserScope_DELETE:
 			userScopes |= ScopeDelete
 		case UserScope_INDEX:
@@ -75,6 +78,8 @@ func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
 			userScope = append(userScope, UserScope_READ)
 		case ScopeCreate:
 			userScope = append(userScope, UserScope_CREATE)
+		case ScopeUpdate:
+			userScope = append(userScope, UserScope_UPDATE)
 		case ScopeDelete:
 			userScope = append(userScope, UserScope_DELETE)
 		case ScopeIndex:
