@@ -15,6 +15,7 @@ package enc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -126,6 +127,43 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 			AssociatedData: aad,
 		},
 	}, nil
+}
+
+// API exposed function, deletes a package from a storage solution
+// Assumes that user credentials are to be found in context metadata
+// Errors if authentication, authorization, or deleting the object fails
+func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
+	objectIDString := request.ObjectId
+	_, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	if err != nil {
+		ok := errors.Is(err, NotFoundAccessObjectError)
+		if ok {
+			return &DeleteResponse{}, nil
+		}
+		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+		return nil, err
+	}
+
+	// Parse objectID from request
+	objectID, err := uuid.FromString(objectIDString)
+	if err != nil {
+		log.Errorf(ctx, err, "Delete: Failed to parse object ID %s as UUID", objectIDString)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
+	}
+
+	err = enc.Authorizer.DeleteAccessObject(ctx, objectID)
+	if err != nil {
+		log.Error(ctx, err, "Delete: Failed to delete access object")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting access object")
+	}
+
+	err = enc.ObjectStore.Delete(ctx, objectIDString)
+	if err != nil {
+		log.Error(ctx, err, "Delete: Failed to delete object")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
+	}
+
+	return &DeleteResponse{}, nil
 }
 
 // API exposed function, replaces the object with the provided object ID with

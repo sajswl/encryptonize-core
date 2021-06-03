@@ -30,6 +30,7 @@ import (
 type ObjectStoreMock struct {
 	StoreFunc    func(ctx context.Context, objectID string, object []byte) error
 	RetrieveFunc func(ctx context.Context, objectID string) ([]byte, error)
+	DeleteFunc   func(ctx context.Context, objectID string) error
 }
 
 func (o *ObjectStoreMock) Store(ctx context.Context, objectID string, object []byte) error {
@@ -38,6 +39,10 @@ func (o *ObjectStoreMock) Store(ctx context.Context, objectID string, object []b
 
 func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
 	return o.RetrieveFunc(ctx, objectID)
+}
+
+func (o *ObjectStoreMock) Delete(ctx context.Context, objectID string) error {
+	return o.DeleteFunc(ctx, objectID)
 }
 
 var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")

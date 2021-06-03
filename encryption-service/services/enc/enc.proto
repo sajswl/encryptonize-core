@@ -27,6 +27,9 @@ service Encryptonize{
   // Updates-Rewrites an object
   rpc Update (UpdateRequest) returns (UpdateResponse){}
 
+  // Deletes an object
+  rpc Delete (DeleteRequest) returns (DeleteResponse){}
+
   // Returns list of users with permission to decrypt the Package
   rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse){}
 
@@ -59,6 +62,13 @@ message UpdateRequest{
 }
 
 message UpdateResponse{
+}
+
+message DeleteRequest{
+  string object_id = 1;
+}
+
+message DeleteResponse{
 }
 
 message GetPermissionsRequest{

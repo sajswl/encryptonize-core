@@ -39,6 +39,7 @@ var methodScopeMap = map[string]users.ScopeType{
 	baseEncPath + "Store":            users.ScopeCreate,
 	baseEncPath + "Update":           users.ScopeUpdate,
 	baseEncPath + "Retrieve":         users.ScopeRead,
+	baseEncPath + "Delete":           users.ScopeDelete,
 	baseAppPath + "Version":          users.ScopeNone,
 }
 

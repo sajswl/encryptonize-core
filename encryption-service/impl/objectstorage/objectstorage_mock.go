@@ -49,3 +49,8 @@ func (o *MemoryObjectStore) Retrieve(ctx context.Context, objectID string) ([]by
 
 	return objectCopy, nil
 }
+
+func (o *MemoryObjectStore) Delete(ctx context.Context, objectID string) error {
+	o.Data.Delete(objectID)
+	return nil
+}

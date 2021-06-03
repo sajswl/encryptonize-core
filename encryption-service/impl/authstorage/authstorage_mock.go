@@ -39,6 +39,7 @@ type AuthStoreTxMock struct {
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
 	InsertAcccessObjectFunc func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
 	UpdateAccessObjectFunc  func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
+	DeleteAccessObjectFunc  func(ctx context.Context, objectID uuid.UUID) error
 }
 
 func (db *AuthStoreTxMock) Commit(ctx context.Context) error {
@@ -73,6 +74,10 @@ func (db *AuthStoreTxMock) InsertAcccessObject(ctx context.Context, objectID uui
 
 func (db *AuthStoreTxMock) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 	return db.UpdateAccessObjectFunc(ctx, objectID, data, tag)
+}
+
+func (db *AuthStoreTxMock) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
+	return db.DeleteAccessObjectFunc(ctx, objectID)
 }
 
 // MemoryAuthStoreTx is used by tests to mock the AutnStore in memory
@@ -193,4 +198,9 @@ func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uu
 
 func (m *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
 	return m.InsertAcccessObject(ctx, objectID, data, tag)
+}
+
+func (m *MemoryAuthStoreTx) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
+	m.Data.Delete(objectID)
+	return nil
 }

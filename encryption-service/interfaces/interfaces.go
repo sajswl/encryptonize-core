@@ -62,6 +62,9 @@ type AuthStoreTxInterface interface {
 
 	// Update an existing access object
 	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+
+	// Delete an existing access object
+	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
 }
 
 // Interface representing a connection to the object store
@@ -71,6 +74,9 @@ type ObjectStoreInterface interface {
 
 	// Retrieve an object with a given object ID
 	Retrieve(ctx context.Context, objectID string) (object []byte, err error)
+
+	// Delete an object with a given object ID
+	Delete(ctx context.Context, objectID string) (err error)
 }
 
 // CryptorInterface offers an API to encrypt / decrypt data and additional associated data with a (wrapped) random key
@@ -139,6 +145,9 @@ type AccessObjectAuthenticatorInterface interface {
 
 	// Updates or inserts the AccessObject into backend storage
 	UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject AccessObjectInterface) (err error)
+
+	// Deletes an existing Access Object
+	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
 }
 
 // Interface for authentication of data

@@ -126,6 +126,17 @@ func (c *Client) Update(oid string, plaintext, associatedData []byte) (*enc.Upda
 	return updateResponse, nil
 }
 
+// Perform a `Delete` request.
+func (c *Client) Delete(oid string) (*enc.DeleteResponse, error) {
+	deleteRequest := &enc.DeleteRequest{ObjectId: oid}
+
+	deleteResponse, err := c.encClient.Delete(c.ctx, deleteRequest)
+	if err != nil {
+		return nil, fmt.Errorf("Delete failed: %v", err)
+	}
+	return deleteResponse, nil
+}
+
 // Perform a `GetPermissions` request.
 func (c *Client) GetPermissions(oid string) (*enc.GetPermissionsResponse, error) {
 	getPermissionsRequest := &enc.GetPermissionsRequest{ObjectId: oid}

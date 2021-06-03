@@ -26,6 +26,8 @@ import (
 	log "encryption-service/logger"
 )
 
+var NotFoundAccessObjectError = status.Errorf(codes.NotFound, "error encountered while authorizing user")
+
 // Wraps the Authorize call
 // Fails if uid or oid are wrongly formatted
 // or if a user isn't authorized to edit the accessObject
@@ -49,7 +51,7 @@ func AuthorizeWrapper(ctx context.Context, accessObjectAuthenticator interfaces.
 	if err != nil {
 		errMsg := fmt.Sprintf("AuthorizeWrapper: Couldn't fetch AccessObject for object %v", accessObject)
 		log.Error(ctx, err, errMsg)
-		return nil, status.Errorf(codes.Internal, "error encountered while authorizing user")
+		return nil, NotFoundAccessObjectError
 	}
 
 	authorized := accessObject.ContainsUser(userID)
