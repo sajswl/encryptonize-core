@@ -21,8 +21,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gofrs/uuid"
-
 	"encryption-service/contextkeys"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -30,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/gofrs/uuid"
 )
 
 // Object store representing a connection to an S3 bucket

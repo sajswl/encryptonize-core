@@ -15,7 +15,6 @@ package enc
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -143,20 +142,19 @@ func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResp
 	// Parse objectID from request
 	objectID, err := uuid.FromString(objectIDString)
 	if err != nil {
-		errMsg := fmt.Sprintf("AuthorizeWrapper: Failed to parse object ID %s as UUID", objectIDString)
-		log.Error(ctx, err, errMsg)
+		log.Errorf(ctx, err, "Delete: Failed to parse object ID %s as UUID", objectIDString)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 	}
 
 	err = enc.Authorizer.DeleteAccessObject(ctx, objectID)
 	if err != nil {
-		log.Error(ctx, err, "Retrieve: Failed to delete access object")
+		log.Error(ctx, err, "Delete: Failed to delete access object")
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting access object")
 	}
 
 	err = enc.ObjectStore.Delete(ctx, objectIDString)
 	if err != nil {
-		log.Error(ctx, err, "Retrieve: Failed to delete object")
+		log.Error(ctx, err, "Delete: Failed to delete object")
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
 	}
 
