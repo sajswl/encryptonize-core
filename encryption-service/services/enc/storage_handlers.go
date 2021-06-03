@@ -127,3 +127,37 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 		},
 	}, nil
 }
+
+// API exposed function, replaces the object with the provided object ID with
+// new data that is encrypted and placed into the object store
+// Assumes that user credentials are to be found in context metadata
+// Errors if authentication, authorization, or retrieving the access object fails
+func (enc *Enc) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
+	objectIDString := request.ObjectId
+	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	if err != nil {
+		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+		return nil, err
+	}
+
+	ciphertext, err := enc.DataCryptor.EncryptWithKey(request.Object.Plaintext, request.Object.AssociatedData, accessObject.GetWOEK())
+	if err != nil {
+		log.Error(ctx, err, "Update: Failed to encrypt object")
+		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+	}
+
+	if err := enc.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
+		log.Error(ctx, err, "Update: Failed to store associated data")
+		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+	}
+
+	if err := enc.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
+		log.Error(ctx, err, "Update: Failed to store object")
+		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+	}
+
+	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
+	log.Info(ctx, "Update: Object stored")
+
+	return &UpdateResponse{}, nil
+}

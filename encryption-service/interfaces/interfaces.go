@@ -78,6 +78,9 @@ type CryptorInterface interface {
 	// Encrypt encrypts data + aad with a random key and return the wrapped key and the ciphertext
 	Encrypt(data, aad []byte) (wrappedKey, ciphertext []byte, err error)
 
+	// EncryptWithKey encrypts data + aad with a wrapped key and returns the ciphertext
+	EncryptWithKey(data, aad, key []byte) (ciphertext []byte, err error)
+
 	// Decrypt decrypts a ciphertext + aad with a wrapped key
 	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
 }

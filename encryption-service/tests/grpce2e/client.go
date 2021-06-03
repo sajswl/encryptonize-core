@@ -110,6 +110,22 @@ func (c *Client) Retrieve(oid string) (*enc.RetrieveResponse, error) {
 	return retrieveResponse, nil
 }
 
+func (c *Client) Update(oid string, plaintext, associatedData []byte) (*enc.UpdateResponse, error) {
+	updateRequest := &enc.UpdateRequest{
+		Object: &enc.Object{
+			Plaintext:      plaintext,
+			AssociatedData: associatedData,
+		},
+		ObjectId: oid,
+	}
+
+	updateResponse, err := c.encClient.Update(c.ctx, updateRequest)
+	if err != nil {
+		return nil, fmt.Errorf("Update failed: %v", err)
+	}
+	return updateResponse, nil
+}
+
 // Perform a `GetPermissions` request.
 func (c *Client) GetPermissions(oid string) (*enc.GetPermissionsResponse, error) {
 	getPermissionsRequest := &enc.GetPermissionsRequest{ObjectId: oid}

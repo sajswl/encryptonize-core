@@ -69,6 +69,19 @@ func (c *AESCryptor) Encrypt(data, aad []byte) ([]byte, []byte, error) {
 	return wrappedKey, ciphertext, nil
 }
 
+func (c *AESCryptor) EncryptWithKey(data, aad, wrappedKey []byte) ([]byte, error) {
+	key, err := c.keyWrap.Unwrap(wrappedKey)
+	if err != nil {
+		return nil, err
+	}
+
+	ciphertext, err := c.crypter.Encrypt(data, aad, key)
+	if err != nil {
+		return nil, err
+	}
+	return ciphertext, nil
+}
+
 func (c *AESCryptor) Decrypt(wrappedKey, ciphertext, aad []byte) ([]byte, error) {
 	key, err := c.keyWrap.Unwrap(wrappedKey)
 	if err != nil {

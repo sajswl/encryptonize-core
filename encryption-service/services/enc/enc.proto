@@ -24,6 +24,9 @@ service Encryptonize{
   // Retrieves an object
   rpc Retrieve (RetrieveRequest) returns (RetrieveResponse){}
 
+  // Updates-Rewrites an object
+  rpc Update (UpdateRequest) returns (UpdateResponse){}
+
   // Returns list of users with permission to decrypt the Package
   rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse){}
 
@@ -48,6 +51,14 @@ message RetrieveRequest{
 
 message RetrieveResponse{
   Object object = 1;
+}
+
+message UpdateRequest{
+  Object object = 1;
+  string object_id = 2;
+}
+
+message UpdateResponse{
 }
 
 message GetPermissionsRequest{
