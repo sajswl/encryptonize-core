@@ -254,6 +254,12 @@ func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uui
 }
 
 func (storeTx *AuthStoreTx) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
-	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("DELETE FROM access_objects WHERE id = $1"), objectID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT 1 from access_objects WHERE id = $1"), objectID)
+	err := row.Scan()
+	// No error on OID not found during delete
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	_, err = storeTx.Tx.Exec(ctx, storeTx.NewQuery("DELETE FROM access_objects WHERE id = $1"), objectID)
 	return err
 }

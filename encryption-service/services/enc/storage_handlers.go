@@ -15,6 +15,7 @@ package enc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -135,6 +136,10 @@ func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResp
 	objectIDString := request.ObjectId
 	_, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
 	if err != nil {
+		ok := errors.Is(err, NotFoundAccessObjectError)
+		if ok {
+			return &DeleteResponse{}, nil
+		}
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
 	}

@@ -145,5 +145,10 @@ func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID)
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	return authStorageTx.DeleteAccessObject(ctx, objectID)
+	err = authStorageTx.DeleteAccessObject(ctx, objectID)
+	if err != nil {
+		return err
+	}
+
+	return authStorageTx.Commit(ctx)
 }

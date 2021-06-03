@@ -31,6 +31,9 @@ func TestStoreDeleteRetrieve(t *testing.T) {
 	oid := storeResponse.ObjectId
 	_, err = client.Delete(oid)
 	failOnError("Delete operation failed", err, t)
+
+	_, err = client.Retrieve(oid)
+	failOnSuccess("Object is retrievable after delete", err, t)
 }
 
 func TestStoreDeleteTwice(t *testing.T) {
