@@ -38,13 +38,13 @@ import (
 
 	log "encryption-service/logger"
 	"encryption-service/services/authn"
-	"encryption-service/services/enc"
 	"encryption-service/services/health"
+	"encryption-service/services/storage"
 )
 
 type App struct {
-	EncService   *enc.Enc
-	AuthnService *authn.Authn
+	StorageService *storage.Storage
+	AuthnService   *authn.Authn
 	UnimplementedEncryptonizeServer
 }
 
@@ -80,8 +80,8 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		log.StreamLogInterceptor(),
 	}
 
-	unaryInterceptors = append(unaryInterceptors, app.EncService.AuthStorageUnaryServerInterceptor())
-	streamInterceptors = append(streamInterceptors, app.EncService.AuthStorageStreamingInterceptor())
+	unaryInterceptors = append(unaryInterceptors, app.StorageService.AuthStorageUnaryServerInterceptor())
+	streamInterceptors = append(streamInterceptors, app.StorageService.AuthStorageStreamingInterceptor())
 
 	unaryInterceptors = append(unaryInterceptors, grpc_auth.UnaryServerInterceptor(app.AuthnService.CheckAccessToken))
 	streamInterceptors = append(streamInterceptors, grpc_auth.StreamServerInterceptor(app.AuthnService.CheckAccessToken))
@@ -98,7 +98,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		),
 	)
 
-	enc.RegisterEncryptonizeServer(grpcServer, app.EncService)
+	storage.RegisterEncryptonizeServer(grpcServer, app.StorageService)
 	authn.RegisterEncryptonizeServer(grpcServer, app.AuthnService)
 	RegisterEncryptonizeServer(grpcServer, app)
 

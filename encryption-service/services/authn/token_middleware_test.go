@@ -81,7 +81,7 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 		},
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/storage.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = au.CheckAccessToken(ctx)
 	failOnError("Auth failed", err, t)
@@ -126,7 +126,7 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 		token := strings.Join(tokenParts, ".")
 
 		var md = metadata.Pairs("authorization", token)
-		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/storage.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = au.CheckAccessToken(ctx)
 		failOnSuccess("Auth should have errored", err, t)
@@ -176,7 +176,7 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 		token := strings.Join(tokenParts, ".")
 
 		var md = metadata.Pairs("authorization", token)
-		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
+		ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/storage.Encryptonize/Store")
 		ctx = metadata.NewIncomingContext(ctx, md)
 		_, err = au.CheckAccessToken(ctx)
 		failOnSuccess("Auth should have errored", err, t)
@@ -208,7 +208,7 @@ func TestCheckAccessTokenInvalidAT(t *testing.T) {
 		},
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
+	ctx := context.WithValue(context.Background(), contextkeys.MethodNameCtxKey, "/storage.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
 	_, err = au.CheckAccessToken(ctx)
 	failOnSuccess("Auth should have failed", err, t)
@@ -225,7 +225,7 @@ func TestCheckAccessTokenInvalidATformat(t *testing.T) {
 	AT := "bearer thisIsANonHexaDecimalSentenceThatsAtLeastSixtyFourCharactersLong"
 	var md = metadata.Pairs("authorization", AT)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/enc.Encryptonize/Store")
+	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "/storage.Encryptonize/Store")
 	_, err := au.CheckAccessToken(ctx)
 	failOnSuccess("Invalid Auth Passed", err, t)
 

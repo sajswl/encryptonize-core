@@ -27,20 +27,20 @@ import (
 )
 
 const baseAppPath string = "/app.Encryptonize/"
-const baseEncPath string = "/enc.Encryptonize/"
+const baseStoragePath string = "/storage.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
 
 var methodScopeMap = map[string]users.ScopeType{
-	baseAuthPath + "CreateUser":      users.ScopeUserManagement,
-	baseAuthPath + "RemoveUser":      users.ScopeUserManagement,
-	baseEncPath + "GetPermissions":   users.ScopeIndex,
-	baseEncPath + "AddPermission":    users.ScopeObjectPermissions,
-	baseEncPath + "RemovePermission": users.ScopeObjectPermissions,
-	baseEncPath + "Store":            users.ScopeCreate,
-	baseEncPath + "Update":           users.ScopeUpdate,
-	baseEncPath + "Retrieve":         users.ScopeRead,
-	baseEncPath + "Delete":           users.ScopeDelete,
-	baseAppPath + "Version":          users.ScopeNone,
+	baseAuthPath + "CreateUser":          users.ScopeUserManagement,
+	baseAuthPath + "RemoveUser":          users.ScopeUserManagement,
+	baseStoragePath + "GetPermissions":   users.ScopeIndex,
+	baseStoragePath + "AddPermission":    users.ScopeObjectPermissions,
+	baseStoragePath + "RemovePermission": users.ScopeObjectPermissions,
+	baseStoragePath + "Store":            users.ScopeCreate,
+	baseStoragePath + "Update":           users.ScopeUpdate,
+	baseStoragePath + "Retrieve":         users.ScopeRead,
+	baseStoragePath + "Delete":           users.ScopeDelete,
+	baseAppPath + "Version":              users.ScopeNone,
 }
 
 // CheckAccessToken verifies the authenticity of a token and

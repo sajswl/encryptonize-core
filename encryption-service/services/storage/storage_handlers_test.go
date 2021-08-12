@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package enc
+package storage
 
 import (
 	"context"
@@ -57,7 +57,7 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := Enc{
+	strg := Storage{
 		ObjectStore: objectstorage.NewMemoryObjectStore(),
 		Authorizer:  authorizer,
 		DataCryptor: dataCryptor,
@@ -76,7 +76,7 @@ func TestStoreRetrieve(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := enc.Store(
+	storeResponse, err := strg.Store(
 		ctx,
 		&StoreRequest{Object: object},
 	)
@@ -84,7 +84,7 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Storing object failed: %v", err)
 	}
 
-	retrieveResponse, err := enc.Retrieve(
+	retrieveResponse, err := strg.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: storeResponse.ObjectId,
@@ -109,7 +109,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := Enc{
+	strg := Storage{
 		ObjectStore: objectstorage.NewMemoryObjectStore(),
 		Authorizer:  authorizer,
 		DataCryptor: dataCryptor,
@@ -123,7 +123,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	retrieveResponse, err := enc.Retrieve(
+	retrieveResponse, err := strg.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: uuid.Must(uuid.NewV4()).String(),
@@ -152,7 +152,7 @@ func TestStoreFail(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := Enc{
+	strg := Storage{
 		ObjectStore: objectStore,
 		Authorizer:  authorizer,
 		DataCryptor: dataCryptor,
@@ -171,7 +171,7 @@ func TestStoreFail(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := enc.Store(
+	storeResponse, err := strg.Store(
 		ctx,
 		&StoreRequest{Object: object},
 	)
@@ -195,7 +195,7 @@ func TestStoreFailAuth(t *testing.T) {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
-	enc := Enc{
+	strg := Storage{
 		ObjectStore: objectstorage.NewMemoryObjectStore(),
 		Authorizer:  authorizer,
 		DataCryptor: dataCryptor,
@@ -214,7 +214,7 @@ func TestStoreFailAuth(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := enc.Store(
+	storeResponse, err := strg.Store(
 		ctx,
 		&StoreRequest{Object: object},
 	)

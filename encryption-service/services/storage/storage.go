@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package enc
+package storage
 
 import (
 	"encryption-service/interfaces"
 )
 
-// The Encryptonize Encryption Service
-type Enc struct {
+// The Encryptonize Storage Service
+type Storage struct {
 	Authorizer  interfaces.AccessObjectAuthenticatorInterface
 	AuthStore   interfaces.AuthStoreInterface
 	ObjectStore interfaces.ObjectStoreInterface
