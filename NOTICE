@@ -6,26 +6,26 @@ CYBERCRYPT (https://www.cyber-crypt.com/).
 
 This project bundles the following dependencies under the Apache 2.0 license.
 See documentation/license/overview.md for more details.
-- cloud.google.com/go
 - github.com/aws/aws-sdk-go
 - github.com/fluent/fluent-bit
 - github.com/google/tink
 - github.com/grpc-ecosystem/go-grpc-middleware
 - github.com/grpc/grpc-go
+- github.com/jhump/protoreflect
 - github.com/spf13/cobra
-- google.golang.org/genproto
 - github.com/snyk/snyk
 
 This project bundles the following dependencies under the BSD-3 license.
 See documentation/license/overview.md for more details.
 - github.com/golang/crypto
-- github.com/golang/protobuf
+- github.com/protocolbuffers/protobuf-go
 
 This project bundles the following dependencies under the MIT license.
 See documentation/license/overview.md for more details.
 - github.com/gofrs/uuid
 - github.com/jackc/pgtype
 - github.com/jackc/pgx
+- github.com/knadh/koanf
 - github.com/sirupsen/logrus
 - github.com/sony/gobreaker
 
