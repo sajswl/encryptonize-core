@@ -136,7 +136,7 @@ func (app *App) StartServer() {
 	}
 
 	// Setup gRPC listener
-	var port int = 9000
+	var port = 9000
 	grpcServer, lis := app.initgRPC(port)
 
 	go func() {
