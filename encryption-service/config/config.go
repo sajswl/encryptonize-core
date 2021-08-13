@@ -141,11 +141,7 @@ func LoadConfig(config interface{}) error {
 	}
 
 	// Read configuration into interface
-	if err := k.Unmarshal("", &config); err != nil {
-		return err
-	}
-
-	return nil
+	return k.Unmarshal("", &config)
 }
 
 func (c *Config) ParseConfig() error {
