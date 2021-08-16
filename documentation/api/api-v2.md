@@ -18,17 +18,23 @@ This document introduces version 2.0 of the API for the Encryptionize Service.
 
 A primary change from 1.0 of the Encryptonize API is to introduce gRPC instead of REST for the API.
 
-The current service address is `app.Encryptonize`. The Encryptonize API defines the following functions:
+Encryptonize API exposes several service addresses: `app.Encryptonize`, `storage.Encryptonize`, `authn.Encryptonize`, which 
+define the following functions
 
+### `app.Encryptonize`:
+* `rpc Version (VersionRequest) returns (VersionResponse)`
+
+### `storage.Encryptonize`:
 * `rpc Store (StoreRequest) returns (StoreResponse)`
 * `rpc Retrieve (RetriveRequest) returns (RetriveResponse)`
 * `rpc Update (UpdateRequest) returns (UpdateResponse)`
 * `rpc Delete (DeleteRequest) returns (DeleteResponse)`
+
+### `authn.Encryptonize`:
 * `rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)`
 * `rpc AddPermission (AddPermissionRequest) returns (ReturnCode)`
 * `rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)`
 * `rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)`
-* `rpc Version (VersionRequest) returns (VersionResponse)`
 
 For detailed information, see below.
 
@@ -207,7 +213,7 @@ running encryptonize deployment.
 
 # Store
 
-Takes an `Object` and Stores it in encrypted form. This call can fail if the Encryption Service
+Takes an `Object` and Stores it in encrypted form. This call can fail if the Storage Service
 cannot reach the object storage, in which case an error is returned.
 
 ```
@@ -218,7 +224,7 @@ rpc Store (StoreRequest) returns (StoreResponse)
 
 Fetches a previously Stored `Object` and returns the plaintext content. This call can fail if the
 specified object does not exist, if the caller does not have access permission to that object, or if
-the Encryption Service cannot reach the object storage. In these cases, an error is returned.
+the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
 ```
 rpc Retrieve (RetriveRequest) returns (RetriveResponse)
@@ -227,7 +233,7 @@ rpc Retrieve (RetriveRequest) returns (RetriveResponse)
 # Update
 
 Takes an `Object`  and an `Object ID` and Stores it in encrypted form, replacing the previous `Object` that was stored with that `Object ID`. This call can fail if the specified `Object ID` does not currently exist,  if the caller does not have access permission to that object, or if
-the Encryption Service cannot reach the object storage. In these cases, an error is returned.
+the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
 > DISCLAIMER: Current implementation of Update does not ensure safe concurrent access.
 
@@ -237,7 +243,7 @@ rpc Update (UpdateRequest) returns (UpdateResponse)
 # Delete
 
 Deletes a previously Stored `Object`. This call does not fail if the specified object does not exist. It can fail if the caller does not have access permission to that object or if
-the Encryption Service cannot reach the object storage. In these cases, an error is returned.
+the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
 > DISCLAIMER: Current implementation of Delete does not ensure safe concurrent access.
 
@@ -246,7 +252,7 @@ rpc Delete (DeleteRequest) returns (DeleteResponse)
 ```
 # Get Permission
 
-Returns a list of users with access to the sepcified `Object`. This call can fail if the Encryption
+Returns a list of users with access to the sepcified `Object`. This call can fail if the Storage
 Service cannot reach the auth storage, in which case an error is returned. The user has to be authenticated and authorized in order to get the object permissions.
 
 ```
@@ -256,7 +262,7 @@ rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
 # Add Permission
 
 Adds a User to the access list of the specified `Object`. This call can fail if the caller does not
-have access to the `Object`, if the target user does not exist, or if the Encryption Service cannot reach the auth storage. In these
+have access to the `Object`, if the target user does not exist, or if the Storage Service cannot reach the auth storage. In these
 cases, an error is returned.
 
 ```
@@ -266,7 +272,7 @@ rpc AddPermission (AddPermissionRequest) returns (ReturnCode)
 # Remove Permission
 
 Removes a User from the access list of the specified `Object`. This call can fail if the caller does
-not have access to the `Object` or if the Encryption Service cannot reach the auth storage. In these
+not have access to the `Object` or if the Storage Service cannot reach the auth storage. In these
 cases, an error is returned.
 
 ```
@@ -276,7 +282,7 @@ rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)
 # Create a new user
 
 Creates a new user. This call can fail if the caller is lacking the required scope (`UserManagement`)
-or if the Encryption Service cannot reach the auth storage, in which case an error is returned.
+or if the Storage Service cannot reach the auth storage, in which case an error is returned.
 
 ```
 rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)
