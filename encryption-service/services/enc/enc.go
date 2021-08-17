@@ -11,31 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-syntax = "proto3";
+package enc
 
-package users;
-option go_package = "encryption-service/users";
+import (
+	"encryption-service/interfaces"
+)
 
-enum UserScope{
-  READ = 0;
-  CREATE = 1;
-  INDEX = 2;
-  OBJECTPERMISSIONS = 3;
-  USERMANAGEMENT = 4;
-  UPDATE = 5;
-  DELETE = 6;
-  ENCRYPT = 7;
-  DECRYPT = 8;
-}
-
-message AccessTokenClient{
-  bytes user_id = 1;
-  repeated users.UserScope user_scopes = 2;
-  int64 expiry_time = 3;
-}
-
-message ConfidentialUserData{
-  bytes hashed_password = 1;
-  bytes salt = 2;
-  repeated users.UserScope scopes = 3;
+// The Encryptonize Storage Service
+type Enc struct {
+	Authorizer  interfaces.AccessObjectAuthenticatorInterface
+	AuthStore   interfaces.AuthStoreInterface
+	DataCryptor interfaces.CryptorInterface
+	UnimplementedEncryptonizeServer
 }

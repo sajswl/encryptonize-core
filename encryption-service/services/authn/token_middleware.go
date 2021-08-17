@@ -29,6 +29,7 @@ import (
 const baseAppPath string = "/app.Encryptonize/"
 const baseStoragePath string = "/storage.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
+const baseEncPath string = "/enc.Encryptonize/"
 
 var methodScopeMap = map[string]users.ScopeType{
 	baseAuthPath + "CreateUser":          users.ScopeUserManagement,
@@ -40,6 +41,8 @@ var methodScopeMap = map[string]users.ScopeType{
 	baseStoragePath + "Update":           users.ScopeUpdate,
 	baseStoragePath + "Retrieve":         users.ScopeRead,
 	baseStoragePath + "Delete":           users.ScopeDelete,
+	baseEncPath + "Encrypt":              users.ScopeEncrypt,
+	baseEncPath + "Decrypt":              users.ScopeDecrypt,
 	baseAppPath + "Version":              users.ScopeNone,
 }
 
