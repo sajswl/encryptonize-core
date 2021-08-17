@@ -24,11 +24,12 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
+	"encryption-service/services/authz"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (strg *Storage) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
+	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -70,7 +71,7 @@ func (strg *Storage) AddPermission(ctx context.Context, request *AddPermissionRe
 		return nil, err
 	}
 
-	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
+	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -136,7 +137,7 @@ func (strg *Storage) RemovePermission(ctx context.Context, request *RemovePermis
 		return nil, err
 	}
 
-	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
+	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

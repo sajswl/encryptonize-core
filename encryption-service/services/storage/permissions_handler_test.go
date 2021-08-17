@@ -24,12 +24,12 @@ import (
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
-	"encryption-service/impl/authz"
+	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 )
 
 var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
-var authorizer = &authz.Authorizer{
+var authorizer = &authzimpl.Authorizer{
 	AccessObjectMAC: ma,
 }
 
@@ -42,7 +42,7 @@ var userID = uuid.Must(uuid.NewV4())
 var objectID = uuid.Must(uuid.NewV4())
 var Woek, err = crypt.Random(32)
 
-var accessObject = &authz.AccessObject{
+var accessObject = &authzimpl.AccessObject{
 	UserIds: [][]byte{
 		userID.Bytes(),
 	},
@@ -51,7 +51,7 @@ var accessObject = &authz.AccessObject{
 }
 
 // Create accessObject without userID
-var unAuthAccessObject = &authz.AccessObject{
+var unAuthAccessObject = &authzimpl.AccessObject{
 	UserIds: [][]byte{
 		uuid.Must(uuid.NewV4()).Bytes(),
 	},

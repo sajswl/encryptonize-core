@@ -6,6 +6,7 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
+	"encryption-service/services/authz"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -63,7 +64,7 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 
 func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	accessObject, err := authz.AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

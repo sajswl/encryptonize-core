@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package storage
+package authz
 
 import (
 	"context"
@@ -24,6 +24,7 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/authz"
+	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 )
 
@@ -39,13 +40,18 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
+var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var authorizer = &authzimpl.Authorizer{
+	AccessObjectMAC: ma,
+}
+
 func TestAuthorizeWrapper(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	objectID := uuid.Must(uuid.NewV4())
 	Woek, err := crypt.Random(32)
 	failOnError("Couldn't generate WOEK!", err, t)
 
-	accessObject := &authz.AccessObject{
+	accessObject := &authzimpl.AccessObject{
 		UserIds: [][]byte{
 			userID.Bytes(),
 		},
@@ -65,7 +71,7 @@ func TestAuthorizeWrapper(t *testing.T) {
 
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
-	aoAuth := &authz.Authorizer{AccessObjectMAC: messageAuthenticator}
+	aoAuth := &authzimpl.Authorizer{AccessObjectMAC: messageAuthenticator}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
@@ -85,7 +91,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	Woek, err := crypt.Random(32)
 	failOnError("Couldn't generate WOEK!", err, t)
 
-	unAuthAccessObject := &authz.AccessObject{
+	unAuthAccessObject := &authzimpl.AccessObject{
 		UserIds: [][]byte{
 			uuid.Must(uuid.NewV4()).Bytes(),
 		},
