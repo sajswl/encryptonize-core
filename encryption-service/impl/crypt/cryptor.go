@@ -75,6 +75,10 @@ func (c *AESCryptor) EncryptWithKey(data, aad, wrappedKey []byte) ([]byte, error
 		return nil, err
 	}
 
+	if len(key) != 32 {
+		return nil, errors.New("invalid key length")
+	}
+
 	ciphertext, err := c.crypter.Encrypt(data, aad, key)
 	if err != nil {
 		return nil, err
