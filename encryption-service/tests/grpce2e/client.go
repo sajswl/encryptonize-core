@@ -158,11 +158,11 @@ func (c *Client) Encrypt(plaintext []byte, aad []byte) (*enc.EncryptResponse, er
 }
 
 // Perform a `Decrypt` request.
-func (c *Client) Decrypt(ciphertext []byte, aad []byte, woek []byte) (*enc.DecryptResponse, error) {
+func (c *Client) Decrypt(ciphertext []byte, aad []byte, objectID string) (*enc.DecryptResponse, error) {
 	decryptRequest := &enc.DecryptRequest{
 		Ciphertext:     ciphertext,
-		Woek:           woek,
 		AssociatedData: aad,
+		ObjectId:       objectID,
 	}
 
 	decryptResponse, err := c.encClient.Decrypt(c.ctx, decryptRequest)

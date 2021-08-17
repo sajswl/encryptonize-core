@@ -4,19 +4,29 @@ import (
 	"bytes"
 	context "context"
 	"encryption-service/contextkeys"
+	"encryption-service/impl/authstorage"
+	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 	"testing"
 
 	"github.com/gofrs/uuid"
 )
 
+var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var authorizer = &authzimpl.Authorizer{
+	AccessObjectMAC: ma,
+}
+
 func TestEncryptDecrypt(t *testing.T) {
+	authStore := authstorage.NewMemoryAuthStore()
+	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 	cryptor, err := crypt.NewAESCryptor(make([]byte, 32))
 	if err != nil {
 		t.Fatalf("NewAESCryptor failed: %v", err)
 	}
 
 	enc := Enc{
+		Authorizer:  authorizer,
 		DataCryptor: cryptor,
 	}
 
@@ -31,6 +41,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -45,7 +56,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	decryptResponse, err := enc.Decrypt(
 		ctx,
 		&DecryptRequest{
-			Woek:           encryptResponse.Woek,
+			ObjectId:       encryptResponse.ObjectId,
 			Ciphertext:     encryptResponse.Ciphertext,
 			AssociatedData: object.AssociatedData,
 		},
@@ -73,7 +84,6 @@ func TestDecryptFail(t *testing.T) {
 
 	fakeRequest := &DecryptRequest{
 		Ciphertext:     []byte("fakecipher"),
-		Woek:           []byte("fakekey"),
 		AssociatedData: []byte("fakeaad"),
 	}
 
