@@ -101,7 +101,7 @@ To check if the service is running and serving use the `grpc_health_probe` tool.
 The Encryptonize API currently only defines one primitive type, namely the `Object`.
 
 ## Object
-The `Object` struct represents data stored and retrieved by a client, and consists of the plaintext
+The `storage.Object` struct represents data stored and retrieved by a client, and consists of the plaintext
 (`plaintext`) and the associatedData (`associatedData`).
 
 | Name            | Type   | Description                           |
@@ -114,21 +114,22 @@ The Encryptonize API defines several derived types, mainly in the form of struct
 requests and corresponding responses.
 
 ## StoreRequest
-The structure used as an argument for a `Store` request. It contains a single `Object`. Requires the scope `CREATE`
+The structure used as an argument for a `storage.Store` request. It contains a single `storage.Object`. Requires the scope `CREATE`
 
 | Name   | Type   | Description |
 |--------|--------|-------------|
 | Object | Object | The object  |
 
 ## StoreResponse
-The structure returned by a `Store` request. It contains the Object ID of the stored `Object`. The Object ID is important as it can be used to subsequent request the object in a `RetrieveRequest`.
+The structure returned by a `storage.Store` request. It contains the Object ID of the stored `storage.Object`. 
+The Object ID is important as it can be used to subsequent request the object in a `storage.RetrieveRequest`.
 
 | Name      | Type   | Description           |
 |-----------|--------|-----------------------|
 | object_id | string | The object identifier |
 
 ## RetrieveRequest
-The structure used as an argument for a `Retrieve` request. It contains the Object ID of the Object
+The structure used as an argument for a `storage.Retrieve` request. It contains the Object ID of the Object
 the client wishes to retrieve.
 
 | Name      | Type   | Description           |
@@ -136,7 +137,7 @@ the client wishes to retrieve.
 | object_id | string | The object identifier |
 
 ## RetrieveResponse
-The structure returned by a `Retrieve` request. It contains the `Object` matching the ID passed in
+The structure returned by a `storage.Retrieve` request. It contains the `storage.Object` matching the ID passed in
 the request.
 
 | Name             | Type             | Description           |
@@ -144,14 +145,14 @@ the request.
 | object           | Object           | The object            |
 
 ## DeleteRequest
-The structure used as an argument for a `Delete` request. It containers the Object ID of the Object the client wishes to delete.
+The structure used as an argument for a `storage.Delete` request. It containers the Object ID of the Object the client wishes to delete.
 
 | Name      | Type   | Description           |
 |-----------|--------|-----------------------|
 | object_id | string | The object identifier |
 
 ## CreateUserRequest
-The structure used as an argument for a `CreateUser` request. It contains a list of scopes defining
+The structure used as an argument for a `storage.CreateUser` request. It contains a list of scopes defining
 which endpoints the user has access to. Possible scopes are `READ`, `CREATE`, `INDEX`, `OBJECTPERMISSIONS`, and `USERMANAGEMENT`.
 
 | Name        | Type             | Description                                      |
@@ -159,7 +160,7 @@ which endpoints the user has access to. Possible scopes are `READ`, `CREATE`, `I
 | user_scopes | []enum UserScope | An array of scopes the newly created user posses |
 
 ## CreateUserResponse
-The structure returned by a `CreateUser` request. It contains the User ID and User Access Token of
+The structure returned by a `storage.CreateUser` request. It contains the User ID and User Access Token of
 the newly created user.
 
 | Name        | Type   | Description                |
@@ -168,7 +169,7 @@ the newly created user.
 | accessToken | string | The generated access token |
 
 ## GetPermissionRequest
-The structure used as an argument for a `GetPermission` request. It contains the ID of the Object
+The structure used as an argument for a `storage.GetPermission` request. It contains the ID of the Object
 the client wishes to get the permission list for.
 
 | Name      | Type   | Description           |
@@ -213,7 +214,7 @@ running encryptonize deployment.
 
 # Store
 
-Takes an `Object` and Stores it in encrypted form. This call can fail if the Storage Service
+Takes a `storage.Object` and Stores it in encrypted form. This call can fail if the Storage Service
 cannot reach the object storage, in which case an error is returned.
 
 ```
@@ -222,7 +223,7 @@ rpc Store (StoreRequest) returns (StoreResponse)
 
 # Retrieve
 
-Fetches a previously Stored `Object` and returns the plaintext content. This call can fail if the
+Fetches a previously Stored `storage.Object` and returns the plaintext content. This call can fail if the
 specified object does not exist, if the caller does not have access permission to that object, or if
 the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
@@ -232,27 +233,27 @@ rpc Retrieve (RetriveRequest) returns (RetriveResponse)
 
 # Update
 
-Takes an `Object`  and an `Object ID` and Stores it in encrypted form, replacing the previous `Object` that was stored with that `Object ID`. This call can fail if the specified `Object ID` does not currently exist,  if the caller does not have access permission to that object, or if
+Takes a `storage.Object`  and an `Object ID` string and Stores it in encrypted form, replacing the previous `storage.Object` that was stored with that `Object ID`. This call can fail if the specified `Object ID` does not currently exist,  if the caller does not have access permission to that object, or if
 the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
-> DISCLAIMER: Current implementation of Update does not ensure safe concurrent access.
+> DISCLAIMER: Current implementation of `storage.Update` does not ensure safe concurrent access.
 
 ```
 rpc Update (UpdateRequest) returns (UpdateResponse)
 ```
 # Delete
 
-Deletes a previously Stored `Object`. This call does not fail if the specified object does not exist. It can fail if the caller does not have access permission to that object or if
+Deletes a previously Stored `storage.Object`. This call does not fail if the specified object does not exist. It can fail if the caller does not have access permission to that object or if
 the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
-> DISCLAIMER: Current implementation of Delete does not ensure safe concurrent access.
+> DISCLAIMER: Current implementation of `storage.Delete` does not ensure safe concurrent access.
 
 ```
 rpc Delete (DeleteRequest) returns (DeleteResponse)
 ```
 # Get Permission
 
-Returns a list of users with access to the sepcified `Object`. This call can fail if the Storage
+Returns a list of users with access to the specified `storage.Object`. This call can fail if the Storage
 Service cannot reach the auth storage, in which case an error is returned. The user has to be authenticated and authorized in order to get the object permissions.
 
 ```
@@ -261,8 +262,8 @@ rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
 
 # Add Permission
 
-Adds a User to the access list of the specified `Object`. This call can fail if the caller does not
-have access to the `Object`, if the target user does not exist, or if the Storage Service cannot reach the auth storage. In these
+Adds a User to the access list of the specified `storage.Object`. This call can fail if the caller does not
+have access to the `storage.Object`, if the target user does not exist, or if the Storage Service cannot reach the auth storage. In these
 cases, an error is returned.
 
 ```
@@ -271,8 +272,8 @@ rpc AddPermission (AddPermissionRequest) returns (ReturnCode)
 
 # Remove Permission
 
-Removes a User from the access list of the specified `Object`. This call can fail if the caller does
-not have access to the `Object` or if the Storage Service cannot reach the auth storage. In these
+Removes a User from the access list of the specified `storage.Object`. This call can fail if the caller does
+not have access to the `storage.Object` or if the Storage Service cannot reach the auth storage. In these
 cases, an error is returned.
 
 ```
