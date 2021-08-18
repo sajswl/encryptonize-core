@@ -17,8 +17,6 @@ const (
 	ScopeCreate
 	ScopeUpdate
 	ScopeDelete
-	ScopeEncrypt
-	ScopeDecrypt
 	ScopeIndex
 	ScopeObjectPermissions
 	ScopeUserManagement
@@ -55,10 +53,6 @@ func MapScopesToScopeType(scopes []UserScope) (ScopeType, error) {
 			userScopes |= ScopeUpdate
 		case UserScope_DELETE:
 			userScopes |= ScopeDelete
-		case UserScope_ENCRYPT:
-			userScopes |= ScopeEncrypt
-		case UserScope_DECRYPT:
-			userScopes |= ScopeDecrypt
 		case UserScope_INDEX:
 			userScopes |= ScopeIndex
 		case UserScope_OBJECTPERMISSIONS:
@@ -88,10 +82,6 @@ func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
 			userScope = append(userScope, UserScope_UPDATE)
 		case ScopeDelete:
 			userScope = append(userScope, UserScope_DELETE)
-		case ScopeEncrypt:
-			userScope = append(userScope, UserScope_ENCRYPT)
-		case ScopeDecrypt:
-			userScope = append(userScope, UserScope_DECRYPT)
 		case ScopeIndex:
 			userScope = append(userScope, UserScope_INDEX)
 		case ScopeObjectPermissions:
