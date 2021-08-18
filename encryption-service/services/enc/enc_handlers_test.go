@@ -66,7 +66,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Decrypting object failed: %v", err)
 	}
 
-	comp := bytes.Compare(decryptResponse.Plaintext, object.Plaintext)
+	comp := bytes.Compare(decryptResponse.Object.Plaintext, object.Plaintext)
 	if comp != 0 {
 		t.Fatalf("Decrypted plaintext does not equal original plaintext!")
 	}

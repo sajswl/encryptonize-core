@@ -42,7 +42,7 @@ message DecryptRequest {
 }
 
 message DecryptResponse {
-  bytes plaintext = 1;
+  Object object = 1;
 }
 
 message Object{

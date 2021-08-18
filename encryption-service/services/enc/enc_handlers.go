@@ -79,6 +79,9 @@ func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptR
 	}
 
 	return &DecryptResponse{
-		Plaintext: plaintext,
+		Object: &Object{
+			Plaintext:      plaintext,
+			AssociatedData: request.AssociatedData,
+		},
 	}, nil
 }

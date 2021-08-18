@@ -32,7 +32,7 @@ func TestEncryptAndDecrypt(t *testing.T) {
 	retrieveResponse, err := client.Decrypt(encryptResponse.Ciphertext, associatedData, encryptResponse.ObjectId)
 	failOnError("Decrypt operation failed", err, t)
 
-	if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
+	if !bytes.Equal(retrieveResponse.Object.Plaintext, plaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Object.Plaintext)
 	}
 }
