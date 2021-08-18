@@ -155,6 +155,14 @@ var removeUserCmd = &cobra.Command{
 	},
 }
 
+var encryptCmd = &cobra.Command{
+	Use:   "encrypt",
+	Short: "Encrypts data and returns the ciphertext",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return app.Encrypt(userAT, filename, associatedData, stdin)
+	},
+}
+
 func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
@@ -165,6 +173,7 @@ func InitCmd() error {
 	rootCmd.AddCommand(createUserCmd)
 	rootCmd.AddCommand(loginUserCmd)
 	rootCmd.AddCommand(removeUserCmd)
+	rootCmd.AddCommand(encryptCmd)
 
 	// Set credential flags
 	rootCmd.PersistentFlags().StringVarP(&userAT, "token", "a", "", "User access token")
@@ -222,6 +231,11 @@ func InitCmd() error {
 
 	// Set removeUser flags
 	removeUserCmd.Flags().StringVarP(&uid, "target", "t", "", "Target UID of the user to be removed")
+
+	// Set encrypt flags
+	encryptCmd.Flags().BoolVarP(&stdin, "stdin", "s", false, "Tell ECCS to read from STDIN")
+	encryptCmd.Flags().StringVarP(&filename, "filename", "f", "", "File to be encrypted")
+	encryptCmd.Flags().StringVarP(&associatedData, "associateddata", "d", "", "Associated data to be used for object authentication")
 
 	return nil
 }
