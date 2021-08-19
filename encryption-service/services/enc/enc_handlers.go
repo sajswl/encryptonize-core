@@ -13,7 +13,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// API exposed function, encrypts provided plaintext with
+// API exposed function, encrypts provided plaintext
+// and returns it with the object ID in the response
 func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptResponse, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
@@ -64,6 +65,8 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 	}, nil
 }
 
+// API exposed function, decrypts provided ciphertext
+// and returns the plaintext in the response
 func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
 	objectIDString := request.ObjectId
 	accessObject, err := authz.AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
