@@ -16,35 +16,40 @@ package app
 
 import (
 	"eccs/utils"
+	b64 "encoding/base64"
 	"fmt"
 	"io"
 	"log"
 	"os"
+
+	"encoding/json"
 )
+
+type EncryptOutput struct {
+	Ciphertext     string `json:"ciphertext"`
+	ObjectID       string `json:"oid"`
+	AssociatedData string `json:"aad"`
+}
 
 func Encrypt(userAT, filename, associatedData string, stdin bool) error {
 	var plaintext []byte
 	var err error
 
-	// fmt.Println("here0")
-
 	//Determine whether to read data from file or stdin
 	if filename != "" && stdin {
 		log.Fatalf("%v: can't take both filename and stdin", utils.Fail("Store failed"))
 	}
-	fmt.Println("here1")
 	if filename != "" {
 		plaintext = openFile(filename)
 	}
 	if stdin {
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
+			log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
 		}
 		plaintext = data
 	}
 
-	fmt.Println("here")
 	// Create client
 	client, err := NewClient(userAT)
 	if err != nil {
@@ -52,13 +57,27 @@ func Encrypt(userAT, filename, associatedData string, stdin bool) error {
 	}
 
 	// Call Encryptonize and encrypt the object
-	oid, ciphertext, _, err := client.Encrypt(plaintext, []byte(associatedData))
+	oid, ciphertext, aad, err := client.Encrypt(plaintext, []byte(associatedData))
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
 	}
 
-	// Give back the object id to the user
-	log.Printf("%vObjectID: %v, Ciphertext: %v", utils.Pass("Successfully stored object!\n"), oid, ciphertext)
+	enc := &EncryptOutput{
+		Ciphertext:     b64.StdEncoding.EncodeToString(ciphertext),
+		AssociatedData: b64.StdEncoding.EncodeToString(aad),
+		ObjectID:       oid,
+	}
+
+	jsonOutput, err := json.MarshalIndent(enc, "", "    ")
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("Formatting output as JSON failed!"), err)
+	}
+
+	// Log status to logging output
+	log.Printf("%v\n", utils.Pass("Successfully encrypted object!"))
+
+	// Output actual output to stdout
+	fmt.Printf("%s\n", jsonOutput)
 
 	return nil
 }

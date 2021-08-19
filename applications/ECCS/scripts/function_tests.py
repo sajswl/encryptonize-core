@@ -35,6 +35,7 @@ import subprocess
 import sys
 import re
 import uuid
+import json
 
 # Initializes the server
 # Sets the endpoint if it is unset
@@ -124,23 +125,25 @@ def encrypt_object(token, data):
 	if data is not None:
 		cmd += ["-d", data]
 	
-	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
-
-	oid = None
-	for match in re.finditer(r"ObjectID:\s+([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})", res.stderr):
-		if oid is not None:
-			print(f"multiple matches for the OID, aborting")
-			print(oid)
-			print(match.group(0))
+	with open('object-encrypted', 'w') as outfile:
+		res = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=outfile, check=True, text=True)
+	
+	with open('object-encrypted', 'r') as readfile:
+		encrypted_json = readfile.read()
+		parsed = json.loads(encrypted_json)
+		if parsed['oid'] is None:
+			print(f"unable to match oid in {res}")
 			sys.exit(1)
-		oid = match.group(1)
+		
+		return parsed['oid']
 
-	if oid is None:
-		print(f"unable to match oid in {res}")
-		sys.exit(1)
+def decrypt_object(token):
+	cmod = ["./eccs", "-a", token, "decrypt"]
 
-	return oid
+def decrypt_object(token, ciphertext, aad, oid):
+	cmd = ["./eccs", "-a", at1, "retrieve", "-o", oid]
 
+	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
 
 if __name__ == "__main__":
 	at = init()
@@ -161,9 +164,11 @@ if __name__ == "__main__":
 	oid = create_object(at1, "no one has the intention to store bytes here.")
 	print(f"[+] object created:      OID {oid}")
 
-	oid2 = encrypt_object(at1, "encrypt some bytes.")
+	plaintext = "encrypt some bytes"
+	oid2 = encrypt_object(at1, plaintext)
 	print(f"[+] object encrypted:      OID {oid2}")
 	
+	subprocess.run(["./eccs", "-a", at1, "encrypt", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
