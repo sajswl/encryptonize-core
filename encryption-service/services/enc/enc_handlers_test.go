@@ -85,6 +85,7 @@ func TestDecryptFail(t *testing.T) {
 	fakeRequest := &DecryptRequest{
 		Ciphertext:     []byte("fakecipher"),
 		AssociatedData: []byte("fakeaad"),
+		ObjectId:       "fakeobjectID",
 	}
 
 	userID, err := uuid.NewV4()
