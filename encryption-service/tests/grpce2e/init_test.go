@@ -25,8 +25,7 @@ var uid string
 var uat string
 var pwd string
 var adminAT = "wgiB4kxBTb3A0lJQNLj1Bm24g1zt-IljDda0fqoS84VfAJ_OoQsbBw.ysFgUjsYhQ_-irx0Yrf3xSeJ-CR-ZnMbq9mbBcHrPKV6g2hdBJnD0jznJJuhnLHlvJd7l20B1w"
-var protoUserScopes = []users.UserScope{users.UserScope_READ, users.UserScope_CREATE, users.UserScope_UPDATE, users.UserScope_DELETE,
-	users.UserScope_INDEX, users.UserScope_OBJECTPERMISSIONS}
+var protoUserScopes = []users.UserScope{users.UserScope_READ, users.UserScope_CREATE, users.UserScope_UPDATE, users.UserScope_DELETE, users.UserScope_INDEX, users.UserScope_OBJECTPERMISSIONS}
 var protoAdminScopes = []users.UserScope{users.UserScope_USERMANAGEMENT}
 var https = false
 
