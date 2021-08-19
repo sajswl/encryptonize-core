@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package enc
+package storage
 
 import (
 	"context"
@@ -27,8 +27,8 @@ import (
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
-func (enc *Enc) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, request.ObjectId)
+func (strg *Storage) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
+	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -62,7 +62,7 @@ func (enc *Enc) GetPermissions(ctx context.Context, request *GetPermissionsReque
 
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
-func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
+func (strg *Storage) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
@@ -70,7 +70,7 @@ func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
-	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -106,7 +106,7 @@ func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest
 
 	// Add the permission to the access object
 	accessObject.AddUser(target)
-	err = enc.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
+	err = strg.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
 		log.Error(ctx, err, msg)
@@ -128,7 +128,7 @@ func (enc *Enc) AddPermission(ctx context.Context, request *AddPermissionRequest
 
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
-func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
+func (strg *Storage) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
@@ -136,7 +136,7 @@ func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, err
 	}
 
-	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -156,7 +156,7 @@ func (enc *Enc) RemovePermission(ctx context.Context, request *RemovePermissionR
 
 	// Add the permission to the access object
 	accessObject.RemoveUser(target)
-	err = enc.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
+	err = strg.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)
 		log.Error(ctx, err, msg)

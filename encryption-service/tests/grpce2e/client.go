@@ -26,18 +26,18 @@ import (
 
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
-	"encryption-service/services/enc"
+	"encryption-service/services/storage"
 	"encryption-service/users"
 )
 
 // Client for making test gRPC calls to the encryption service
 type Client struct {
-	connection   *grpc.ClientConn
-	appClient    app.EncryptonizeClient
-	encClient    enc.EncryptonizeClient
-	authClient   authn.EncryptonizeClient
-	healthClient grpc_health_v1.HealthClient
-	ctx          context.Context
+	connection    *grpc.ClientConn
+	appClient     app.EncryptonizeClient
+	storageClient storage.EncryptonizeClient
+	authClient    authn.EncryptonizeClient
+	healthClient  grpc_health_v1.HealthClient
+	ctx           context.Context
 }
 
 // Create a new client.
@@ -61,19 +61,19 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 	}
 
 	appClient := app.NewEncryptonizeClient(connection)
-	encClient := enc.NewEncryptonizeClient(connection)
+	storageClient := storage.NewEncryptonizeClient(connection)
 	authClient := authn.NewEncryptonizeClient(connection)
 	healthClient := grpc_health_v1.NewHealthClient(connection)
 	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
 	return &Client{
-		connection:   connection,
-		appClient:    appClient,
-		encClient:    encClient,
-		authClient:   authClient,
-		healthClient: healthClient,
-		ctx:          ctx,
+		connection:    connection,
+		appClient:     appClient,
+		storageClient: storageClient,
+		authClient:    authClient,
+		healthClient:  healthClient,
+		ctx:           ctx,
 	}, nil
 }
 
@@ -84,15 +84,15 @@ func (c *Client) Close() error {
 }
 
 // Perform a `Store` request.
-func (c *Client) Store(plaintext, associatedData []byte) (*enc.StoreResponse, error) {
-	storeRequest := &enc.StoreRequest{
-		Object: &enc.Object{
+func (c *Client) Store(plaintext, associatedData []byte) (*storage.StoreResponse, error) {
+	storeRequest := &storage.StoreRequest{
+		Object: &storage.Object{
 			Plaintext:      plaintext,
 			AssociatedData: associatedData,
 		},
 	}
 
-	storeResponse, err := c.encClient.Store(c.ctx, storeRequest)
+	storeResponse, err := c.storageClient.Store(c.ctx, storeRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Store failed: %v", err)
 	}
@@ -100,26 +100,26 @@ func (c *Client) Store(plaintext, associatedData []byte) (*enc.StoreResponse, er
 }
 
 // Perform a `Retrieve` request.
-func (c *Client) Retrieve(oid string) (*enc.RetrieveResponse, error) {
-	retrieveRequest := &enc.RetrieveRequest{ObjectId: oid}
+func (c *Client) Retrieve(oid string) (*storage.RetrieveResponse, error) {
+	retrieveRequest := &storage.RetrieveRequest{ObjectId: oid}
 
-	retrieveResponse, err := c.encClient.Retrieve(c.ctx, retrieveRequest)
+	retrieveResponse, err := c.storageClient.Retrieve(c.ctx, retrieveRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Retrieve failed: %v", err)
 	}
 	return retrieveResponse, nil
 }
 
-func (c *Client) Update(oid string, plaintext, associatedData []byte) (*enc.UpdateResponse, error) {
-	updateRequest := &enc.UpdateRequest{
-		Object: &enc.Object{
+func (c *Client) Update(oid string, plaintext, associatedData []byte) (*storage.UpdateResponse, error) {
+	updateRequest := &storage.UpdateRequest{
+		Object: &storage.Object{
 			Plaintext:      plaintext,
 			AssociatedData: associatedData,
 		},
 		ObjectId: oid,
 	}
 
-	updateResponse, err := c.encClient.Update(c.ctx, updateRequest)
+	updateResponse, err := c.storageClient.Update(c.ctx, updateRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Update failed: %v", err)
 	}
@@ -127,10 +127,10 @@ func (c *Client) Update(oid string, plaintext, associatedData []byte) (*enc.Upda
 }
 
 // Perform a `Delete` request.
-func (c *Client) Delete(oid string) (*enc.DeleteResponse, error) {
-	deleteRequest := &enc.DeleteRequest{ObjectId: oid}
+func (c *Client) Delete(oid string) (*storage.DeleteResponse, error) {
+	deleteRequest := &storage.DeleteRequest{ObjectId: oid}
 
-	deleteResponse, err := c.encClient.Delete(c.ctx, deleteRequest)
+	deleteResponse, err := c.storageClient.Delete(c.ctx, deleteRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Delete failed: %v", err)
 	}
@@ -138,10 +138,10 @@ func (c *Client) Delete(oid string) (*enc.DeleteResponse, error) {
 }
 
 // Perform a `GetPermissions` request.
-func (c *Client) GetPermissions(oid string) (*enc.GetPermissionsResponse, error) {
-	getPermissionsRequest := &enc.GetPermissionsRequest{ObjectId: oid}
+func (c *Client) GetPermissions(oid string) (*storage.GetPermissionsResponse, error) {
+	getPermissionsRequest := &storage.GetPermissionsRequest{ObjectId: oid}
 
-	getPermissionsResponse, err := c.encClient.GetPermissions(c.ctx, getPermissionsRequest)
+	getPermissionsResponse, err := c.storageClient.GetPermissions(c.ctx, getPermissionsRequest)
 	if err != nil {
 		return nil, fmt.Errorf("GetPermissions failed: %v", err)
 	}
@@ -149,13 +149,13 @@ func (c *Client) GetPermissions(oid string) (*enc.GetPermissionsResponse, error)
 }
 
 // Perform a `AddPermission` request.
-func (c *Client) AddPermission(oid, target string) (*enc.AddPermissionResponse, error) {
-	addPermissionRequest := &enc.AddPermissionRequest{
+func (c *Client) AddPermission(oid, target string) (*storage.AddPermissionResponse, error) {
+	addPermissionRequest := &storage.AddPermissionRequest{
 		ObjectId: oid,
 		Target:   target,
 	}
 
-	addPermissionResponse, err := c.encClient.AddPermission(c.ctx, addPermissionRequest)
+	addPermissionResponse, err := c.storageClient.AddPermission(c.ctx, addPermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("AddPermission failed: %v", err)
 	}
@@ -163,13 +163,13 @@ func (c *Client) AddPermission(oid, target string) (*enc.AddPermissionResponse, 
 }
 
 // Perform a `RemovePermission` request.
-func (c *Client) RemovePermission(oid, target string) (*enc.RemovePermissionResponse, error) {
-	removePermissionRequest := &enc.RemovePermissionRequest{
+func (c *Client) RemovePermission(oid, target string) (*storage.RemovePermissionResponse, error) {
+	removePermissionRequest := &storage.RemovePermissionRequest{
 		ObjectId: oid,
 		Target:   target,
 	}
 
-	removePermissionResponse, err := c.encClient.RemovePermission(c.ctx, removePermissionRequest)
+	removePermissionResponse, err := c.storageClient.RemovePermission(c.ctx, removePermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("RemovePermission failed: %v", err)
 	}

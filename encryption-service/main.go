@@ -24,7 +24,7 @@ import (
 	log "encryption-service/logger"
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
-	"encryption-service/services/enc"
+	"encryption-service/services/storage"
 )
 
 func main() {
@@ -75,7 +75,7 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (data) failed")
 	}
 
-	encService := &enc.Enc{
+	storageService := &storage.Storage{
 		Authorizer:  authorizer,
 		AuthStore:   authStore,
 		ObjectStore: objectStore,
@@ -88,8 +88,8 @@ func main() {
 	}
 
 	app := &app.App{
-		EncService:   encService,
-		AuthnService: authnService,
+		StorageService: storageService,
+		AuthnService:   authnService,
 	}
 
 	app.StartServer()

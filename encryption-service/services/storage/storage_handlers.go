@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package enc
+package storage
 
 import (
 	"context"
@@ -32,7 +32,7 @@ const CiphertextStoreSuffix = "_data"
 // API exposed function, encrypts data and stores it in the object store
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
-func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
+func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
@@ -55,24 +55,24 @@ func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 		return nil, err
 	}
 
-	woek, ciphertext, err := enc.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
+	woek, ciphertext, err := strg.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
 	if err != nil {
 		log.Error(ctx, err, "Store: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	err = enc.Authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err = strg.Authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
 		log.Error(ctx, err, "Store: Failed to create new access object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := enc.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
+	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
 		log.Error(ctx, err, "Store: Failed to store associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := enc.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
+	if err := strg.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
 		log.Error(ctx, err, "Store: Failed to store object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
@@ -92,27 +92,27 @@ func (enc *Enc) Store(ctx context.Context, request *StoreRequest) (*StoreRespons
 // API exposed function, retrieves a package from storage solution
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication, authorization, or retrieving the object fails
-func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
+func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
 	}
 
-	aad, err := enc.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
+	aad, err := strg.ObjectStore.Retrieve(ctx, objectIDString+AssociatedDataStoreSuffix)
 	if err != nil {
 		log.Error(ctx, err, "Retrieve: Failed to retrieve associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	ciphertext, err := enc.ObjectStore.Retrieve(ctx, objectIDString+CiphertextStoreSuffix)
+	ciphertext, err := strg.ObjectStore.Retrieve(ctx, objectIDString+CiphertextStoreSuffix)
 	if err != nil {
 		log.Error(ctx, err, "Retrieve: Failed to retrieve object")
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	plaintext, err := enc.DataCryptor.Decrypt(accessObject.GetWOEK(), ciphertext, aad)
+	plaintext, err := strg.DataCryptor.Decrypt(accessObject.GetWOEK(), ciphertext, aad)
 	if err != nil {
 		log.Error(ctx, err, "Retrieve: Failed to decrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
@@ -132,9 +132,9 @@ func (enc *Enc) Retrieve(ctx context.Context, request *RetrieveRequest) (*Retrie
 // API exposed function, deletes a package from a storage solution
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication, authorization, or deleting the object fails
-func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
+func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
 	objectIDString := request.ObjectId
-	_, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	_, err := AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
 	if err != nil {
 		ok := errors.Is(err, NotFoundAccessObjectError)
 		if ok {
@@ -151,13 +151,13 @@ func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResp
 		return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 	}
 
-	err = enc.Authorizer.DeleteAccessObject(ctx, objectID)
+	err = strg.Authorizer.DeleteAccessObject(ctx, objectID)
 	if err != nil {
 		log.Error(ctx, err, "Delete: Failed to delete access object")
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting access object")
 	}
 
-	err = enc.ObjectStore.Delete(ctx, objectIDString)
+	err = strg.ObjectStore.Delete(ctx, objectIDString)
 	if err != nil {
 		log.Error(ctx, err, "Delete: Failed to delete object")
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
@@ -170,26 +170,26 @@ func (enc *Enc) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResp
 // new data that is encrypted and placed into the object store
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication, authorization, or retrieving the access object fails
-func (enc *Enc) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
+func (strg *Storage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
+	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
 	}
 
-	ciphertext, err := enc.DataCryptor.EncryptWithKey(request.Object.Plaintext, request.Object.AssociatedData, accessObject.GetWOEK())
+	ciphertext, err := strg.DataCryptor.EncryptWithKey(request.Object.Plaintext, request.Object.AssociatedData, accessObject.GetWOEK())
 	if err != nil {
 		log.Error(ctx, err, "Update: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := enc.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
+	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
 		log.Error(ctx, err, "Update: Failed to store associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := enc.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
+	if err := strg.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
 		log.Error(ctx, err, "Update: Failed to store object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
