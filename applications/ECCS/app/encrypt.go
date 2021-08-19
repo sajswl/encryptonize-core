@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 )
 
-type EncryptOutput struct {
+type EncryptedData struct {
 	Ciphertext     string `json:"ciphertext"`
 	ObjectID       string `json:"oid"`
 	AssociatedData string `json:"aad"`
@@ -62,7 +62,7 @@ func Encrypt(userAT, filename, associatedData string, stdin bool) error {
 		log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
 	}
 
-	enc := &EncryptOutput{
+	enc := &EncryptedData{
 		Ciphertext:     b64.StdEncoding.EncodeToString(ciphertext),
 		AssociatedData: b64.StdEncoding.EncodeToString(aad),
 		ObjectID:       oid,

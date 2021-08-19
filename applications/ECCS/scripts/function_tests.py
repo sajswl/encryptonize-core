@@ -120,15 +120,15 @@ def create_object(token, data):
 
 	return oid
 
-def encrypt_object(token, data):
+def encrypt_object(token, plaintext, aad, filename):
 	cmd = ["./eccs", "-a", token, "encrypt", "-s"]
-	if data is not None:
-		cmd += ["-d", data]
+	if aad is not None:
+		cmd += ["-d", aad]
 	
-	with open('object-encrypted', 'w') as outfile:
-		res = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=outfile, check=True, text=True)
+	with open(filename, 'w') as outfile:
+		res = subprocess.run(cmd, input=plaintext, stdout=outfile, check=True, text=True)
 	
-	with open('object-encrypted', 'r') as readfile:
+	with open(filename, 'r') as readfile:
 		encrypted_json = readfile.read()
 		parsed = json.loads(encrypted_json)
 		if parsed['oid'] is None:
@@ -137,13 +137,9 @@ def encrypt_object(token, data):
 		
 		return parsed['oid']
 
-def decrypt_object(token):
-	cmod = ["./eccs", "-a", token, "decrypt"]
-
-def decrypt_object(token, ciphertext, aad, oid):
-	cmd = ["./eccs", "-a", at1, "retrieve", "-o", oid]
-
-	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
+def decrypt_object(token, filename):
+	cmd = ["./eccs", "-a", token, "decrypt", "-f", filename]
+	res = subprocess.run(cmd, check=True, text=True)
 
 if __name__ == "__main__":
 	at = init()
@@ -164,11 +160,15 @@ if __name__ == "__main__":
 	oid = create_object(at1, "no one has the intention to store bytes here.")
 	print(f"[+] object created:      OID {oid}")
 
-	plaintext = "encrypt some bytes"
-	oid2 = encrypt_object(at1, plaintext)
+	plaintext = "hello encryption algorithm"
+	aad = "AES"
+	filename = "encrypted-object"
+	oid2 = encrypt_object(at1, plaintext, aad, filename)
 	print(f"[+] object encrypted:      OID {oid2}")
+
+	decrypt_object(at1, filename)
+	print(f"[+] object decrypted:      OID {oid2}")
 	
-	subprocess.run(["./eccs", "-a", at1, "encrypt", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)

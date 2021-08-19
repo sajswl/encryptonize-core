@@ -163,6 +163,14 @@ var encryptCmd = &cobra.Command{
 	},
 }
 
+var decryptCmd = &cobra.Command{
+	Use:   "decrypt",
+	Short: "Decrypts data and returns the plaintext",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return app.Decrypt(userAT, filename, stdin)
+	},
+}
+
 func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
@@ -174,6 +182,7 @@ func InitCmd() error {
 	rootCmd.AddCommand(loginUserCmd)
 	rootCmd.AddCommand(removeUserCmd)
 	rootCmd.AddCommand(encryptCmd)
+	rootCmd.AddCommand(decryptCmd)
 
 	// Set credential flags
 	rootCmd.PersistentFlags().StringVarP(&userAT, "token", "a", "", "User access token")
@@ -236,6 +245,10 @@ func InitCmd() error {
 	encryptCmd.Flags().BoolVarP(&stdin, "stdin", "s", false, "Tell ECCS to read from STDIN")
 	encryptCmd.Flags().StringVarP(&filename, "filename", "f", "", "File to be encrypted")
 	encryptCmd.Flags().StringVarP(&associatedData, "associateddata", "d", "", "Associated data to be used for object authentication")
+
+	// Set decrypt flags
+	decryptCmd.Flags().BoolVarP(&stdin, "stdin", "s", false, "Tell ECCS to read from STDIN")
+	decryptCmd.Flags().StringVarP(&filename, "filename", "f", "", "File containing encrypted data")
 
 	return nil
 }
