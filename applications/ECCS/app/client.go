@@ -511,29 +511,17 @@ func (c *Client) Encrypt(plaintext, associatedData []byte) (string, []byte, []by
 	// sanitize in and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
+		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 	}
 	if !sanitize(inType, inExp) {
 		return "", nil, nil, errors.New("Unexpected input type of Encrypt method")
 	}
 
-	objType := inType.FindFieldByName("object").GetMessageType()
-	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-	if !sanitize(objType, objExp) {
-		return "", nil, nil, errors.New("Unexpected object type")
-	}
-
-	// create the object to be stored
-	obj := dynamic.NewMessage(objType)
-	obj.SetFieldByName("plaintext", plaintext)
-	obj.SetFieldByName("associated_data", associatedData)
-
 	// create the argument
 	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object", obj)
+	msg.SetFieldByName("plaintext", plaintext)
+	msg.SetFieldByName("associated_data", associatedData)
 
 	// invoke the RPC
 	stub := grpcdynamic.NewStub(c.connection)
@@ -551,7 +539,7 @@ func (c *Client) Encrypt(plaintext, associatedData []byte) (string, []byte, []by
 	objID := res.GetFieldByName("object_id").(string)
 
 	ciphertext := res.GetFieldByName("ciphertext").([]byte)
-	aad := obj.GetFieldByName("associated_data").([]byte)
+	aad := res.GetFieldByName("associated_data").([]byte)
 
 	return objID, ciphertext, aad, nil
 }
@@ -576,18 +564,11 @@ func (c *Client) Decrypt(oid string, ciphertext []byte, associatedData []byte) (
 
 	outType := mth.GetOutputType()
 	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object": descriptorpb.FieldDescriptorProto_TYPE_MESSAGE,
-	}
-	if !sanitize(outType, outExp) {
-		return nil, nil, errors.New("Unexpected output type of Decrypt method")
-	}
-
-	var objExp = map[string]descriptorpb.FieldDescriptorProto_Type{
 		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
 	}
-	if !sanitize(outType.FindFieldByName("object").GetMessageType(), objExp) {
-		return nil, nil, errors.New("Unexpected type of the object message")
+	if !sanitize(outType, outExp) {
+		return nil, nil, errors.New("Unexpected output type of Decrypt method")
 	}
 
 	// create argument
@@ -609,9 +590,8 @@ func (c *Client) Decrypt(oid string, ciphertext []byte, associatedData []byte) (
 		return nil, nil, err
 	}
 
-	obj := res.GetFieldByName("object").(*dynamic.Message)
-	m := obj.GetFieldByName("plaintext").([]byte)
-	aad := obj.GetFieldByName("associated_data").([]byte)
+	m := res.GetFieldByName("plaintext").([]byte)
+	aad := res.GetFieldByName("associated_data").([]byte)
 
 	return m, aad, nil
 }

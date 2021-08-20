@@ -38,7 +38,7 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 		return nil, err
 	}
 
-	woek, ciphertext, err := enc.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
+	woek, ciphertext, err := enc.DataCryptor.Encrypt(request.Plaintext, request.AssociatedData)
 	if err != nil {
 		log.Error(ctx, err, "Encrypt: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while encrypting object")
@@ -60,7 +60,7 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 
 	return &EncryptResponse{
 		Ciphertext:     ciphertext,
-		AssociatedData: request.Object.AssociatedData,
+		AssociatedData: request.AssociatedData,
 		ObjectId:       objectIDString,
 	}, nil
 }
@@ -82,9 +82,7 @@ func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptR
 	}
 
 	return &DecryptResponse{
-		Object: &Object{
-			Plaintext:      plaintext,
-			AssociatedData: request.AssociatedData,
-		},
+		Plaintext:      plaintext,
+		AssociatedData: request.AssociatedData,
 	}, nil
 }

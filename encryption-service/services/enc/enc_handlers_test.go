@@ -30,10 +30,8 @@ func TestEncryptDecrypt(t *testing.T) {
 		DataCryptor: cryptor,
 	}
 
-	object := &Object{
-		Plaintext:      []byte("plaintext_bytes"),
-		AssociatedData: []byte("associated_data_bytes"),
-	}
+	plaintext := []byte("plaintext_bytes")
+	associatedData := []byte("associated_data_bytes")
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -45,7 +43,8 @@ func TestEncryptDecrypt(t *testing.T) {
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
-			Object: object,
+			Plaintext:      plaintext,
+			AssociatedData: associatedData,
 		},
 	)
 
@@ -58,7 +57,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		&DecryptRequest{
 			ObjectId:       encryptResponse.ObjectId,
 			Ciphertext:     encryptResponse.Ciphertext,
-			AssociatedData: object.AssociatedData,
+			AssociatedData: associatedData,
 		},
 	)
 
@@ -66,7 +65,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Decrypting object failed: %v", err)
 	}
 
-	comp := bytes.Compare(decryptResponse.Object.Plaintext, object.Plaintext)
+	comp := bytes.Compare(decryptResponse.Plaintext, plaintext)
 	if comp != 0 {
 		t.Fatalf("Decrypted plaintext does not equal original plaintext!")
 	}

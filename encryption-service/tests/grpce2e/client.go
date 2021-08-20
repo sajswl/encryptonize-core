@@ -144,10 +144,8 @@ func (c *Client) Delete(oid string) (*storage.DeleteResponse, error) {
 // Perform a `Encrypt` request.
 func (c *Client) Encrypt(plaintext []byte, aad []byte) (*enc.EncryptResponse, error) {
 	encryptRequest := &enc.EncryptRequest{
-		Object: &enc.Object{
-			Plaintext:      plaintext,
-			AssociatedData: aad,
-		},
+		Plaintext:      plaintext,
+		AssociatedData: aad,
 	}
 
 	encryptResponse, err := c.encClient.Encrypt(c.ctx, encryptRequest)

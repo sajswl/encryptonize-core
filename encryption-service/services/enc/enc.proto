@@ -26,7 +26,8 @@ service Encryptonize{
 }
 
 message EncryptRequest{
-  Object object = 1;
+  bytes plaintext = 1;
+  bytes associated_data = 2;
 }
 
 message EncryptResponse{
@@ -42,10 +43,6 @@ message DecryptRequest {
 }
 
 message DecryptResponse {
-  Object object = 1;
-}
-
-message Object{
   bytes plaintext = 1;
   bytes associated_data = 2;
 }
