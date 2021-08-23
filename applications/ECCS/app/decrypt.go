@@ -18,30 +18,14 @@ import (
 	"eccs/utils"
 	b64 "encoding/base64"
 	"encoding/json"
-	"io"
 	"log"
-	"os"
 )
 
 func Decrypt(userAT, filename string, stdin bool) error {
 	var enc EncryptedData
-	var storedData []byte
-	var err error
-
-	//Determine whether to read data from file or stdin
-	if filename != "" && stdin {
-		log.Fatalf("%v: can't take both filename and stdin", utils.Fail("Store failed"))
-	}
-
-	if filename != "" {
-		storedData = openFile(filename)
-	}
-
-	if stdin {
-		storedData, err = io.ReadAll(os.Stdin)
-		if err != nil {
-			log.Fatalf("%v: %v", utils.Fail("Decrypt failed"), err)
-		}
+	storedData, err := readInput(filename, stdin)
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("Decrypt failed"), err)
 	}
 
 	err = json.Unmarshal(storedData, &enc)
