@@ -58,7 +58,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		&DecryptRequest{
 			ObjectId:       encryptResponse.ObjectId,
 			Ciphertext:     encryptResponse.Ciphertext,
-			AssociatedData: associatedData,
+			AssociatedData: encryptResponse.AssociatedData,
 		},
 	)
 
