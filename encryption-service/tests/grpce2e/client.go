@@ -90,10 +90,8 @@ func (c *Client) Close() error {
 // Perform a `Store` request.
 func (c *Client) Store(plaintext, associatedData []byte) (*storage.StoreResponse, error) {
 	storeRequest := &storage.StoreRequest{
-		Object: &storage.Object{
-			Plaintext:      plaintext,
-			AssociatedData: associatedData,
-		},
+		Plaintext:      plaintext,
+		AssociatedData: associatedData,
 	}
 
 	storeResponse, err := c.storageClient.Store(c.ctx, storeRequest)
@@ -116,11 +114,9 @@ func (c *Client) Retrieve(oid string) (*storage.RetrieveResponse, error) {
 
 func (c *Client) Update(oid string, plaintext, associatedData []byte) (*storage.UpdateResponse, error) {
 	updateRequest := &storage.UpdateRequest{
-		Object: &storage.Object{
-			Plaintext:      plaintext,
-			AssociatedData: associatedData,
-		},
-		ObjectId: oid,
+		Plaintext:      plaintext,
+		AssociatedData: associatedData,
+		ObjectId:       oid,
 	}
 
 	updateResponse, err := c.storageClient.Update(c.ctx, updateRequest)

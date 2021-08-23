@@ -41,7 +41,8 @@ service Encryptonize{
 }
 
 message StoreRequest{
-  Object object = 1;
+  bytes plaintext = 1;
+  bytes associated_data = 2;
 }
 
 message StoreResponse{
@@ -53,12 +54,14 @@ message RetrieveRequest{
 }
 
 message RetrieveResponse{
-  Object object = 1;
+  bytes plaintext = 1;
+  bytes associated_data = 2;
 }
 
 message UpdateRequest{
-  Object object = 1;
-  string object_id = 2;
+  bytes plaintext = 1;
+  bytes associated_data = 2;
+  string object_id = 3;
 }
 
 message UpdateResponse{
@@ -91,10 +94,6 @@ message RemovePermissionRequest{
   string object_id = 1;
   string target = 2;
 }
-message RemovePermissionResponse{
-}
 
-message Object{
-  bytes plaintext = 1;
-  bytes associated_data = 2;
+message RemovePermissionResponse{
 }

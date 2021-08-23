@@ -111,20 +111,8 @@ this tool can be found [here](https://github.com/grpc-ecosystem/grpc-health-prob
 on interaction with the health checks in a Kubernetes context can be found
 [here](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/).
 
-# Primitive Types
-The Encryptonize API currently only defines one primitive type, namely the `storage.Object`.
-
-## `storage.Object`
-The `storage.Object` struct represents data stored and retrieved by a client, and consists of the
-plaintext (`plaintext`) and the associated data (`associated_data`).
-
-| Name              | Type   | Description                           |
-|-------------------|--------|---------------------------------------|
-| `plaintext`       | bytes  | The data to be encrypted              |
-| `associated_data` | bytes  | The associated data for the plaintext |
-
-# Derived types
-The Encryptonize API defines several derived types, mainly in the form of structs representing
+# Messages
+The Encryptonize API defines several gRPC message types, mainly in the form of structs representing
 requests and corresponding responses.
 
 ## `app.VersionRequest`
@@ -140,16 +128,17 @@ currently running encryptonize deployment.
 | `tag`       | string | Git commit tag (if any)               |
 
 ## `storage.StoreRequest`
-The structure used as an argument for a `storage.Store` request. It contains a single
-`storage.Object`. Requires the scope `CREATE`.
+The structure used as an argument for a `storage.Store` request. It consists of the plaintext
+(`plaintext`) and the associated data (`associated_data`). Requires the scope `CREATE`.
 
-| Name     | Type   | Description |
-|----------|--------|-------------|
-| `object` | Object | The object  |
+| Name              | Type   | Description                           |
+|-------------------|--------|---------------------------------------|
+| `plaintext`       | bytes  | The data to be encrypted              |
+| `associated_data` | bytes  | The associated data for the plaintext |
 
 ## `storage.StoreResponse`
-The structure returned by a `storage.Store` request. It contains the Object ID of the stored
-`storage.Object`. The Object ID is important as it can be used to subsequent request the object in a
+The structure returned by a `storage.Store` request. It contains the Object ID of the stored object.
+The Object ID is important as it must be used to subsequently request the object in a
 `storage.RetrieveRequest`.
 
 | Name        | Type   | Description           |
@@ -165,22 +154,24 @@ Object the client wishes to retrieve. Requires the scope `READ`.
 | `object_id` | string | The object identifier |
 
 ## `storage.RetrieveResponse`
-The structure returned by a `storage.Retrieve` request. It contains the `storage.Object` matching
-the ID passed in the request.
+The structure returned by a `storage.Retrieve` request. It consists of the plaintext (`plaintext`)
+and the associated data (`associated_data`) matching the ID passed in the request.
 
-| Name               | Type             | Description           |
-|--------------------|------------------|-----------------------|
-| `object`           | Object           | The object            |
+| Name              | Type   | Description                           |
+|-------------------|--------|---------------------------------------|
+| `plaintext`       | bytes  | The data to be encrypted              |
+| `associated_data` | bytes  | The associated data for the plaintext |
 
 ## `storage.UpdateRequest`
-The structure used as an argument for a `storage.Update` request. It contains a single
-`storage.Object` and the Object ID of the Object the client wishes to update. Requires the scope
-`UPDATE`.
+The structure used as an argument for a `storage.Update` request. It consists of the plaintext
+(`plaintext`), the associated data (`associated_data`), and the Object ID of the object the client
+wishes to update. Requires the scope `UPDATE`.
 
-| Name        | Type   | Description           |
-|-------------|--------|-----------------------|
-| `object`    | Object | The object            |
-| `object_id` | string | The object identifier |
+| Name              | Type   | Description                           |
+|-------------------|--------|---------------------------------------|
+| `plaintext`       | bytes  | The data to be encrypted              |
+| `associated_data` | bytes  | The associated data for the plaintext |
+| `object_id`       | string | The object identifier                 |
 
 ## `storage.UpdateResponse`
 The structure returned by a `storage.Update` request. The structure is empty.
@@ -296,8 +287,8 @@ rpc Version (VersionRequest) returns (VersionResponse)
 
 ## `storage.Store`
 
-Takes a `storage.Object` and Stores it in encrypted form. This call can fail if the Storage Service
-cannot reach the object storage, in which case an error is returned.
+Takes a `storage.StoreRequest` and Stores its contents in encrypted form. This call can fail if the
+Storage Service cannot reach the object storage, in which case an error is returned.
 
 ```
 rpc Store (StoreRequest) returns (StoreResponse)
@@ -305,10 +296,9 @@ rpc Store (StoreRequest) returns (StoreResponse)
 
 ## `storage.Retrieve`
 
-Fetches a previously Stored `storage.Object` and returns the plaintext content. This call can fail
-if the specified object does not exist, if the caller does not have access permission to that
-object, or if the Storage Service cannot reach the object storage. In these cases, an error is
-returned.
+Fetches a previously Stored object and returns the plaintext content. This call can fail if the
+specified object does not exist, if the caller does not have access permission to that object, or if
+the Storage Service cannot reach the object storage. In these cases, an error is returned.
 
 ```
 rpc Retrieve (RetriveRequest) returns (RetriveResponse)
@@ -316,10 +306,10 @@ rpc Retrieve (RetriveRequest) returns (RetriveResponse)
 
 ## `storage.Update`
 
-Takes a `storage.Object`  and an Object ID and Stores it in encrypted form, replacing the previous
-`storage.Object` that was stored with that Object ID. This call can fail if the specified Object ID
-does not currently exist, if the caller does not have access permission to that object, or if the
-Storage Service cannot reach the object storage. In these cases, an error is returned.
+Takes a `storage.UpdateRequest` and Stores it in encrypted form, replacing the data previously
+stored with the given Object ID. This call can fail if the specified Object ID does not currently
+exist, if the caller does not have access permission to that object, or if the Storage Service
+cannot reach the object storage. In these cases, an error is returned.
 
 > DISCLAIMER: Current implementation of `storage.Update` does not ensure safe concurrent access.
 
@@ -329,9 +319,9 @@ rpc Update (UpdateRequest) returns (UpdateResponse)
 
 ## `storage.Delete`
 
-Deletes a previously Stored `storage.Object`. This call does not fail if the specified object does
-not exist. It can fail if the caller does not have access permission to that object or if the
-Storage Service cannot reach the object storage. In these cases, an error is returned.
+Deletes a previously Stored object. This call does not fail if the specified object does not exist.
+It can fail if the caller does not have access permission to that object or if the Storage Service
+cannot reach the object storage. In these cases, an error is returned.
 
 > DISCLAIMER: Current implementation of `storage.Delete` does not ensure safe concurrent access.
 
@@ -341,7 +331,7 @@ rpc Delete (DeleteRequest) returns (DeleteResponse)
 
 ## `storage.GetPermissions`
 
-Returns a list of users with access to the specified `storage.Object`. This call can fail if the
+Returns a list of users with access to the specified object. This call can fail if the
 Storage Service cannot reach the auth storage, in which case an error is returned. The user has to
 be authenticated and authorized in order to get the object permissions.
 
@@ -351,8 +341,8 @@ rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
 
 ## `storage.AddPermission`
 
-Adds a User to the access list of the specified `storage.Object`. This call can fail if the caller
-does not have access to the `storage.Object`, if the target user does not exist, or if the Storage
+Adds a User to the access list of the specified object. This call can fail if the caller
+does not have access to the object, if the target user does not exist, or if the Storage
 Service cannot reach the auth storage. In these cases, an error is returned.
 
 ```
@@ -361,8 +351,8 @@ rpc AddPermission (AddPermissionRequest) returns (ReturnCode)
 
 ## `storage.RemovePermission`
 
-Removes a User from the access list of the specified `storage.Object`. This call can fail if the
-caller does not have access to the `storage.Object` or if the Storage Service cannot reach the auth
+Removes a User from the access list of the specified object. This call can fail if the
+caller does not have access to the object or if the Storage Service cannot reach the auth
 storage. In these cases, an error is returned.
 
 ```

@@ -40,12 +40,12 @@ func TestStoreAndUpdate(t *testing.T) {
 	retrieveResponse, err := client.Retrieve(oid)
 	failOnError("Retrieve operation failed", err, t)
 
-	if !bytes.Equal(retrieveResponse.Object.Plaintext, newplaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse.Plaintext, newplaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
 	}
 
-	if !bytes.Equal(retrieveResponse.Object.AssociatedData, newAssociatedData) {
-		t.Fatalf("Expected associated data %v but got %v", newAssociatedData, retrieveResponse.Object.AssociatedData)
+	if !bytes.Equal(retrieveResponse.AssociatedData, newAssociatedData) {
+		t.Fatalf("Expected associated data %v but got %v", newAssociatedData, retrieveResponse.AssociatedData)
 	}
 }
 
@@ -114,7 +114,7 @@ func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
 	retrieveResponse2, err := client.Retrieve(oid)
 	failOnError("Retrieve operation failed", err, t)
 
-	if !bytes.Equal(retrieveResponse2.Object.Plaintext, plaintext2) {
-		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse2.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse2.Plaintext, plaintext2) {
+		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse2.Plaintext)
 	}
 }
