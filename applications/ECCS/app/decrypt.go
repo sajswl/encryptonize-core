@@ -25,7 +25,7 @@ func Decrypt(userAT, filename string, stdin bool) error {
 	var enc EncryptedData
 	storedData, err := readInput(filename, stdin)
 	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
+		log.Fatalf("%v: %v", utils.Fail("Decrypt failed"), err)
 	}
 
 	err = json.Unmarshal(storedData, &enc)
