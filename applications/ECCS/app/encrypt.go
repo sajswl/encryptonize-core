@@ -18,9 +18,7 @@ import (
 	"eccs/utils"
 	b64 "encoding/base64"
 	"fmt"
-	"io"
 	"log"
-	"os"
 
 	"encoding/json"
 )
@@ -32,22 +30,9 @@ type EncryptedData struct {
 }
 
 func Encrypt(userAT, filename, associatedData string, stdin bool) error {
-	var plaintext []byte
-	var err error
-
-	//Determine whether to read data from file or stdin
-	if filename != "" && stdin {
-		log.Fatalf("%v: can't take both filename and stdin", utils.Fail("Store failed"))
-	}
-	if filename != "" {
-		plaintext = openFile(filename)
-	}
-	if stdin {
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
-		}
-		plaintext = data
+	plaintext, err := readInput(filename, stdin)
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
 	}
 
 	// Create client
