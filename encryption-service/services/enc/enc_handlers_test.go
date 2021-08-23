@@ -63,6 +63,10 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Encrypting object failed: %v", err)
 	}
 
+	if !bytes.Equal(encryptResponse.AssociatedData, associatedData) {
+		t.Fatalf("Associated data from encryption response is not the same!")
+	}
+
 	decryptResponse, err := enc.Decrypt(
 		ctx,
 		&DecryptRequest{
@@ -76,9 +80,12 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Decrypting object failed: %v", err)
 	}
 
-	comp := bytes.Compare(decryptResponse.Plaintext, plaintext)
-	if comp != 0 {
+	if !bytes.Equal(decryptResponse.Plaintext, plaintext) {
 		t.Fatalf("Decrypted plaintext does not equal original plaintext!")
+	}
+
+	if !bytes.Equal(decryptResponse.AssociatedData, associatedData) {
+		t.Fatalf("Associated data from decryption response is not the same!")
 	}
 }
 
