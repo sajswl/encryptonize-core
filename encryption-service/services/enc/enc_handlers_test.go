@@ -2,14 +2,15 @@ package enc
 
 import (
 	"bytes"
-	context "context"
+	"context"
+	"testing"
+
+	"github.com/gofrs/uuid"
+
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
-	"testing"
-
-	"github.com/gofrs/uuid"
 )
 
 var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)

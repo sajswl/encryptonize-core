@@ -26,14 +26,14 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 	objectID, err := uuid.NewV4()
 	if err != nil {
 		log.Error(ctx, err, "Encrypt: Failed to generate new object ID")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while encrypting object")
 	}
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		err = status.Errorf(codes.Internal, "error encountered while storing object")
+		err = status.Errorf(codes.Internal, "error encountered while encrypting object")
 		log.Error(ctx, err, "Encrypt: Could not typecast authstorage to AuthStoreTxInterface ")
 		return nil, err
 	}
@@ -47,16 +47,16 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 	err = enc.Authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
 		log.Error(ctx, err, "Encrypt: Failed to create new access object")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while encrypting object")
 	}
 
 	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, err, "Encrypt: Failed to commit auth storage transaction")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while encrypting object")
 	}
 
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
-	log.Info(ctx, "Encrypt: Object stored")
+	log.Info(ctx, "Encrypt: Object encrypted")
 
 	return &EncryptResponse{
 		Ciphertext:     ciphertext,
@@ -77,8 +77,8 @@ func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptR
 
 	plaintext, err := enc.DataCryptor.Decrypt(accessObject.GetWOEK(), request.Ciphertext, request.AssociatedData)
 	if err != nil {
-		log.Error(ctx, err, "Retrieve: Failed to decrypt object")
-		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
+		log.Error(ctx, err, "Decrypt: Failed to decrypt object")
+		return nil, status.Errorf(codes.Internal, "error encountered while decrypting object")
 	}
 
 	return &DecryptResponse{

@@ -24,8 +24,6 @@ enum UserScope{
   USERMANAGEMENT = 4;
   UPDATE = 5;
   DELETE = 6;
-  ENCRYPT = 7;
-  DECRYPT = 8;
 }
 
 message AccessTokenClient{
