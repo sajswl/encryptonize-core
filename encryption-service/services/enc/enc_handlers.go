@@ -18,7 +18,7 @@ import (
 func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptResponse, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
-		err := status.Errorf(codes.Internal, "error encountered while storing object")
+		err := status.Errorf(codes.Internal, "error encountered while encrypting object")
 		log.Error(ctx, err, "Encrypt: Could not typecast userID to uuid.UUID")
 		return nil, err
 	}
