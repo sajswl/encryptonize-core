@@ -15,8 +15,9 @@
 package app
 
 import (
-	"log"
+	"errors"
 	"io"
+	"log"
 	"os"
 
 	"eccs/utils"
@@ -31,14 +32,13 @@ func openFile(filename string) []byte {
 	return dat
 }
 
-// Store creates a new client and calls Store through the client
-func Store(userAT, filename, associatedData string, stdin bool) error {
+// reads bytes from provided filename, or from stdin
+// exits program if both are provided
+func readInput(filename string, stdin bool) ([]byte, error) {
 	var plaintext []byte
-	var err error
 
-	//Determine whether to read data from file or stdin
 	if filename != "" && stdin {
-		log.Fatalf("%v: can't take both filename and stdin", utils.Fail("Store failed"))
+		return nil, errors.New("can't take both filename and stdin")
 	}
 	if filename != "" {
 		plaintext = openFile(filename)
@@ -46,9 +46,20 @@ func Store(userAT, filename, associatedData string, stdin bool) error {
 	if stdin {
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
+			return nil, err
 		}
 		plaintext = data
+	}
+
+	return plaintext, nil
+}
+
+// Store creates a new client and calls Store through the client
+func Store(userAT, filename, associatedData string, stdin bool) error {
+	//Determine whether to read data from file or stdin
+	plaintext, err := readInput(filename, stdin)
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
 	}
 
 	// Create client

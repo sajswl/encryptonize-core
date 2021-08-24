@@ -24,6 +24,7 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
+	"encryption-service/services/authz"
 )
 
 const AssociatedDataStoreSuffix = "_aad"
@@ -94,7 +95,7 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 // Errors if authentication, authorization, or retrieving the object fails
 func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
+	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -134,9 +135,9 @@ func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*R
 // Errors if authentication, authorization, or deleting the object fails
 func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
 	objectIDString := request.ObjectId
-	_, err := AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
+	_, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
 	if err != nil {
-		ok := errors.Is(err, NotFoundAccessObjectError)
+		ok := errors.Is(err, authz.NotFoundAccessObjectError)
 		if ok {
 			return &DeleteResponse{}, nil
 		}
@@ -172,7 +173,7 @@ func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*Delet
 // Errors if authentication, authorization, or retrieving the access object fails
 func (strg *Storage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
+	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err

@@ -26,6 +26,7 @@ import (
 
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
+	"encryption-service/services/enc"
 	"encryption-service/services/storage"
 	"encryption-service/users"
 )
@@ -35,6 +36,7 @@ type Client struct {
 	connection    *grpc.ClientConn
 	appClient     app.EncryptonizeClient
 	storageClient storage.EncryptonizeClient
+	encClient     enc.EncryptonizeClient
 	authClient    authn.EncryptonizeClient
 	healthClient  grpc_health_v1.HealthClient
 	ctx           context.Context
@@ -62,6 +64,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 
 	appClient := app.NewEncryptonizeClient(connection)
 	storageClient := storage.NewEncryptonizeClient(connection)
+	encClient := enc.NewEncryptonizeClient(connection)
 	authClient := authn.NewEncryptonizeClient(connection)
 	healthClient := grpc_health_v1.NewHealthClient(connection)
 	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
@@ -71,6 +74,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 		connection:    connection,
 		appClient:     appClient,
 		storageClient: storageClient,
+		encClient:     encClient,
 		authClient:    authClient,
 		healthClient:  healthClient,
 		ctx:           ctx,
@@ -135,6 +139,35 @@ func (c *Client) Delete(oid string) (*storage.DeleteResponse, error) {
 		return nil, fmt.Errorf("Delete failed: %v", err)
 	}
 	return deleteResponse, nil
+}
+
+// Perform a `Encrypt` request.
+func (c *Client) Encrypt(plaintext []byte, aad []byte) (*enc.EncryptResponse, error) {
+	encryptRequest := &enc.EncryptRequest{
+		Plaintext:      plaintext,
+		AssociatedData: aad,
+	}
+
+	encryptResponse, err := c.encClient.Encrypt(c.ctx, encryptRequest)
+	if err != nil {
+		return nil, fmt.Errorf("Encrypt failed: %v", err)
+	}
+	return encryptResponse, nil
+}
+
+// Perform a `Decrypt` request.
+func (c *Client) Decrypt(ciphertext []byte, aad []byte, objectID string) (*enc.DecryptResponse, error) {
+	decryptRequest := &enc.DecryptRequest{
+		Ciphertext:     ciphertext,
+		AssociatedData: aad,
+		ObjectId:       objectID,
+	}
+
+	decryptResponse, err := c.encClient.Decrypt(c.ctx, decryptRequest)
+	if err != nil {
+		return nil, fmt.Errorf("Encrypt failed: %v", err)
+	}
+	return decryptResponse, nil
 }
 
 // Perform a `GetPermissions` request.

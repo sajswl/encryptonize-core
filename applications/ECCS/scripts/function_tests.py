@@ -35,6 +35,7 @@ import subprocess
 import sys
 import re
 import uuid
+import json
 
 # Initializes the server
 # Sets the endpoint if it is unset
@@ -119,6 +120,27 @@ def create_object(token, data):
 
 	return oid
 
+def encrypt_object(token, plaintext, aad, filename):
+	cmd = ["./eccs", "-a", token, "encrypt", "-s"]
+	if aad is not None:
+		cmd += ["-d", aad]
+	
+	with open(filename, 'w') as outfile:
+		res = subprocess.run(cmd, input=plaintext, stdout=outfile, check=True, text=True)
+	
+	with open(filename, 'r') as readfile:
+		encrypted_json = readfile.read()
+		parsed = json.loads(encrypted_json)
+		if parsed['oid'] is None:
+			print(f"unable to match oid in {res}")
+			sys.exit(1)
+		
+		return parsed['oid']
+
+def decrypt_object(token, filename):
+	cmd = ["./eccs", "-a", token, "decrypt", "-f", filename]
+	res = subprocess.run(cmd, check=True, text=True)
+
 if __name__ == "__main__":
 	at = init()
 	uid1, password1 = create_user(at, "-rcip")
@@ -137,6 +159,16 @@ if __name__ == "__main__":
 
 	oid = create_object(at1, "no one has the intention to store bytes here.")
 	print(f"[+] object created:      OID {oid}")
+
+	plaintext = "hello encryption algorithm"
+	aad = "AES"
+	filename = "encrypted-object"
+	oid2 = encrypt_object(at1, plaintext, aad, filename)
+	print(f"[+] object encrypted:      OID {oid2}")
+
+	decrypt_object(at1, filename)
+	print(f"[+] object decrypted:      OID {oid2}")
+	
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)

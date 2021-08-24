@@ -501,3 +501,97 @@ func (c *Client) RemoveUser(uid string) error {
 
 	return nil
 }
+
+func (c *Client) Encrypt(plaintext, associatedData []byte) (string, []byte, []byte, error) {
+	mth, err := c.findMethod("enc.Encryptonize", "Encrypt")
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	// sanitize in and output
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	}
+	if !sanitize(inType, inExp) {
+		return "", nil, nil, errors.New("Unexpected input type of Encrypt method")
+	}
+
+	// create the argument
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("plaintext", plaintext)
+	msg.SetFieldByName("associated_data", associatedData)
+
+	// invoke the RPC
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	// deconstruct the result
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	objID := res.GetFieldByName("object_id").(string)
+
+	ciphertext := res.GetFieldByName("ciphertext").([]byte)
+	aad := res.GetFieldByName("associated_data").([]byte)
+
+	return objID, ciphertext, aad, nil
+}
+
+func (c *Client) Decrypt(oid string, ciphertext []byte, associatedData []byte) ([]byte, []byte, error) {
+	mth, err := c.findMethod("enc.Encryptonize", "Decrypt")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// sanitize input and output
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"object_id":       descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"ciphertext":      descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	}
+
+	if !sanitize(inType, inExp) {
+		return nil, nil, errors.New("Unexpected input type of Decrypt method")
+	}
+
+	outType := mth.GetOutputType()
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	}
+	if !sanitize(outType, outExp) {
+		return nil, nil, errors.New("Unexpected output type of Decrypt method")
+	}
+
+	// create argument
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object_id", oid)
+	msg.SetFieldByName("ciphertext", ciphertext)
+	msg.SetFieldByName("associated_data", associatedData)
+
+	// invoke RPC
+	stub := grpcdynamic.NewStub(c.connection)
+	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// deconstruct result
+	res, err := dynamic.AsDynamicMessage(pres)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	m := res.GetFieldByName("plaintext").([]byte)
+	aad := res.GetFieldByName("associated_data").([]byte)
+
+	return m, aad, nil
+}
