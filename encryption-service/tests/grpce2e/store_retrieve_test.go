@@ -38,12 +38,12 @@ func TestStoreAndRetrieve(t *testing.T) {
 	retrieveResponse, err := client.Retrieve(oid)
 	failOnError("Retrieve operation failed", err, t)
 
-	if !bytes.Equal(retrieveResponse.Object.Plaintext, plaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
 	}
 
-	if !bytes.Equal(retrieveResponse.Object.AssociatedData, associatedData) {
-		t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.Object.AssociatedData)
+	if !bytes.Equal(retrieveResponse.AssociatedData, associatedData) {
+		t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.AssociatedData)
 	}
 }
 
@@ -63,12 +63,12 @@ func TestStoreSameObjectMultipleTimes(t *testing.T) {
 		retrieveResponse, err := client.Retrieve(oid)
 		failOnError("Retrieve operation failed", err, t)
 
-		if !bytes.Equal(retrieveResponse.Object.Plaintext, plaintext) {
-			t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Object.Plaintext)
+		if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
+			t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
 		}
 
-		if !bytes.Equal(retrieveResponse.Object.AssociatedData, associatedData) {
-			t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.Object.AssociatedData)
+		if !bytes.Equal(retrieveResponse.AssociatedData, associatedData) {
+			t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.AssociatedData)
 		}
 	}
 }
@@ -102,12 +102,12 @@ func TestMultipleStoreRetrieve(t *testing.T) {
 		retrieveResponse, err := client.Retrieve(oid)
 		failOnError("Retrieve operation failed", err, t)
 
-		if !bytes.Equal(retrieveResponse.Object.Plaintext, plaintext) {
-			t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Object.Plaintext)
+		if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
+			t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
 		}
 
-		if !bytes.Equal(retrieveResponse.Object.AssociatedData, associatedData) {
-			t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.Object.AssociatedData)
+		if !bytes.Equal(retrieveResponse.AssociatedData, associatedData) {
+			t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.AssociatedData)
 		}
 	}
 }
@@ -143,12 +143,12 @@ func TestRetrieveOlderObject(t *testing.T) {
 	retrieveResponse, err := client.Retrieve(oid)
 	failOnError("Could not retrieve old object", err, t)
 
-	if !bytes.Equal(retrieveResponse.Object.Plaintext, plaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
 	}
 
-	if !bytes.Equal(retrieveResponse.Object.AssociatedData, associatedData) {
-		t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.Object.AssociatedData)
+	if !bytes.Equal(retrieveResponse.AssociatedData, associatedData) {
+		t.Fatalf("Expected associated data %v but got %v", associatedData, retrieveResponse.AssociatedData)
 	}
 }
 
@@ -295,8 +295,8 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 				globErr.append(fmt.Errorf("Couldn't retrieve object: %v", err))
 				return
 			}
-			if !bytes.Equal(retrieveResponse.Object.Plaintext, plaintext) {
-				globErr.append(fmt.Errorf("Plaintext didn't match. Expected:\n%v\n But got:\n%v", retrieveResponse.Object.Plaintext, plaintext))
+			if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
+				globErr.append(fmt.Errorf("Plaintext didn't match. Expected:\n%v\n But got:\n%v", retrieveResponse.Plaintext, plaintext))
 				return
 			}
 		}(&wg)
@@ -326,12 +326,12 @@ func TestStoreRetrieveEmptyObjects(t *testing.T) {
 	retrieveResponse, err := client.Retrieve(oid)
 	failOnError("Retrieve empty object failed", err, t)
 
-	if !bytes.Equal(retrieveResponse.Object.Plaintext, emptyPlaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", emptyPlaintext, retrieveResponse.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse.Plaintext, emptyPlaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", emptyPlaintext, retrieveResponse.Plaintext)
 	}
 
-	if !bytes.Equal(retrieveResponse.Object.AssociatedData, emptyAssociatedData) {
-		t.Fatalf("Expected associated data %v but got %v", emptyAssociatedData, retrieveResponse.Object.AssociatedData)
+	if !bytes.Equal(retrieveResponse.AssociatedData, emptyAssociatedData) {
+		t.Fatalf("Expected associated data %v but got %v", emptyAssociatedData, retrieveResponse.AssociatedData)
 	}
 
 	// Store non-empty object and empty associated data
@@ -341,12 +341,12 @@ func TestStoreRetrieveEmptyObjects(t *testing.T) {
 	retrieveResponse, err = client.Retrieve(oid)
 	failOnError("Retrieve object failed", err, t)
 
-	if !bytes.Equal(retrieveResponse.Object.Plaintext, nonEmptyPlaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", nonEmptyPlaintext, retrieveResponse.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse.Plaintext, nonEmptyPlaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", nonEmptyPlaintext, retrieveResponse.Plaintext)
 	}
 
-	if !bytes.Equal(retrieveResponse.Object.AssociatedData, emptyAssociatedData) {
-		t.Fatalf("Expected associated data %v but got %v", emptyAssociatedData, retrieveResponse.Object.AssociatedData)
+	if !bytes.Equal(retrieveResponse.AssociatedData, emptyAssociatedData) {
+		t.Fatalf("Expected associated data %v but got %v", emptyAssociatedData, retrieveResponse.AssociatedData)
 	}
 
 	// Store empty object and non-empty associated data
@@ -356,11 +356,11 @@ func TestStoreRetrieveEmptyObjects(t *testing.T) {
 	retrieveResponse, err = client.Retrieve(oid)
 	failOnError("Retrieve empty object failed", err, t)
 
-	if !bytes.Equal(retrieveResponse.Object.Plaintext, emptyPlaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", emptyPlaintext, retrieveResponse.Object.Plaintext)
+	if !bytes.Equal(retrieveResponse.Plaintext, emptyPlaintext) {
+		t.Fatalf("Expected plaintext %v but got %v", emptyPlaintext, retrieveResponse.Plaintext)
 	}
 
-	if !bytes.Equal(retrieveResponse.Object.AssociatedData, nonEmptyAssociatedData) {
-		t.Fatalf("Expected associated data %v but got %v", nonEmptyAssociatedData, retrieveResponse.Object.AssociatedData)
+	if !bytes.Equal(retrieveResponse.AssociatedData, nonEmptyAssociatedData) {
+		t.Fatalf("Expected associated data %v but got %v", nonEmptyAssociatedData, retrieveResponse.AssociatedData)
 	}
 }

@@ -41,8 +41,8 @@ export ASSOCIATED_DATA=$(echo 'associated data to be stored' | base64)
 echo '[+] storing data'
 OUTPUT=$(grpcurl -plaintext \
   -H "authorization:bearer ${ACCESS_TOKEN}" \
-  -d "{\"object\": {\"plaintext\": \"${PLAINTEXT}\", \"associatedData\": \"${ASSOCIATED_DATA}\"}}" \
-  localhost:9000 enc.Encryptonize.Store)
+  -d "{\"plaintext\": \"${PLAINTEXT}\", \"associatedData\": \"${ASSOCIATED_DATA}\"}" \
+  localhost:9000 storage.Encryptonize.Store)
 echo "output: $OUTPUT"
 echo "-------------------------------------"
 export OBJECT_ID=$(jq -r '.objectId' <<< "${OUTPUT}")
@@ -53,11 +53,11 @@ echo '[+] retrieving data'
 OUTPUT=$(grpcurl -plaintext \
   -H "authorization:bearer ${ACCESS_TOKEN}" \
   -d "{\"objectId\": \"${OBJECT_ID}\"}" \
-  localhost:9000 enc.Encryptonize.Retrieve)
+  localhost:9000 storage.Encryptonize.Retrieve)
 echo "output: $OUTPUT"
 
-export RETRIEVED_PLAINTEXT=$(jq -r '.object.plaintext' <<< "${OUTPUT}")
-export RETRIEVED_ASSOCIATED_DATA=$(jq -r '.object.associatedData' <<< "${OUTPUT}")
+export RETRIEVED_PLAINTEXT=$(jq -r '.plaintext' <<< "${OUTPUT}")
+export RETRIEVED_ASSOCIATED_DATA=$(jq -r '.associatedData' <<< "${OUTPUT}")
 
 echo "plaintext: $(echo $RETRIEVED_PLAINTEXT| base64 -d)"
 echo "associated data: $(echo $RETRIEVED_ASSOCIATED_DATA| base64 -d)"

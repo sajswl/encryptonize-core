@@ -63,11 +63,6 @@ func TestStoreRetrieve(t *testing.T) {
 		DataCryptor: dataCryptor,
 	}
 
-	object := &Object{
-		Plaintext:      []byte("plaintext_bytes"),
-		AssociatedData: []byte("associated_data_bytes"),
-	}
-
 	userID, err := uuid.NewV4()
 	if err != nil {
 		t.Fatalf("Could not create user ID: %v", err)
@@ -76,9 +71,15 @@ func TestStoreRetrieve(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
+	plaintext := []byte("plaintext_bytes")
+	associatedData := []byte("associated_data_bytes")
+
 	storeResponse, err := strg.Store(
 		ctx,
-		&StoreRequest{Object: object},
+		&StoreRequest{
+			Plaintext:      plaintext,
+			AssociatedData: associatedData,
+		},
 	)
 	if err != nil {
 		t.Fatalf("Storing object failed: %v", err)
@@ -94,8 +95,12 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Retrieving object failed: %v", err)
 	}
 
-	if !reflect.DeepEqual(object, retrieveResponse.Object) {
-		t.Fatalf("Retrieved object not equal to stored obect: %v != %v", retrieveResponse.Object, object)
+	if !reflect.DeepEqual(plaintext, retrieveResponse.Plaintext) {
+		t.Fatalf("Retrieved plaintext not equal to stored plaintext: %v != %v", retrieveResponse.Plaintext, plaintext)
+	}
+
+	if !reflect.DeepEqual(associatedData, retrieveResponse.AssociatedData) {
+		t.Fatalf("Retrieved associatedData not equal to stored associatedData: %v != %v", retrieveResponse.AssociatedData, associatedData)
 	}
 }
 
@@ -158,10 +163,8 @@ func TestStoreFail(t *testing.T) {
 		DataCryptor: dataCryptor,
 	}
 
-	object := &Object{
-		Plaintext:      []byte("plaintext_bytes"),
-		AssociatedData: []byte("associated_data_bytes"),
-	}
+	plaintext := []byte("plaintext_bytes")
+	associatedData := []byte("associated_data_bytes")
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -173,7 +176,10 @@ func TestStoreFail(t *testing.T) {
 
 	storeResponse, err := strg.Store(
 		ctx,
-		&StoreRequest{Object: object},
+		&StoreRequest{
+			Plaintext:      plaintext,
+			AssociatedData: associatedData,
+		},
 	)
 	if storeResponse != nil {
 		t.Fatalf("Expected nil storeResponse, got: %v", storeResponse)
@@ -201,10 +207,8 @@ func TestStoreFailAuth(t *testing.T) {
 		DataCryptor: dataCryptor,
 	}
 
-	object := &Object{
-		Plaintext:      []byte("plaintext_bytes"),
-		AssociatedData: []byte("associated_data_bytes"),
-	}
+	plaintext := []byte("plaintext_bytes")
+	associatedData := []byte("associated_data_bytes")
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -216,7 +220,10 @@ func TestStoreFailAuth(t *testing.T) {
 
 	storeResponse, err := strg.Store(
 		ctx,
-		&StoreRequest{Object: object},
+		&StoreRequest{
+			Plaintext:      plaintext,
+			AssociatedData: associatedData,
+		},
 	)
 	if storeResponse != nil {
 		t.Fatalf("Expected nil storeResponse, got: %v", storeResponse)

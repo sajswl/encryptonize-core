@@ -56,7 +56,7 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 		return nil, err
 	}
 
-	woek, ciphertext, err := strg.DataCryptor.Encrypt(request.Object.Plaintext, request.Object.AssociatedData)
+	woek, ciphertext, err := strg.DataCryptor.Encrypt(request.Plaintext, request.AssociatedData)
 	if err != nil {
 		log.Error(ctx, err, "Store: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
@@ -68,7 +68,7 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
+	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.AssociatedData); err != nil {
 		log.Error(ctx, err, "Store: Failed to store associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
@@ -123,10 +123,8 @@ func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*R
 	log.Info(ctx, "Retrieve: Object retrieved")
 
 	return &RetrieveResponse{
-		Object: &Object{
-			Plaintext:      plaintext,
-			AssociatedData: aad,
-		},
+		Plaintext:      plaintext,
+		AssociatedData: aad,
 	}, nil
 }
 
@@ -179,13 +177,13 @@ func (strg *Storage) Update(ctx context.Context, request *UpdateRequest) (*Updat
 		return nil, err
 	}
 
-	ciphertext, err := strg.DataCryptor.EncryptWithKey(request.Object.Plaintext, request.Object.AssociatedData, accessObject.GetWOEK())
+	ciphertext, err := strg.DataCryptor.EncryptWithKey(request.Plaintext, request.AssociatedData, accessObject.GetWOEK())
 	if err != nil {
 		log.Error(ctx, err, "Update: Failed to encrypt object")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.Object.AssociatedData); err != nil {
+	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.AssociatedData); err != nil {
 		log.Error(ctx, err, "Update: Failed to store associated data")
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
