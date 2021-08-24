@@ -3,14 +3,14 @@ package enc
 import (
 	"context"
 
+	"github.com/gofrs/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 	"encryption-service/services/authz"
-
-	"github.com/gofrs/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // API exposed function, encrypts provided plaintext
@@ -18,7 +18,7 @@ import (
 func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptResponse, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
 	if !ok {
-		err := status.Errorf(codes.Internal, "error encountered while storing object")
+		err := status.Errorf(codes.Internal, "error encountered while encrypting object")
 		log.Error(ctx, err, "Encrypt: Could not typecast userID to uuid.UUID")
 		return nil, err
 	}

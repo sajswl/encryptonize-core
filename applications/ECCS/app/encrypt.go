@@ -15,12 +15,12 @@
 package app
 
 import (
-	"eccs/utils"
 	b64 "encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 
-	"encoding/json"
+	"eccs/utils"
 )
 
 type EncryptedData struct {

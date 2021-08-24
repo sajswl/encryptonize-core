@@ -15,10 +15,11 @@
 package app
 
 import (
-	"eccs/utils"
 	b64 "encoding/base64"
 	"encoding/json"
 	"log"
+
+	"eccs/utils"
 )
 
 func Decrypt(userAT, filename string, stdin bool) error {

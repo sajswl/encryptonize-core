@@ -159,3 +159,32 @@ func TestAESCrypterEncryptWithKey(t *testing.T) {
 		t.Fatalf("ciphertext doesn't match:\n%x\n!=\n%x", expectedPlaintext, plaintext)
 	}
 }
+
+func TestAESCrypterInvalidLength(t *testing.T) {
+	KEK := make([]byte, 32)
+	// AES expects 16, 24, 32
+	// we only accept 32
+	invalidLengthKey := "not32bytesbutmorethan16!"
+	plaintext, _ := hex.DecodeString("d93132")
+	aad, _ := hex.DecodeString("deadbeef")
+
+	crypter, err := NewAESCryptor(KEK)
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
+	kwp, err := NewKWP(KEK)
+	if err != nil {
+		t.Fatalf("NewKWP failed: %v", err)
+	}
+
+	wrappedKey, err := kwp.Wrap([]byte(invalidLengthKey))
+	if err != nil {
+		t.Fatalf("Failed wrapping key: %v", err)
+	}
+
+	_, err = crypter.EncryptWithKey(plaintext, aad, wrappedKey)
+	if err == nil {
+		t.Fatalf("Expected EncryptWithKey to fail due to invalid key length")
+	}
+}
