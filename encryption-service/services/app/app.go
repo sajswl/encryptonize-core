@@ -38,6 +38,7 @@ import (
 
 	log "encryption-service/logger"
 	"encryption-service/services/authn"
+	"encryption-service/services/authz"
 	"encryption-service/services/enc"
 	"encryption-service/services/health"
 	"encryption-service/services/storage"
@@ -47,6 +48,7 @@ type App struct {
 	StorageService    *storage.Storage
 	EncryptionService *enc.Enc
 	AuthnService      *authn.Authn
+	AuthzService      *authz.PermissionHandler
 	UnimplementedEncryptonizeServer
 }
 
@@ -103,6 +105,7 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 	storage.RegisterEncryptonizeServer(grpcServer, app.StorageService)
 	enc.RegisterEncryptonizeServer(grpcServer, app.EncryptionService)
 	authn.RegisterEncryptonizeServer(grpcServer, app.AuthnService)
+	authz.RegisterEncryptonizeServer(grpcServer, app.AuthzService)
 	RegisterEncryptonizeServer(grpcServer, app)
 
 	// Register health checker to grpc server

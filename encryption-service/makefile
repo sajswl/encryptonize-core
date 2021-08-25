@@ -23,8 +23,8 @@ SHELL := /bin/bash
 
 ##### Files #####
 binary = encryption-service
-protobufs = services/storage/storage_grpc.pb.go services/storage/storage.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/enc/enc.pb.go services/enc/enc_grpc.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go users/users.pb.go
-protosource = services/storage/storage.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto users/users.proto services/enc/enc.proto
+protobufs = services/authz/permissions.pb.go services/authz/permissions_grpc.pb.go services/storage/storage_grpc.pb.go services/storage/storage.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/enc/enc.pb.go services/enc/enc_grpc.pb.go services/app/app_grpc.pb.go services/app/app.pb.go impl/authz/access_object.pb.go users/users.pb.go 
+protosource = services/authz/permissions.proto services/storage/storage.proto services/authn/authn.proto services/app/app.proto impl/authz/access_object.proto users/users.proto services/enc/enc.proto
 protocopts = --go_opt=paths=source_relative --go_out=.
 grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
@@ -44,6 +44,7 @@ build: $(protobufs)  ## Build the Encryption Service binary
 $(protobufs): $(protosource)
 	protoc $(grpcopts) services/storage/storage.proto
 	protoc $(grpcopts) services/enc/enc.proto
+	protoc $(grpcopts) services/authz/permissions.proto
 	protoc $(grpcopts) services/authn/authn.proto
 	protoc $(grpcopts) services/app/app.proto
 	protoc $(protocopts) impl/authz/access_object.proto

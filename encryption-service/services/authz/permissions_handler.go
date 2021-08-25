@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package storage
+package authz
 
 import (
 	"context"
@@ -24,12 +24,11 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/services/authz"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
-func (strg *Storage) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
+func (p *PermissionHandler) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
+	accessObject, err := AuthorizeWrapper(ctx, p.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -63,7 +62,7 @@ func (strg *Storage) GetPermissions(ctx context.Context, request *GetPermissions
 
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
-func (strg *Storage) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
+func (p *PermissionHandler) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
@@ -71,7 +70,7 @@ func (strg *Storage) AddPermission(ctx context.Context, request *AddPermissionRe
 		return nil, err
 	}
 
-	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, p.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -107,7 +106,7 @@ func (strg *Storage) AddPermission(ctx context.Context, request *AddPermissionRe
 
 	// Add the permission to the access object
 	accessObject.AddUser(target)
-	err = strg.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
+	err = p.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
 		log.Error(ctx, err, msg)
@@ -129,7 +128,7 @@ func (strg *Storage) AddPermission(ctx context.Context, request *AddPermissionRe
 
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
-func (strg *Storage) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
+func (p *PermissionHandler) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
@@ -137,7 +136,7 @@ func (strg *Storage) RemovePermission(ctx context.Context, request *RemovePermis
 		return nil, err
 	}
 
-	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, request.ObjectId)
+	accessObject, err := AuthorizeWrapper(ctx, p.Authorizer, request.ObjectId)
 	if err != nil {
 		// AuthorizeWrapper logs and generates user facing error, just pass it on here
 		return nil, err
@@ -157,7 +156,7 @@ func (strg *Storage) RemovePermission(ctx context.Context, request *RemovePermis
 
 	// Add the permission to the access object
 	accessObject.RemoveUser(target)
-	err = strg.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
+	err = p.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)
 		log.Error(ctx, err, msg)

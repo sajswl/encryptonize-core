@@ -26,6 +26,7 @@ import (
 
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
+	"encryption-service/services/authz"
 	"encryption-service/services/enc"
 	"encryption-service/services/storage"
 	"encryption-service/users"
@@ -38,6 +39,7 @@ type Client struct {
 	storageClient storage.EncryptonizeClient
 	encClient     enc.EncryptonizeClient
 	authClient    authn.EncryptonizeClient
+	authzClient   authz.EncryptonizeClient
 	healthClient  grpc_health_v1.HealthClient
 	ctx           context.Context
 }
@@ -66,6 +68,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 	storageClient := storage.NewEncryptonizeClient(connection)
 	encClient := enc.NewEncryptonizeClient(connection)
 	authClient := authn.NewEncryptonizeClient(connection)
+	authzClient := authz.NewEncryptonizeClient(connection)
 	healthClient := grpc_health_v1.NewHealthClient(connection)
 	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
 	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
@@ -76,6 +79,7 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 		storageClient: storageClient,
 		encClient:     encClient,
 		authClient:    authClient,
+		authzClient:   authzClient,
 		healthClient:  healthClient,
 		ctx:           ctx,
 	}, nil
@@ -167,10 +171,10 @@ func (c *Client) Decrypt(ciphertext []byte, aad []byte, objectID string) (*enc.D
 }
 
 // Perform a `GetPermissions` request.
-func (c *Client) GetPermissions(oid string) (*storage.GetPermissionsResponse, error) {
-	getPermissionsRequest := &storage.GetPermissionsRequest{ObjectId: oid}
+func (c *Client) GetPermissions(oid string) (*authz.GetPermissionsResponse, error) {
+	getPermissionsRequest := &authz.GetPermissionsRequest{ObjectId: oid}
 
-	getPermissionsResponse, err := c.storageClient.GetPermissions(c.ctx, getPermissionsRequest)
+	getPermissionsResponse, err := c.authzClient.GetPermissions(c.ctx, getPermissionsRequest)
 	if err != nil {
 		return nil, fmt.Errorf("GetPermissions failed: %v", err)
 	}
@@ -178,13 +182,13 @@ func (c *Client) GetPermissions(oid string) (*storage.GetPermissionsResponse, er
 }
 
 // Perform a `AddPermission` request.
-func (c *Client) AddPermission(oid, target string) (*storage.AddPermissionResponse, error) {
-	addPermissionRequest := &storage.AddPermissionRequest{
+func (c *Client) AddPermission(oid, target string) (*authz.AddPermissionResponse, error) {
+	addPermissionRequest := &authz.AddPermissionRequest{
 		ObjectId: oid,
 		Target:   target,
 	}
 
-	addPermissionResponse, err := c.storageClient.AddPermission(c.ctx, addPermissionRequest)
+	addPermissionResponse, err := c.authzClient.AddPermission(c.ctx, addPermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("AddPermission failed: %v", err)
 	}
@@ -192,13 +196,13 @@ func (c *Client) AddPermission(oid, target string) (*storage.AddPermissionRespon
 }
 
 // Perform a `RemovePermission` request.
-func (c *Client) RemovePermission(oid, target string) (*storage.RemovePermissionResponse, error) {
-	removePermissionRequest := &storage.RemovePermissionRequest{
+func (c *Client) RemovePermission(oid, target string) (*authz.RemovePermissionResponse, error) {
+	removePermissionRequest := &authz.RemovePermissionRequest{
 		ObjectId: oid,
 		Target:   target,
 	}
 
-	removePermissionResponse, err := c.storageClient.RemovePermission(c.ctx, removePermissionRequest)
+	removePermissionResponse, err := c.authzClient.RemovePermission(c.ctx, removePermissionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("RemovePermission failed: %v", err)
 	}

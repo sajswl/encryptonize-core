@@ -23,7 +23,6 @@ import (
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
-	"encryption-service/impl/authz"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 )
@@ -38,11 +37,6 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	if err == nil {
 		t.Fatalf("Test expected to fail: %v", message)
 	}
-}
-
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
-var authorizer = &authzimpl.Authorizer{
-	AccessObjectMAC: ma,
 }
 
 func TestAuthorizeWrapper(t *testing.T) {
@@ -111,7 +105,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 
 	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
 	failOnError("NewMessageAuthenticator errored", err, t)
-	aoAuth := &authz.Authorizer{AccessObjectMAC: messageAuthenticator}
+	aoAuth := &authzimpl.Authorizer{AccessObjectMAC: messageAuthenticator}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
