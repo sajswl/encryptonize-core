@@ -33,7 +33,7 @@ var authorizer = &authzimpl.Authorizer{
 	AccessObjectMAC: ma,
 }
 
-var permissions = PermissionHandler{
+var permissions = AuthzHandler{
 	Authorizer: authorizer,
 }
 

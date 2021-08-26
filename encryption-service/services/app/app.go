@@ -48,7 +48,7 @@ type App struct {
 	StorageService    *storage.Storage
 	EncryptionService *enc.Enc
 	AuthnService      *authn.Authn
-	AuthzService      *authz.PermissionHandler
+	AuthzService      *authz.AuthzHandler
 	UnimplementedEncryptonizeServer
 }
 

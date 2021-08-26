@@ -16,7 +16,7 @@ package authz
 import "encryption-service/interfaces"
 
 // Encryptonize Permission service
-type PermissionHandler struct {
+type AuthzHandler struct {
 	Authorizer interfaces.AccessObjectAuthenticatorInterface
 	UnimplementedEncryptonizeServer
 }
