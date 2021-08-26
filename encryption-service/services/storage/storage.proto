@@ -29,15 +29,6 @@ service Encryptonize{
 
   // Deletes an object
   rpc Delete (DeleteRequest) returns (DeleteResponse){}
-
-  // Returns list of users with permission to decrypt the Package
-  rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse){}
-
-  // Adds permission to an object
-  rpc AddPermission (AddPermissionRequest) returns (AddPermissionResponse){}
-
-  // Removes permission from an object
-  rpc RemovePermission (RemovePermissionRequest) returns (RemovePermissionResponse){}
 }
 
 message StoreRequest{
@@ -72,28 +63,4 @@ message DeleteRequest{
 }
 
 message DeleteResponse{
-}
-
-message GetPermissionsRequest{
-  string object_id = 1;
-}
-
-message GetPermissionsResponse{
-  repeated string user_ids = 1;
-}
-
-message AddPermissionRequest{
-  string object_id = 1;
-  string target = 2;
-}
-
-message AddPermissionResponse{
-}
-
-message RemovePermissionRequest{
-  string object_id = 1;
-  string target = 2;
-}
-
-message RemovePermissionResponse{
 }

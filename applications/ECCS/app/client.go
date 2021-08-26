@@ -238,7 +238,7 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 
 // GetPermissions calls the Encryptonize GetPermissions endpoint
 func (c *Client) GetPermissions(oid string) ([]string, error) {
-	mth, err := c.findMethod("storage.Encryptonize", "GetPermissions")
+	mth, err := c.findMethod("authz.Encryptonize", "GetPermissions")
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (c *Client) UpdatePermission(oid, target string, kind UpdateType) error {
 		return errors.New("Unknown update kind")
 	}
 
-	mth, err := c.findMethod("storage.Encryptonize", method)
+	mth, err := c.findMethod("authz.Encryptonize", method)
 	if err != nil {
 		return err
 	}

@@ -23,6 +23,7 @@ import (
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
+	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 	"encryption-service/impl/objectstorage"
 )
@@ -43,6 +44,11 @@ func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte
 
 func (o *ObjectStoreMock) Delete(ctx context.Context, objectID string) error {
 	return o.DeleteFunc(ctx, objectID)
+}
+
+var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var authorizer = &authzimpl.Authorizer{
+	AccessObjectMAC: ma,
 }
 
 var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")

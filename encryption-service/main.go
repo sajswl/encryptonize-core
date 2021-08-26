@@ -24,6 +24,7 @@ import (
 	log "encryption-service/logger"
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
+	"encryption-service/services/authz"
 	"encryption-service/services/enc"
 	"encryption-service/services/storage"
 )
@@ -49,7 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatal(ctx, err, "NewMessageAuthenticator failed")
 	}
-	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
 
 	tokenCryptor, err := crypt.NewAESCryptor(config.Keys.TEK)
 	if err != nil {
@@ -76,6 +76,8 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (data) failed")
 	}
 
+	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
+
 	encService := &enc.Enc{
 		Authorizer:  authorizer,
 		AuthStore:   authStore,
@@ -94,10 +96,15 @@ func main() {
 		UserAuthenticator: userAuthenticator,
 	}
 
+	authzService := &authz.Authz{
+		Authorizer: authorizer,
+	}
+
 	app := &app.App{
 		StorageService:    storageService,
 		EncryptionService: encService,
 		AuthnService:      authnService,
+		AuthzService:      authzService,
 	}
 
 	app.StartServer()
