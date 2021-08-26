@@ -96,7 +96,7 @@ func main() {
 		UserAuthenticator: userAuthenticator,
 	}
 
-	authzService := &authz.AuthzHandler{
+	authzService := &authz.Authz{
 		Authorizer: authorizer,
 	}
 
