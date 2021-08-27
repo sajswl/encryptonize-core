@@ -25,7 +25,8 @@ Create a default encryption-service cluster:
 gcloud container clusters create $ES_CLUSTER_NAME \
   --machine-type=$ES_MACHINE_TYPE \
   --num-nodes=$ES_NUM_NODES \
-  --zone europe-west4-a
+  --zone europe-west4-a \
+  --logging=NONE
 ```
 
 You can connect `kubectl` to the new encryption-service cluster by running:
@@ -38,7 +39,8 @@ Create a default CockroachDB cluster:
 gcloud container clusters create $CDB_CLUSTER_NAME \
   --machine-type=$CDB_MACHINE_TYPE \
   --num-nodes=$CDB_NUM_NODES \
-  --zone europe-west4-a
+  --zone europe-west4-a \
+  --logging=NONE
 ```
 
 You can connect `kubectl` to the new CockroachDB cluster by running:
@@ -51,7 +53,8 @@ Create a default Ceph cluster:
 gcloud container clusters create $CEPH_CLUSTER_NAME \
   --machine-type=$CEPH_MACHINE_TYPE \
   --num-nodes=$CEPH_NUM_NODES \
-  --zone europe-west4-a
+  --zone europe-west4-a \
+  --logging=NONE
 ```
 
 You can connect `kubectl` to the new Ceph cluster by running:
