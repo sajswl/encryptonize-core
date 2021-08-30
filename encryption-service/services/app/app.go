@@ -45,7 +45,7 @@ import (
 )
 
 type App struct {
-	StorageService    *storage.Storage
+	StorageService    storage.EncryptonizeServer
 	EncryptionService *enc.Enc
 	AuthnService      *authn.Authn
 	AuthzService      *authz.Authz
