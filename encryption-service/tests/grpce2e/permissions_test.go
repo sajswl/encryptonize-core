@@ -46,11 +46,9 @@ func TestShareObjectWithUser(t *testing.T) {
 
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", createUserResponse)
 
 	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	uid2 := createUserResponse.UserId
 	uat2 := loginUserResponse.AccessToken
@@ -91,11 +89,9 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", createUserResponse)
 
 	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	uat2 := loginUserResponse.AccessToken
 	failOnError("Couldn't parse UAT", err, t)
@@ -132,7 +128,6 @@ func TestPermissionTransitivity(t *testing.T) {
 
 	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	uid2 := createUserResponse.UserId
 	uat2 := loginUserResponse.AccessToken
@@ -143,7 +138,6 @@ func TestPermissionTransitivity(t *testing.T) {
 
 	loginUserResponse, err = adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	uid3 := createUserResponse.UserId
 	uat3 := loginUserResponse.AccessToken
@@ -192,7 +186,6 @@ func TestGetPermissions(t *testing.T) {
 
 	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	uid2 := createUserResponse.UserId
 	uat2 := loginUserResponse.AccessToken
@@ -297,9 +290,8 @@ func TestAddPermissionsRemovedUser(t *testing.T) {
 	oid := storeResponse.ObjectId
 
 	// Test user removal
-	removeUserResponse, err := adminClient.RemoveUser(createUserResponse.UserId)
+	_, err = adminClient.RemoveUser(createUserResponse.UserId)
 	failOnError("Remove user request failed", err, t)
-	t.Logf("%v", removeUserResponse)
 
 	// Grant permissions to user 2
 	_, err = client.AddPermission(oid, createUserResponse.UserId)

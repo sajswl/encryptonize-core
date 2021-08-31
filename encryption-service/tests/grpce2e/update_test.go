@@ -86,11 +86,9 @@ func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
 
 	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", createUserResponse)
 
 	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	uid2 := createUserResponse.UserId
 	uat2 := loginUserResponse.AccessToken
