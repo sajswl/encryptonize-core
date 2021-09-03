@@ -48,4 +48,4 @@ MIIBpjCCAVigAwIBAgIUQ3byU/Dxv0eA11bPDYVC4xD36dwwBQYDK2VwMGUxCzAJBgNVBAYTAkRLMQow
 # flag for enabling the encrypt/decrypt API
 enableEncryptionService = true
 # flag for enabling the storage service API
-enableStorageService = false
+enableStorageService = true
