@@ -26,12 +26,10 @@ func TestCreateUser(t *testing.T) {
 	// Test user creation
 	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", createUserResponse)
 
 	// Test user login
 	loginUserResponse, err := client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	// Test that users can do stuff
 	uat2 := loginUserResponse.AccessToken
@@ -96,9 +94,8 @@ func TestCreateUserWrongCredsType(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test that users can't access admin endpoints
-	createUserResponse, err := client.CreateUser(protoUserScopes)
+	_, err = client.CreateUser(protoUserScopes)
 	failOnSuccess("User could be created with wrong user type", err, t)
-	t.Logf("%v", createUserResponse)
 
 	// Test that admins can't access user endpoints
 	clientAdmin, err := NewClient(endpoint, adminAT, https)
@@ -137,22 +134,18 @@ func TestRemoveUser(t *testing.T) {
 	// Test user creation
 	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
-	t.Logf("%v", createUserResponse)
 
 	// Test user login
-	loginUserResponse, err := client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
-	t.Logf("%v", loginUserResponse)
 
 	// Test user removal
-	removeUserResponse, err := client.RemoveUser(createUserResponse.UserId)
+	_, err = client.RemoveUser(createUserResponse.UserId)
 	failOnError("Remove user request failed", err, t)
-	t.Logf("%v", removeUserResponse)
 
 	// Test user login again
-	loginUserResponse, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
 	failOnSuccess("Login user request succeeded on a deleted user", err, t)
-	t.Logf("%v", loginUserResponse)
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
@@ -163,7 +156,6 @@ func TestRemoveUserNonExisting(t *testing.T) {
 	defer closeClient(client, t)
 
 	// Test user removal
-	removeUserResponse, err := client.RemoveUser(nonExistingUser)
+	_, err = client.RemoveUser(nonExistingUser)
 	failOnSuccess("Remove user request succeeded on a non existing user", err, t)
-	t.Logf("%v", removeUserResponse)
 }
