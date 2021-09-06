@@ -15,35 +15,28 @@ package storage
 
 import (
 	"context"
-
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 )
 
 type DisabledStorage struct {
 	UnimplementedEncryptonizeServer
 }
 
-func (strg *DisabledStorage) GetStorageServer() EncryptonizeServer {
-	return strg
-}
-
 // API Storage disabled Store handler
 func (strg *DisabledStorage) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Store not implemented")
+	return strg.UnimplementedEncryptonizeServer.Store(ctx, request)
 }
 
 // API Storage disabled Retrieve handler
 func (strg *DisabledStorage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Retrieve not implemented")
+	return strg.UnimplementedEncryptonizeServer.Retrieve(ctx, request)
 }
 
 // API Storage disabled Delete handler
 func (strg *DisabledStorage) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Deletenot implemented")
+	return strg.UnimplementedEncryptonizeServer.Delete(ctx, request)
 }
 
 // API Storage disabled Update handler
 func (strg *DisabledStorage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+	return strg.UnimplementedEncryptonizeServer.Update(ctx, request)
 }
