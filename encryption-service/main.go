@@ -74,7 +74,7 @@ func main() {
 	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
 
 	var storageService storage.EncryptonizeServer
-	var encService *enc.Enc
+	var encService enc.EncryptonizeServer
 
 	if config.Features.EnableStorageService {
 		objectStore, err := buildtags.SetupObjectStore("objects", config.ObjectStorage)
@@ -99,11 +99,7 @@ func main() {
 			DataCryptor: dataCryptor,
 		}
 	} else {
-		encService = &enc.Enc{
-			Authorizer:  authorizer,
-			AuthStore:   authStore,
-			DataCryptor: dataCryptor,
-		}
+		encService = &enc.DisabledEnc{}
 	}
 
 	authnService := &authn.Authn{
