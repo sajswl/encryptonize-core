@@ -88,8 +88,10 @@ func main() {
 			ObjectStore: objectStore,
 			DataCryptor: dataCryptor,
 		}
+		log.Info(ctx, "Storage service is enabled")
 	} else {
 		storageService = &storage.DisabledStorage{}
+		log.Info(ctx, "Storage service is disabled")
 	}
 
 	if config.Features.EnableEncryptionService {
@@ -98,8 +100,10 @@ func main() {
 			AuthStore:   authStore,
 			DataCryptor: dataCryptor,
 		}
+		log.Info(ctx, "Encryption service is enabled")
 	} else {
 		encService = &enc.DisabledEnc{}
+		log.Info(ctx, "Encryption service is disabled")
 	}
 
 	authnService := &authn.Authn{

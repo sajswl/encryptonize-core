@@ -17,8 +17,11 @@
 package grpce2e
 
 import (
+	"encryption-service/users"
 	"testing"
 )
+
+var protoAdminScopes = []users.UserScope{users.UserScope_USERMANAGEMENT}
 
 // Tests that we can create and use a user
 func TestCreateUser(t *testing.T) {
