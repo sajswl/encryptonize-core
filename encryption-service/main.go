@@ -90,7 +90,7 @@ func main() {
 		}
 		log.Info(ctx, "Storage service is enabled")
 	} else {
-		storageService = &storage.DisabledStorage{}
+		storageService = &storage.Disabled{}
 		log.Info(ctx, "Storage service is disabled")
 	}
 
@@ -102,7 +102,7 @@ func main() {
 		}
 		log.Info(ctx, "Encryption service is enabled")
 	} else {
-		encService = &enc.DisabledEnc{}
+		encService = &enc.Disabled{}
 		log.Info(ctx, "Encryption service is disabled")
 	}
 
