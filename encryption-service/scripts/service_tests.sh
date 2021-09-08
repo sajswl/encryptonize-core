@@ -32,4 +32,4 @@ docker-compose stop encryption-service
 # Testing with both API disabled
 STORAGE_ENABLED=false ENCRYPTION_ENABLED=false docker-compose up -d
 go test -count=1 -v -tags="authz" ./tests/...
-docker-compose stop encryption-service
+docker-compose stop -v
