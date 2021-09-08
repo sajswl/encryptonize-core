@@ -15,21 +15,21 @@
 # limitations under the License.
 
 # Testing with Storage and Encryption API
-STORAGE_ENABLED=true ENCRYPTION_ENABLED=true docker-compose up -d encryption-service
+STORAGE_ENABLED=true ENCRYPTION_ENABLED=true docker-compose up -d 
 go test -count=1 -v -tags="authz encryption storage" ./tests/...
 docker-compose stop encryption-service
 
 # Testing with Storage API
-STORAGE_ENABLED=true ENCRYPTION_ENABLED=false docker-compose up -d encryption-service
+STORAGE_ENABLED=true ENCRYPTION_ENABLED=false docker-compose up -d
 go test -count=1 -v -tags="authz storage" ./tests/...
 docker-compose stop encryption-service
 
 # Testing with Encryption API
-STORAGE_ENABLED=false ENCRYPTION_ENABLED=true docker-compose up -d encryption-service
+STORAGE_ENABLED=false ENCRYPTION_ENABLED=true docker-compose up -d
 go test -count=1 -v -tags="authz encryption" ./tests/...
 docker-compose stop encryption-service
 
 # Testing with both API disabled
-STORAGE_ENABLED=false ENCRYPTION_ENABLED=false docker-compose up -d encryption-service
+STORAGE_ENABLED=false ENCRYPTION_ENABLED=false docker-compose up -d
 go test -count=1 -v -tags="authz" ./tests/...
 docker-compose stop encryption-service
