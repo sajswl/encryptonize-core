@@ -76,7 +76,7 @@ func main() {
 	var storageService storage.EncryptonizeServer
 	var encService enc.EncryptonizeServer
 
-	if config.Features.EnableStorageService {
+	if config.Features.StorageService {
 		objectStore, err := buildtags.SetupObjectStore("objects", config.ObjectStorage)
 		if err != nil {
 			log.Fatal(ctx, err, "Objectstorage connect failed")
@@ -94,7 +94,7 @@ func main() {
 		log.Info(ctx, "Storage service is disabled")
 	}
 
-	if config.Features.EnableEncryptionService {
+	if config.Features.EncryptionService {
 		encService = &enc.Enc{
 			Authorizer:  authorizer,
 			AuthStore:   authStore,

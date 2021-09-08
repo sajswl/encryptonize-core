@@ -93,8 +93,8 @@ type ObjectStorage struct {
 }
 
 type Features struct {
-	EnableEncryptionService bool `koanf:"enableEncryptionService"`
-	EnableStorageService    bool `koanf:"enableStorageService"`
+	EncryptionService bool `koanf:"encryptionService"`
+	StorageService    bool `koanf:"storageService"`
 }
 
 func ParseConfig() (*Config, error) {
