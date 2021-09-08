@@ -17,26 +17,26 @@ import (
 	"context"
 )
 
-type DisabledStorage struct {
+type Disabled struct {
 	UnimplementedEncryptonizeServer
 }
 
 // API Storage disabled Store handler
-func (strg *DisabledStorage) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
+func (strg *Disabled) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
 	return strg.UnimplementedEncryptonizeServer.Store(ctx, request)
 }
 
 // API Storage disabled Retrieve handler
-func (strg *DisabledStorage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
+func (strg *Disabled) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	return strg.UnimplementedEncryptonizeServer.Retrieve(ctx, request)
 }
 
 // API Storage disabled Delete handler
-func (strg *DisabledStorage) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
+func (strg *Disabled) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
 	return strg.UnimplementedEncryptonizeServer.Delete(ctx, request)
 }
 
 // API Storage disabled Update handler
-func (strg *DisabledStorage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
+func (strg *Disabled) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	return strg.UnimplementedEncryptonizeServer.Update(ctx, request)
 }

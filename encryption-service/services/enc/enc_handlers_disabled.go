@@ -17,16 +17,16 @@ import (
 	"context"
 )
 
-type DisabledEnc struct {
+type Disabled struct {
 	UnimplementedEncryptonizeServer
 }
 
 // API Enc disabled Encrypt handler
-func (enc *DisabledEnc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptResponse, error) {
+func (enc *Disabled) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptResponse, error) {
 	return enc.UnimplementedEncryptonizeServer.Encrypt(ctx, request)
 }
 
 // API Enc disabled Decrypt handler
-func (enc *DisabledEnc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
+func (enc *Disabled) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
 	return enc.UnimplementedEncryptonizeServer.Decrypt(ctx, request)
 }
