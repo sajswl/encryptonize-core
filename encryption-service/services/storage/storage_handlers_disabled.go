@@ -15,6 +15,7 @@ package storage
 
 import (
 	"context"
+	log "encryption-service/logger"
 )
 
 type Disabled struct {
@@ -23,20 +24,24 @@ type Disabled struct {
 
 // API Storage disabled Store handler
 func (strg *Disabled) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
+	log.Info(ctx, "Store: Requested inactive endpoint")
 	return strg.UnimplementedEncryptonizeServer.Store(ctx, request)
 }
 
 // API Storage disabled Retrieve handler
 func (strg *Disabled) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
+	log.Info(ctx, "Retrieve: Requested inactive endpoint")
 	return strg.UnimplementedEncryptonizeServer.Retrieve(ctx, request)
 }
 
 // API Storage disabled Delete handler
 func (strg *Disabled) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
+	log.Info(ctx, "Delete: Requested inactive endpoint")
 	return strg.UnimplementedEncryptonizeServer.Delete(ctx, request)
 }
 
 // API Storage disabled Update handler
 func (strg *Disabled) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
+	log.Info(ctx, "Update: Requested inactive endpoint")
 	return strg.UnimplementedEncryptonizeServer.Update(ctx, request)
 }

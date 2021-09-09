@@ -15,6 +15,8 @@ package enc
 
 import (
 	"context"
+
+	log "encryption-service/logger"
 )
 
 type Disabled struct {
@@ -23,10 +25,12 @@ type Disabled struct {
 
 // API Enc disabled Encrypt handler
 func (enc *Disabled) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptResponse, error) {
+	log.Info(ctx, "Encrypt: Requested inactive endpoint")
 	return enc.UnimplementedEncryptonizeServer.Encrypt(ctx, request)
 }
 
 // API Enc disabled Decrypt handler
 func (enc *Disabled) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
+	log.Info(ctx, "Decrypt: Requested inactive endpoint")
 	return enc.UnimplementedEncryptonizeServer.Decrypt(ctx, request)
 }
