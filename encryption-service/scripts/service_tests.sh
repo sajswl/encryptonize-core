@@ -14,22 +14,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -euo pipefail
+
 # Testing with Storage and Encryption API
-STORAGE_ENABLED=true ENCRYPTION_ENABLED=true docker-compose up -d 
+STORAGE_ENABLED=true ENCRYPTION_ENABLED=true make docker-up
 ./scripts/e2e_tests.sh
 docker-compose stop encryption-service
 
 # Testing with Storage API
-STORAGE_ENABLED=true ENCRYPTION_ENABLED=false docker-compose up -d
+STORAGE_ENABLED=true ENCRYPTION_ENABLED=false make docker-up
 ENCRYPTION_ENABLED=false ./scripts/e2e_tests.sh
 docker-compose stop encryption-service
 
 # Testing with Encryption API
-STORAGE_ENABLED=false ENCRYPTION_ENABLED=true docker-compose up -d
+STORAGE_ENABLED=false ENCRYPTION_ENABLED=true make docker-up
 STORAGE_ENABLED=false ./scripts/e2e_tests.sh
 docker-compose stop encryption-service
 
 # Testing with both API disabled
-STORAGE_ENABLED=false ENCRYPTION_ENABLED=false docker-compose up -d
+STORAGE_ENABLED=false ENCRYPTION_ENABLED=false make docker-up
 STORAGE_ENABLED=false ENCRYPTION_ENABLED=false ./scripts/e2e_tests.sh
 docker-compose down -v
