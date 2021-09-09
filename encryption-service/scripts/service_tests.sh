@@ -16,20 +16,20 @@
 
 # Testing with Storage and Encryption API
 STORAGE_ENABLED=true ENCRYPTION_ENABLED=true docker-compose up -d 
-go test -count=1 -v -tags="authz encryption storage" ./tests/...
+./scripts/e2e_tests.sh
 docker-compose stop encryption-service
 
 # Testing with Storage API
 STORAGE_ENABLED=true ENCRYPTION_ENABLED=false docker-compose up -d
-go test -count=1 -v -tags="authz storage" ./tests/...
+ENCRYPTION_ENABLED=false ./scripts/e2e_tests.sh
 docker-compose stop encryption-service
 
 # Testing with Encryption API
 STORAGE_ENABLED=false ENCRYPTION_ENABLED=true docker-compose up -d
-go test -count=1 -v -tags="authz encryption" ./tests/...
+STORAGE_ENABLED=false ./scripts/e2e_tests.sh
 docker-compose stop encryption-service
 
 # Testing with both API disabled
 STORAGE_ENABLED=false ENCRYPTION_ENABLED=false docker-compose up -d
-go test -count=1 -v -tags="authz" ./tests/...
-docker-compose stop -v
+STORAGE_ENABLED=false ENCRYPTION_ENABLED=false ./scripts/e2e_tests.sh
+docker-compose down -v
