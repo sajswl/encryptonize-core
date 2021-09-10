@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/gofrs/uuid"
 
@@ -165,6 +166,8 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 	if userData.DeletedAt != nil {
 		return interfaces.ErrNotFound
 	}
+
+	userData.DeletedAt = func() *time.Time { t := time.Now(); return &t }()
 
 	m.Data.Store(userID, userData)
 	return nil

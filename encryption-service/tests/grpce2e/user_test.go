@@ -11,11 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// +build authz,storage
+
 package grpce2e
 
 import (
+	"encryption-service/users"
 	"testing"
 )
+
+var protoAdminScopes = []users.UserScope{users.UserScope_USERMANAGEMENT}
 
 // Tests that we can create and use a user
 func TestCreateUser(t *testing.T) {

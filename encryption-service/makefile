@@ -90,6 +90,10 @@ unit-tests: build  ## Run unit tests
 e2e-tests: build  ## Run end-to-end tests
 	./scripts/e2e_tests.sh
 
+.PHONY: service-tests
+service-tests: build  ## Run end-to-end tests while enabling/disabling services
+	./scripts/service_tests.sh
+
 .PHONY: eccs-tests
 eccs-tests: build ## Run tests of the ECCS application
 	$(MAKE) -C ../applications/ECCS tests

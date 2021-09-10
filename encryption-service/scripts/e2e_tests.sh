@@ -30,5 +30,18 @@ set -euo pipefail
 source ./scripts/build-env
 source ./scripts/dev-env
 
+storage=${STORAGE_ENABLED:-true}
+encryption=${ENCRYPTION_ENABLED:-true}
+
+tags=""
+
+if [ "$storage" == "true" ]; then 
+    tags+="storage "
+fi
+
+if [ "$encryption" == "true" ]; then 
+    tags+="encryption "
+fi
+
 echo '[*] running end-to-end tests'
-go test -count=1 -v ./tests/...
+go test -count=1 -v -tags="authz ${tags}" ./tests/...

@@ -36,6 +36,7 @@ type Config struct {
 	Keys          Keys          `koanf:"keys"`
 	AuthStorage   AuthStorage   `koanf:"authstorage"`
 	ObjectStorage ObjectStorage `koanf:"objectstorage"`
+	Features      Features      `koanf:"features"`
 }
 
 type Keys struct {
@@ -89,6 +90,11 @@ type ObjectStorage struct {
 	ID   string `koanf:"id"`
 	Key  string `koanf:"key"`
 	Cert []byte `koanf:"cert"`
+}
+
+type Features struct {
+	EncryptionService bool `koanf:"encryptionservice"`
+	StorageService    bool `koanf:"storageservice"`
 }
 
 func ParseConfig() (*Config, error) {

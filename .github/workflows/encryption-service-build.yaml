@@ -90,7 +90,7 @@ jobs:
     - name: Run end-to-end tests
       run: |
         export E2E_TEST_URL=$(ip route show | awk '/default/ {print $3}'):9000
-        make e2e-tests
+        make service-tests
 
     - name: Log on failure
       if: ${{ failure() }}

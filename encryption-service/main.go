@@ -66,11 +66,6 @@ func main() {
 		UserCryptor:  userCryptor,
 	}
 
-	objectStore, err := buildtags.SetupObjectStore("objects", config.ObjectStorage)
-	if err != nil {
-		log.Fatal(ctx, err, "Objectstorage connect failed")
-	}
-
 	dataCryptor, err := crypt.NewAESCryptor(config.Keys.KEK)
 	if err != nil {
 		log.Fatal(ctx, err, "NewAESCryptor (data) failed")
@@ -78,17 +73,37 @@ func main() {
 
 	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
 
-	encService := &enc.Enc{
-		Authorizer:  authorizer,
-		AuthStore:   authStore,
-		DataCryptor: dataCryptor,
+	var storageService storage.EncryptonizeServer
+	var encService enc.EncryptonizeServer
+
+	if config.Features.StorageService {
+		objectStore, err := buildtags.SetupObjectStore("objects", config.ObjectStorage)
+		if err != nil {
+			log.Fatal(ctx, err, "Objectstorage connect failed")
+		}
+
+		storageService = &storage.Storage{
+			Authorizer:  authorizer,
+			AuthStore:   authStore,
+			ObjectStore: objectStore,
+			DataCryptor: dataCryptor,
+		}
+		log.Info(ctx, "Storage service is enabled")
+	} else {
+		storageService = &storage.Disabled{}
+		log.Info(ctx, "Storage service is disabled")
 	}
 
-	storageService := &storage.Storage{
-		Authorizer:  authorizer,
-		AuthStore:   authStore,
-		ObjectStore: objectStore,
-		DataCryptor: dataCryptor,
+	if config.Features.EncryptionService {
+		encService = &enc.Enc{
+			Authorizer:  authorizer,
+			AuthStore:   authStore,
+			DataCryptor: dataCryptor,
+		}
+		log.Info(ctx, "Encryption service is enabled")
+	} else {
+		encService = &enc.Disabled{}
+		log.Info(ctx, "Encryption service is disabled")
 	}
 
 	authnService := &authn.Authn{

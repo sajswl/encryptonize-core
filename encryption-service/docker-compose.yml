@@ -30,6 +30,10 @@ x-service-variables: &service-variables
   ECTNZ_AUTHSTORAGE_SSLMODE: "disable"
   ECTNZ_AUTHSTORAGE_SCHEMA: "./data/auth_storage_basic.sql"
 
+  # Service flags
+  ECTNZ_FEATURES_ENCRYPTIONSERVICE: ${ENCRYPTION_ENABLED:-true}
+  ECTNZ_FEATURES_STORAGESERVICE: ${STORAGE_ENABLED:-true}
+
   # Object storage
   ECTNZ_OBJECTSTORAGE_URL: "http://minio:9000"
   ECTNZ_OBJECTSTORAGE_ID: &storage_id "storageid"

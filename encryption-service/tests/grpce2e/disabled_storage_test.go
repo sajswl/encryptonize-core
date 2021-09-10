@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build encryption
+// +build !storage
 
 package grpce2e
 
 import (
-	"bytes"
 	"testing"
 )
 
-func TestEncryptAndDecrypt(t *testing.T) {
+// Test endpoint is disabled
+func TestStoreDisabled(t *testing.T) {
 	client, err := NewClient(endpoint, uat, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
@@ -29,13 +29,6 @@ func TestEncryptAndDecrypt(t *testing.T) {
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
 
-	encryptResponse, err := client.Encrypt(plaintext, associatedData)
-	failOnError("Encrypt operation failed", err, t)
-
-	retrieveResponse, err := client.Decrypt(encryptResponse.Ciphertext, associatedData, encryptResponse.ObjectId)
-	failOnError("Decrypt operation failed", err, t)
-
-	if !bytes.Equal(retrieveResponse.Plaintext, plaintext) {
-		t.Fatalf("Expected plaintext %v but got %v", plaintext, retrieveResponse.Plaintext)
-	}
+	_, err = client.Store(plaintext, associatedData)
+	failOnSuccess("Store operation should have failed", err, t)
 }
