@@ -54,3 +54,6 @@ stringData:
     key = "${OBJECT_STORAGE_KEY}"
     cert = '''${OBJECT_STORAGE_CERT}'''
 
+    [features]
+    storageservice = true
+    encryptionservice = true
