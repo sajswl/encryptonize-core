@@ -88,7 +88,7 @@ To access the endpoints the following permissions are necessary:
 | `storage.Delete`           | DELETE            |
 | `enc.Encrypt`              | CREATE            |
 | `enc.Decrypt`              | READ              |
-| `authz.GetPermission`      | INDEX             |
+| `authz.GetPermissions`     | INDEX             |
 | `authz.AddPermission`      | OBJECTPERMISSIONS |
 | `authz.RemovePermission`   | OBJECTPERMISSIONS |
 | `authn.CreateUser`         | USERMANAGEMENT    |
@@ -192,15 +192,15 @@ Object the client wishes to delete. Requires the scope `DELETE`.
 ## `storage.DeleteResponse`
 The structure returned by a `storage.Delete` request. The structure is empty.
 
-## `storage.GetPermissionRequest`
-The structure used as an argument for a `storage.GetPermission` request. It contains the ID of the
+## `authz.GetPermissionsRequest`
+The structure used as an argument for a `authz.GetPermissions` request. It contains the ID of the
 Object the client wishes to get the permission list for. Requires the scope `OBJECTPERMISSIONS`.
 
 | Name        | Type   | Description           |
 |-------------|--------|-----------------------|
 | `object_id` | string | The object identifier |
 
-## `storage.GetPermissionResponse`
+## `authz.GetPermissionsResponse`
 The structure returned by a `storage.GetPermissions` request. It contains a list of User IDs of
 users with access to the Object specified in the request.
 
@@ -208,8 +208,8 @@ users with access to the Object specified in the request.
 |------------|----------|---------------------|
 | `user_ids` | []string | An array of userIDs |
 
-## `storage.AddPermissionRequest`
-The structure used as an argument for an `storage.AddPermission` request. It contains the ID of the
+## `authz.AddPermissionRequest`
+The structure used as an argument for an `authz.AddPermission` request. It contains the ID of the
 Object the client wishes to add permissions to and the User ID of the user to be added to the access
 list. Requires the scope `OBJECTPERMISSIONS`.
 
@@ -218,11 +218,11 @@ list. Requires the scope `OBJECTPERMISSIONS`.
 | `object_id` | string | The object                        |
 | `target`    | string | The target for permission change  |
 
-## `storage.AddPermissionResponse`
-The structure returned by a `storage.AddPermission` request. The structure is empty.
+## `authz.AddPermissionResponse`
+The structure returned by a `authz.AddPermission` request. The structure is empty.
 
-## `storage.RemovePermissionRequest`
-The structure used as an argument for a `storage.RemovePermission` request. It contains the ID of
+## `authz.RemovePermissionRequest`
+The structure used as an argument for a `authz.RemovePermission` request. It contains the ID of
 the Object the client wishes to remove permissions from and the User ID of the user to be removed
 from the access list. Requires the scope `OBJECTPERMISSIONS`.
 
@@ -231,8 +231,8 @@ from the access list. Requires the scope `OBJECTPERMISSIONS`.
 | `object_id` | string | The object                            |
 | `target`    | string | The target UID for permission change  |
 
-## `storage.RemovePermissionResponse`
-The structure returned by a `storage.RemovePermission` request. The structure is empty.
+## `authz.RemovePermissionResponse`
+The structure returned by a `authz.RemovePermission` request. The structure is empty.
 
 ## `enc.EncryptRequest`
 The structure used as an argument for a `enc.Encrypt` request, it is identical to `storage.StoreRequest`. 
@@ -402,7 +402,7 @@ Storage Service cannot reach the auth storage, in which case an error is returne
 be authenticated and authorized in order to get the object permissions.
 
 ```
-rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
+rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse)
 ```
 
 ## `authz.AddPermission`
