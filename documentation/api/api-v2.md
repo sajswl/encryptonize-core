@@ -164,7 +164,7 @@ and the associated data (`associated_data`) matching the ID passed in the reques
 
 | Name              | Type   | Description                           |
 |-------------------|--------|---------------------------------------|
-| `plaintext`       | bytes  | The data that was encrypted        |
+| `plaintext`       | bytes  | The data that was encrypted           |
 | `associated_data` | bytes  | The associated data for the plaintext |
 
 ## `storage.UpdateRequest`
@@ -235,7 +235,7 @@ from the access list. Requires the scope `OBJECTPERMISSIONS`.
 The structure returned by a `authz.RemovePermission` request. The structure is empty.
 
 ## `enc.EncryptRequest`
-The structure used as an argument for a `enc.Encrypt` request, it is identical to `storage.StoreRequest`. 
+The structure used as an argument for a `enc.Encrypt` request. 
 It consists of the plaintext (`plaintext`) and the associated data (`associated_data`). 
 Requires the scope `CREATE`.
 
@@ -379,8 +379,7 @@ rpc Delete (DeleteRequest) returns (DeleteResponse)
 
 ## `enc.Encrypt`
 
-Takes a `enc.EncryptRequest` and encrypts its contents, storing the Object ID to restrict access,
-but returning the ciphertext.
+Takes an `enc.EncryptRequest` and encrypts its contents returning the ciphertext **without** storing it.
 
 ```
 rpc Encrypt (EncryptRequest) returns (EncryptResponse) 
