@@ -270,7 +270,8 @@ Requires the scope `READ`.
 
 ## `enc.DecryptResponse`
 
-The structure returned by a `enc.Decrypt` request, it is identical to `enc.EncryptRequest`.
+The structure returned by a `enc.Decrypt` request. It consists of the plaintext of the provided cipheretext, 
+and the provided associated data.
 
 | Name              | Type   | Description                           |
 |-------------------|--------|---------------------------------------|
