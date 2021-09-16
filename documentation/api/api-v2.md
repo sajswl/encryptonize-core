@@ -20,7 +20,7 @@ A primary change from 1.0 of the Encryptonize&reg; API is to introduce gRPC inst
 API.
 
 The Encryptonize&reg; API exposes several service addresses: `app.Encryptonize`,
-`storage.Encryptonize`, `authn.Encryptonize`, which define the following functions
+`storage.Encryptonize`, `enc.Encryptonize`, `authz.Encryptonize`, `authn.Encryptonize`, which define the following functions
 
 ### `app.Encryptonize`:
 * `rpc Version (VersionRequest) returns (VersionResponse)`
@@ -30,17 +30,20 @@ The Encryptonize&reg; API exposes several service addresses: `app.Encryptonize`,
 * `rpc Retrieve (RetriveRequest) returns (RetriveResponse)`
 * `rpc Update (UpdateRequest) returns (UpdateResponse)`
 * `rpc Delete (DeleteRequest) returns (DeleteResponse)`
-* `rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse)`
-* `rpc AddPermission (AddPermissionRequest) returns (AddPermissionResponse)`
-* `rpc RemovePermission (RemovePermissionRequest) returns (RemovePermissionResponse)`
-* `rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)`
-* `rpc AddPermission (AddPermissionRequest) returns (ReturnCode)`
-* `rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)`
+
+### `enc.Encryptonize`:
+* `rpc Encrypt (EncryptRequest) returns (EncryptResponse)`
+* `rpc Decrypt (DecryptRequest) returns (DecryptResponse)`
 
 ### `authn.Encryptonize`:
 * `rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)`
 * `rpc LoginUser (LoginUserRequest) returns (LoginUserResponse)`
 * `rpc RemoveUser (RemoveUserRequest) returns (RemoveUserResponse)`
+
+### `authz.Encryptonize`:
+* `rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse)`
+* `rpc AddPermission (AddPermissionRequest) returns (AddPermissionResponse)`
+* `rpc RemovePermission (RemovePermissionRequest) returns (RemovePermissionResponse)`
 
 For detailed information, see below.
 
@@ -83,9 +86,11 @@ To access the endpoints the following permissions are necessary:
 | `storage.Retrieve`         | READ              |
 | `storage.Update`           | UPDATE            |
 | `storage.Delete`           | DELETE            |
-| `storage.GetPermission`    | INDEC             |
-| `storage.AddPermission`    | OBJECTPERMISSIONS |
-| `storage.RemovePermission` | OBJECTPERMISSIONS |
+| `enc.Encrypt`              | CREATE            |
+| `enc.Decrypt`              | READ              |
+| `authz.GetPermissions`     | INDEX             |
+| `authz.AddPermission`      | OBJECTPERMISSIONS |
+| `authz.RemovePermission`   | OBJECTPERMISSIONS |
 | `authn.CreateUser`         | USERMANAGEMENT    |
 | `authn.LoginUser`          |                   |
 | `authn.RemoveUser`         | USERMANAGEMENT    |
@@ -159,7 +164,7 @@ and the associated data (`associated_data`) matching the ID passed in the reques
 
 | Name              | Type   | Description                           |
 |-------------------|--------|---------------------------------------|
-| `plaintext`       | bytes  | The data to be encrypted              |
+| `plaintext`       | bytes  | The data that was encrypted           |
 | `associated_data` | bytes  | The associated data for the plaintext |
 
 ## `storage.UpdateRequest`
@@ -187,15 +192,15 @@ Object the client wishes to delete. Requires the scope `DELETE`.
 ## `storage.DeleteResponse`
 The structure returned by a `storage.Delete` request. The structure is empty.
 
-## `storage.GetPermissionRequest`
-The structure used as an argument for a `storage.GetPermission` request. It contains the ID of the
+## `authz.GetPermissionsRequest`
+The structure used as an argument for a `authz.GetPermissions` request. It contains the ID of the
 Object the client wishes to get the permission list for. Requires the scope `OBJECTPERMISSIONS`.
 
 | Name        | Type   | Description           |
 |-------------|--------|-----------------------|
 | `object_id` | string | The object identifier |
 
-## `storage.GetPermissionResponse`
+## `authz.GetPermissionsResponse`
 The structure returned by a `storage.GetPermissions` request. It contains a list of User IDs of
 users with access to the Object specified in the request.
 
@@ -203,8 +208,8 @@ users with access to the Object specified in the request.
 |------------|----------|---------------------|
 | `user_ids` | []string | An array of userIDs |
 
-## `storage.AddPermissionRequest`
-The structure used as an argument for an `storage.AddPermission` request. It contains the ID of the
+## `authz.AddPermissionRequest`
+The structure used as an argument for an `authz.AddPermission` request. It contains the ID of the
 Object the client wishes to add permissions to and the User ID of the user to be added to the access
 list. Requires the scope `OBJECTPERMISSIONS`.
 
@@ -213,11 +218,11 @@ list. Requires the scope `OBJECTPERMISSIONS`.
 | `object_id` | string | The object                        |
 | `target`    | string | The target for permission change  |
 
-## `storage.AddPermissionResponse`
-The structure returned by a `storage.AddPermission` request. The structure is empty.
+## `authz.AddPermissionResponse`
+The structure returned by a `authz.AddPermission` request. The structure is empty.
 
-## `storage.RemovePermissionRequest`
-The structure used as an argument for a `storage.RemovePermission` request. It contains the ID of
+## `authz.RemovePermissionRequest`
+The structure used as an argument for a `authz.RemovePermission` request. It contains the ID of
 the Object the client wishes to remove permissions from and the User ID of the user to be removed
 from the access list. Requires the scope `OBJECTPERMISSIONS`.
 
@@ -226,8 +231,52 @@ from the access list. Requires the scope `OBJECTPERMISSIONS`.
 | `object_id` | string | The object                            |
 | `target`    | string | The target UID for permission change  |
 
-## `storage.RemovePermissionResponse`
-The structure returned by a `storage.RemovePermission` request. The structure is empty.
+## `authz.RemovePermissionResponse`
+The structure returned by a `authz.RemovePermission` request. The structure is empty.
+
+## `enc.EncryptRequest`
+The structure used as an argument for a `enc.Encrypt` request. 
+It consists of the plaintext (`plaintext`) and the associated data (`associated_data`). 
+Requires the scope `CREATE`.
+
+| Name              | Type   | Description                           |
+|-------------------|--------|---------------------------------------|
+| `plaintext`       | bytes  | The data to be encrypted              |
+| `associated_data` | bytes  | The associated data for the plaintext |
+
+## `enc.EncryptResponse`
+The structure returned by a `enc.Encrypt` request. It contains the Object ID of the stored object,
+the ciphertext of the provided plaintext, and the associated data.
+All of the parameters are important as they must be used to subsequently request the object in a
+`enc.DecryptRequest`.
+
+| Name               | Type   | Description                           |
+|--------------------|--------|---------------------------------------|
+| `ciphertext`       | bytes  | Ciphertext of the provided plaintext  |
+| `associated_data`  | bytes  | The associated data for the plaintext |
+| `object_id`        | string | The object identifier                 |
+
+## `enc.DecryptRequest`
+
+The structure used as an argument for a `enc.Decrypt` request, it is identical to `enc.EncryptResponse`.
+It consists of the previously received ciphertext, Object ID and the provided associated data.
+Requires the scope `READ`.
+
+| Name               | Type   | Description                           |
+|--------------------|--------|---------------------------------------|
+| `ciphertext`       | bytes  | The data to be decrypted              |
+| `associated_data`  | bytes  | The associated data for the ciphertext|
+| `object_id`        | string | The object identifier                 |
+
+## `enc.DecryptResponse`
+
+The structure returned by a `enc.Decrypt` request. It consists of the plaintext of the provided cipheretext, 
+and the provided associated data.
+
+| Name              | Type   | Description                           |
+|-------------------|--------|---------------------------------------|
+| `plaintext`       | bytes  | The data that was decrypted           |
+| `associated_data` | bytes  | The associated data for the plaintext |
 
 ## `authn.CreateUserRequest`
 The structure used as an argument for a `authn.CreateUser` request. It contains a list of scopes
@@ -329,17 +378,34 @@ cannot reach the object storage. In these cases, an error is returned.
 rpc Delete (DeleteRequest) returns (DeleteResponse)
 ```
 
-## `storage.GetPermissions`
+## `enc.Encrypt`
+
+Takes an `enc.EncryptRequest` and encrypts its contents returning the ciphertext **without** storing it.
+
+```
+rpc Encrypt (EncryptRequest) returns (EncryptResponse) 
+```
+
+## `enc.Decrypt`
+
+Takes a `enc.DecryptRequest`, authorizes the user for access permissions and if accessible, 
+returns the decrypted content.
+
+```
+rpc Decrypt (DecryptRequest) returns (DecryptResponse)
+```
+
+## `authz.GetPermissions`
 
 Returns a list of users with access to the specified object. This call can fail if the
 Storage Service cannot reach the auth storage, in which case an error is returned. The user has to
 be authenticated and authorized in order to get the object permissions.
 
 ```
-rpc GetPermission (GetPermissionRequest) returns (GetPermissionResponse)
+rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse)
 ```
 
-## `storage.AddPermission`
+## `authz.AddPermission`
 
 Adds a User to the access list of the specified object. This call can fail if the caller
 does not have access to the object, if the target user does not exist, or if the Storage
@@ -349,7 +415,7 @@ Service cannot reach the auth storage. In these cases, an error is returned.
 rpc AddPermission (AddPermissionRequest) returns (ReturnCode)
 ```
 
-## `storage.RemovePermission`
+## `authz.RemovePermission`
 
 Removes a User from the access list of the specified object. This call can fail if the
 caller does not have access to the object or if the Storage Service cannot reach the auth
