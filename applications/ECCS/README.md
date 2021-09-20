@@ -33,7 +33,7 @@ The following flag applies to all commands:
 ## Store
 The base command for storage is
 ```
-./eccs store <flags>
+./eccs -a <uat> store <flags>
 ```
 
 ### Flags
@@ -42,7 +42,7 @@ The base command for storage is
 
 `-s`, `--stdin` - read directly from `STDIN`
 
-`-a`, `--associateddata` - Associated data to be stored along with the object
+`-d`, `--associateddata` - Associated data to be stored along with the object
 
 ### Examples
 Store file:
@@ -51,7 +51,7 @@ Store file:
 ```
 Store file with associated data:
 ```
-./eccs -a <uat> store -f ./super_secret_document.pdf -a "index1:someData1,index2:someMoreData"
+./eccs -a <uat> store -f ./super_secret_document.pdf -d "index1:someData1,index2:someMoreData"
 ```
 
 Store from `STDIN`:
@@ -73,6 +73,32 @@ The base command for retrieve is
 Retrieve file:
 ```
 ./eccs -a <uat> retrieve -o 36ccd006-c063-4765-a909-ad398dbfd413
+```
+
+## Update
+The base command for updating an object is
+```
+./eccs -a <uat> update <flags>
+```
+
+### Flags
+
+`-o`, `--objectid` - object id of the file to be updated
+
+`-f`, `--filename` - path to the file containing updated data
+
+`-s`, `--stdin` - read updated data directly from `STDIN`
+
+`-d`, `--associateddata` - updated associated data
+
+### Examples
+Update from file:
+```
+./eccs -a <uat> update -f ./updated_document.pdf -d "index1:newIndex"
+```
+Update from `STDIN`:
+```
+echo "Some updated data." | ./eccs -a <uat> store -s -d "index1:newIndex"
 ```
 
 ## GetPermissions
@@ -136,6 +162,7 @@ Keep in mind that to create a user, the credentials supplied via `ECCS_UID` and 
 
 `-r`, `--read` - grants the Read scope
 `-c`, `--create` - grants the Create scope
+`-u`, `--update` - grants the Update scope
 `-i`, `--index` - grants the Index scope
 `-p`, `--object_permissions` - grants the ObjectPermissions scope
 `-m`, `--user_management` - grants the UserManagement scope
