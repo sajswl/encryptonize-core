@@ -94,11 +94,11 @@ The base command for updating an object is
 ### Examples
 Update from file:
 ```
-./eccs -a <uat> update -f ./updated_document.pdf -d "index1:newIndex"
+./eccs -a <uat> update -o <oid> -f ./updated_document.pdf -d "index1:newIndex"
 ```
 Update from `STDIN`:
 ```
-echo "Some updated data." | ./eccs -a <uat> store -s -d "index1:newIndex"
+echo "Some updated data." | ./eccs -a <uat> update -o <oid> -s -d "index1:newIndex"
 ```
 
 ## GetPermissions
