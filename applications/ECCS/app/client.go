@@ -236,7 +236,7 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 	return m, aad, nil
 }
 
-// Retrieve calls the Encryptonize Update endpoint
+// Update calls the Encryptonize Update endpoint
 func (c *Client) Update(oid string, plaintext, associatedData []byte) error {
 	mth, err := c.findMethod("storage.Encryptonize", "Update")
 	if err != nil {
