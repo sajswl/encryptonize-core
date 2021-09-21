@@ -75,6 +75,22 @@ Retrieve file:
 ./eccs -a <uat> retrieve -o 36ccd006-c063-4765-a909-ad398dbfd413
 ```
 
+## Delete
+The base command for deleting an object is
+```
+./eccs -a <uat> delete <flags>
+```
+
+### Flags
+
+`-o`, `--objectid` - object id of the file to be deleted
+
+### Examples
+Delete object:
+```
+./eccs -a <uat> delete -o <oid>
+```
+
 ## GetPermissions
 The base command to get permissions for an object is
 ```

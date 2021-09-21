@@ -21,7 +21,7 @@ import (
 )
 
 // CreateUser creates a new client and calls CreateUser through the client
-func CreateUser(userAT string, read, create, index, objectPermissions, userManagement bool) error {
+func CreateUser(userAT string, read, create, delete, index, objectPermissions, userManagement bool) error {
 	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
 	var scopes = []string{}
 
@@ -30,6 +30,9 @@ func CreateUser(userAT string, read, create, index, objectPermissions, userManag
 	}
 	if create {
 		scopes = append(scopes, "CREATE")
+	}
+	if delete {
+		scopes = append(scopes, "DELETE")
 	}
 	if index {
 		scopes = append(scopes, "INDEX")

@@ -39,6 +39,7 @@ var (
 	// CreateUser args
 	scopeRead              bool
 	scopeCreate            bool
+	scopeDelete            bool
 	scopeIndex             bool
 	scopeObjectPermissions bool
 	scopeUserManagement    bool
@@ -76,6 +77,18 @@ var retrieveCmd = &cobra.Command{
 	Short: "Retrieves your secrets from Encryptonize",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := app.Retrieve(userAT, objectID)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Deletes a stored object",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := app.Delete(userAT, objectID)
 		if err != nil {
 			return err
 		}
@@ -123,7 +136,7 @@ var createUserCmd = &cobra.Command{
 	Use:   "createuser",
 	Short: "Creates a user on the server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := app.CreateUser(userAT, scopeRead, scopeCreate, scopeIndex, scopeObjectPermissions, scopeUserManagement)
+		err := app.CreateUser(userAT, scopeRead, scopeCreate, scopeDelete, scopeIndex, scopeObjectPermissions, scopeUserManagement)
 		if err != nil {
 			return err
 		}
@@ -175,6 +188,7 @@ func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
 	rootCmd.AddCommand(retrieveCmd)
+	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(getPermissionsCmd)
 	rootCmd.AddCommand(addPermissionCmd)
 	rootCmd.AddCommand(removePermissionCmd)
@@ -197,6 +211,12 @@ func InitCmd() error {
 
 	// Set retrieve flags
 	retrieveCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to retrieve")
+	if err := retrieveCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
+
+	// Set delete flags
+	deleteCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "ID of the object to be deleted")
 	if err := retrieveCmd.MarkFlagRequired("objectid"); err != nil {
 		return err
 	}
@@ -230,6 +250,7 @@ func InitCmd() error {
 	// Set createUser flags
 	createUserCmd.Flags().BoolVarP(&scopeRead, "read", "r", false, "Grants the Read scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeCreate, "create", "c", false, "Grants the Create scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scopeDelete, "delete", "d", false, "Grants the Delete scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeIndex, "index", "i", false, "Grants the Index scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&scopeUserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
