@@ -88,11 +88,7 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Updates a stored object and its associated data",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := app.Update(userAT, objectID, filename, associatedData, stdin)
-		if err != nil {
-			return err
-		}
-		return nil
+		return app.Update(userAT, objectID, filename, associatedData, stdin)
 	},
 }
 
