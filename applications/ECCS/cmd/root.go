@@ -88,11 +88,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Deletes a stored object",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := app.Delete(userAT, objectID)
-		if err != nil {
-			return err
-		}
-		return nil
+		return app.Delete(userAT, objectID)
 	},
 }
 
