@@ -15,8 +15,9 @@
 package app
 
 import (
-	"eccs/utils"
 	"log"
+
+	"eccs/utils"
 )
 
 // Delete creates a new client and calls Delete through the client
