@@ -37,12 +37,7 @@ var (
 	associatedData string
 
 	// CreateUser args
-	scopeRead              bool
-	scopeCreate            bool
-	scopeUpdate            bool
-	scopeIndex             bool
-	scopeObjectPermissions bool
-	scopeUserManagement    bool
+	userScope app.UserScope
 )
 
 var rootCmd = &cobra.Command{
@@ -132,7 +127,7 @@ var createUserCmd = &cobra.Command{
 	Use:   "createuser",
 	Short: "Creates a user on the server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := app.CreateUser(userAT, scopeRead, scopeCreate, scopeUpdate, scopeIndex, scopeObjectPermissions, scopeUserManagement)
+		err := app.CreateUser(userAT, userScope)
 		if err != nil {
 			return err
 		}
@@ -247,12 +242,12 @@ func InitCmd() error {
 	}
 
 	// Set createUser flags
-	createUserCmd.Flags().BoolVarP(&scopeRead, "read", "r", false, "Grants the Read scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeCreate, "create", "c", false, "Grants the Create scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeUpdate, "update", "u", false, "Grants the Update scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeIndex, "index", "i", false, "Grants the Index scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeUserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Read, "read", "r", false, "Grants the Read scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Create, "create", "c", false, "Grants the Create scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Update, "update", "u", false, "Grants the Update scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Index, "index", "i", false, "Grants the Index scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
 
 	// Set loginUser flags
 	loginUserCmd.Flags().StringVarP(&uid, "uid", "u", "", "UID of the user to retrieve a token for")
