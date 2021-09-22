@@ -15,8 +15,9 @@
 package app
 
 import (
-	"eccs/utils"
 	"log"
+
+	"eccs/utils"
 )
 
 // Update creates a new client and calls Update through the client
