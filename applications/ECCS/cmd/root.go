@@ -260,7 +260,7 @@ func InitCmd() error {
 	createUserCmd.Flags().BoolVarP(&userScope.Read, "read", "r", false, "Grants the Read scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.Create, "create", "c", false, "Grants the Create scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.Update, "update", "u", false, "Grants the Update scope to the newly created user")
-  createUserCmd.Flags().BoolVarP(&userScope.Delete, "update", "u", false, "Grants the Update scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Delete, "delete", "d", false, "Grants the Delete scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.Index, "index", "i", false, "Grants the Index scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
