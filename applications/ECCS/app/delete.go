@@ -34,5 +34,7 @@ func Delete(userAT, objectID string) error {
 		log.Fatalf("%v: %v", utils.Fail("Delete failed at Delete"), err)
 	}
 
+	log.Printf("%v", utils.Pass("Successfully deleted object!\n"))
+
 	return nil
 }

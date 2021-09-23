@@ -40,5 +40,7 @@ func Update(userAT, objectID, filename, associatedData string, stdin bool) error
 		log.Fatalf("%v: %v", utils.Fail("Update failed at Update"), err)
 	}
 
+	log.Printf("%v", utils.Pass("Successfully updated object!\n"))
+
 	return nil
 }
