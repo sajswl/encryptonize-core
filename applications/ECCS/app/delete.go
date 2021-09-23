@@ -20,27 +20,21 @@ import (
 	"eccs/utils"
 )
 
-// Update creates a new client and calls Update through the client
-func Update(userAT, objectID, filename, associatedData string, stdin bool) error {
-	//Determine whether to read data from file or stdin
-	plaintext, err := readInput(filename, stdin)
-	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Update failed at readInput"), err)
-	}
-
+// Delete creates a new client and calls Delete through the client
+func Delete(userAT, objectID string) error {
 	// Create client
 	client, err := NewClient(userAT)
 	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Update failed at NewClient"), err)
+		log.Fatalf("%v: %v", utils.Fail("Delete failed at NewClient"), err)
 	}
 
-	// Call Encryptonize and update the object
-	err = client.Update(objectID, plaintext, []byte(associatedData))
+	// Call Encryptonize and delete the object
+	err = client.Delete(objectID)
 	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Update failed at Update"), err)
+		log.Fatalf("%v: %v", utils.Fail("Delete failed at Delete"), err)
 	}
 
-	log.Printf("%v", utils.Pass("Successfully updated object!\n"))
+	log.Printf("%v", utils.Pass("Successfully deleted object!\n"))
 
 	return nil
 }

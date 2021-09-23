@@ -101,6 +101,22 @@ Update from `STDIN`:
 echo "Some updated data." | ./eccs -a <uat> update -o <oid> -s -d "index1:newIndex"
 ```
 
+## Delete
+The base command for deleting an object is
+```
+./eccs -a <uat> delete <flags>
+```
+
+### Flags
+
+`-o`, `--objectid` - object id of the file to be deleted
+
+### Examples
+Delete object:
+```
+./eccs -a <uat> delete -o <oid>
+```
+
 ## GetPermissions
 The base command to get permissions for an object is
 ```

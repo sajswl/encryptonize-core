@@ -24,6 +24,7 @@ type UserScope struct {
 	Read              bool
 	Create            bool
 	Update            bool
+  Delete            bool
 	Index             bool
 	ObjectPermissions bool
 	UserManagement    bool
@@ -40,8 +41,11 @@ func CreateUser(userAT string, userScope UserScope) error {
 	if userScope.Create {
 		scopes = append(scopes, "CREATE")
 	}
-	if userScope.Update {
+  if userScope.Update {
 		scopes = append(scopes, "UPDATE")
+	}
+  if userScope.Delete {
+		scopes = append(scopes, "DELETE")
 	}
 	if userScope.Index {
 		scopes = append(scopes, "INDEX")

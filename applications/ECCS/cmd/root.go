@@ -87,6 +87,14 @@ var updateCmd = &cobra.Command{
 	},
 }
 
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Deletes a stored object",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return app.Delete(userAT, objectID)
+	},
+}
+
 var getPermissionsCmd = &cobra.Command{
 	Use:   "getpermissions",
 	Short: "Gets the permissions of an object",
@@ -179,6 +187,7 @@ func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
 	rootCmd.AddCommand(retrieveCmd)
+	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(getPermissionsCmd)
 	rootCmd.AddCommand(addPermissionCmd)
@@ -202,6 +211,12 @@ func InitCmd() error {
 
 	// Set retrieve flags
 	retrieveCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to retrieve")
+	if err := retrieveCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
+
+	// Set delete flags
+	deleteCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "ID of the object to be deleted")
 	if err := retrieveCmd.MarkFlagRequired("objectid"); err != nil {
 		return err
 	}
@@ -245,6 +260,7 @@ func InitCmd() error {
 	createUserCmd.Flags().BoolVarP(&userScope.Read, "read", "r", false, "Grants the Read scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.Create, "create", "c", false, "Grants the Create scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.Update, "update", "u", false, "Grants the Update scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Delete, "delete", "d", false, "Grants the Delete scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.Index, "index", "i", false, "Grants the Index scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
 	createUserCmd.Flags().BoolVarP(&userScope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")

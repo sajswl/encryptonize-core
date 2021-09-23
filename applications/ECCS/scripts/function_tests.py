@@ -137,6 +137,11 @@ def update_object(token, oid, new_data, new_associated_data):
 
 	subprocess.run(cmd, input=new_data, check=True, text=True)
 
+def delete_object(token, oid):
+	cmd = ["./eccs", "-a", token, "delete", "-o", oid]
+
+	res = subprocess.run(cmd, check=True, text=True)
+
 def encrypt_object(token, plaintext, aad, filename):
 	cmd = ["./eccs", "-a", token, "encrypt", "-s"]
 	if aad is not None:
@@ -160,7 +165,7 @@ def decrypt_object(token, filename):
 
 if __name__ == "__main__":
 	at = init()
-	uid1, password1 = create_user(at, "-rcuip")
+	uid1, password1 = create_user(at, "-rcudip")
 	print(f"[+] created first user:  UID {uid1}, Password {password1}")
 	uid2, password2 = create_user(at, "-r")
 	print(f"[+] created second user: UID {uid2}, Password {password2}")
@@ -187,6 +192,12 @@ if __name__ == "__main__":
 
 	decrypt_object(at1, filename)
 	print(f"[+] object decrypted:      OID {oid2}")
+
+	delete_object(at1, oid2)
+	try:
+		retrieve_object(at1, oid2)
+	except subprocess.CalledProcessError:
+		print(f"[+] object was deleted successfully")
 	
 	new_obj = {"data": "new data", "associated_data": "this was updated"}
 	update_object(at1, oid, new_obj["data"], new_obj["associated_data"])

@@ -276,6 +276,42 @@ func (c *Client) Update(oid string, plaintext, associatedData []byte) error {
 	return nil
 }
 
+// Delete calls the Encryptonize Delete endpoint
+func (c *Client) Delete(oid string) error {
+	mth, err := c.findMethod("storage.Encryptonize", "Delete")
+	if err != nil {
+		return err
+	}
+
+	// sanitize input and output
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+	}
+	if !sanitize(inType, inExp) {
+		return errors.New("Unexpected input type of Delete method")
+	}
+
+	outType := mth.GetOutputType()
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
+	if !sanitize(outType, outExp) {
+		return errors.New("Unexpected output type of Delete method")
+	}
+
+	// create argument
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object_id", oid)
+
+	// invoke RPC and disregard nonexisting return values
+	stub := grpcdynamic.NewStub(c.connection)
+	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetPermissions calls the Encryptonize GetPermissions endpoint
 func (c *Client) GetPermissions(oid string) ([]string, error) {
 	mth, err := c.findMethod("authz.Encryptonize", "GetPermissions")
