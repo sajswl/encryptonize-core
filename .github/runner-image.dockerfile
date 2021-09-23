@@ -5,7 +5,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Dependencies
 RUN apt-get update && \
-  apt-get install --no-install-recommends -y ca-certificates wget curl git make python3 python3-crypto python3-pycryptodome iproute2 build-essential clang openssh-client && \
+  apt-get install --no-install-recommends -y \
+  ca-certificates wget curl git make \
+  python3 python3-crypto python3-pycryptodome \
+  iproute2 build-essential clang openssh-client libmbedtls-dev && \
   rm -rf /var/lib/apt/lists/*
 
 # GCloud
@@ -20,9 +23,9 @@ RUN mkdir /root/.gcp
 COPY deployer-staging.json /root/.gcp/deployer-staging.json
 
 # go
-RUN wget https://golang.org/dl/go1.16.linux-amd64.tar.gz && \
-  tar -C /usr/local -xzf go1.16.linux-amd64.tar.gz && \
-  rm -f go1.16.linux-amd64.tar.gz
+RUN wget https://golang.org/dl/go1.17.linux-amd64.tar.gz && \
+  tar -C /usr/local -xzf go1.17.linux-amd64.tar.gz && \
+  rm -f go1.17.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin
 ENV PATH=$PATH:/root/go/bin
 
@@ -35,7 +38,7 @@ RUN go get google.golang.org/protobuf/cmd/protoc-gen-go google.golang.org/grpc/c
   go get github.com/grpc-ecosystem/grpc-health-probe && \
   rm -rf /root/.cache/* && \
   rm -rf /root/go/src
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.38.0
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.42.1
 
 # Docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
@@ -45,9 +48,9 @@ RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
   rm -rf /usr/libexec/docker
 
 # Docker compose
-RUN curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose && \
+RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose && \
   chmod +x /usr/bin/docker-compose
 
 # kubectl
-RUN curl -L https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
+RUN curl -L https://storage.googleapis.com/kubernetes-release/release/v1.21.3/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
   chmod +x /usr/local/bin/kubectl
