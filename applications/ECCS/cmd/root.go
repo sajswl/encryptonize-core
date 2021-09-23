@@ -37,11 +37,7 @@ var (
 	associatedData string
 
 	// CreateUser args
-	scopeRead              bool
-	scopeCreate            bool
-	scopeIndex             bool
-	scopeObjectPermissions bool
-	scopeUserManagement    bool
+	userScope app.UserScope
 )
 
 var rootCmd = &cobra.Command{
@@ -80,6 +76,14 @@ var retrieveCmd = &cobra.Command{
 			return err
 		}
 		return nil
+	},
+}
+
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Updates a stored object and its associated data",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return app.Update(userAT, objectID, filename, associatedData, stdin)
 	},
 }
 
@@ -123,7 +127,7 @@ var createUserCmd = &cobra.Command{
 	Use:   "createuser",
 	Short: "Creates a user on the server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := app.CreateUser(userAT, scopeRead, scopeCreate, scopeIndex, scopeObjectPermissions, scopeUserManagement)
+		err := app.CreateUser(userAT, userScope)
 		if err != nil {
 			return err
 		}
@@ -175,6 +179,7 @@ func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
 	rootCmd.AddCommand(retrieveCmd)
+	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(getPermissionsCmd)
 	rootCmd.AddCommand(addPermissionCmd)
 	rootCmd.AddCommand(removePermissionCmd)
@@ -200,6 +205,15 @@ func InitCmd() error {
 	if err := retrieveCmd.MarkFlagRequired("objectid"); err != nil {
 		return err
 	}
+
+	// Set update flags
+	updateCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "ID of the object to be updated")
+	if err := updateCmd.MarkFlagRequired("objectid"); err != nil {
+		return err
+	}
+	updateCmd.Flags().StringVarP(&filename, "filename", "f", "", "File with updated data")
+	updateCmd.Flags().BoolVarP(&stdin, "stdin", "s", false, "Read updated data from STDIN")
+	updateCmd.Flags().StringVarP(&associatedData, "associateddata", "d", "", "Updated associated data to be stored along with the object")
 
 	// Set getPermissions flags
 	getPermissionsCmd.Flags().StringVarP(&objectID, "objectid", "o", "", "Object ID of file to get permissions from")
@@ -228,11 +242,12 @@ func InitCmd() error {
 	}
 
 	// Set createUser flags
-	createUserCmd.Flags().BoolVarP(&scopeRead, "read", "r", false, "Grants the Read scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeCreate, "create", "c", false, "Grants the Create scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeIndex, "index", "i", false, "Grants the Index scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&scopeUserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Read, "read", "r", false, "Grants the Read scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Create, "create", "c", false, "Grants the Create scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Update, "update", "u", false, "Grants the Update scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.Index, "index", "i", false, "Grants the Index scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&userScope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
 
 	// Set loginUser flags
 	loginUserCmd.Flags().StringVarP(&uid, "uid", "u", "", "UID of the user to retrieve a token for")

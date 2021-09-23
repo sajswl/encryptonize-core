@@ -20,24 +20,36 @@ import (
 	"eccs/utils"
 )
 
+type UserScope struct {
+	Read              bool
+	Create            bool
+	Update            bool
+	Index             bool
+	ObjectPermissions bool
+	UserManagement    bool
+}
+
 // CreateUser creates a new client and calls CreateUser through the client
-func CreateUser(userAT string, read, create, index, objectPermissions, userManagement bool) error {
+func CreateUser(userAT string, userScope UserScope) error {
 	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
 	var scopes = []string{}
 
-	if read {
+	if userScope.Read {
 		scopes = append(scopes, "READ")
 	}
-	if create {
+	if userScope.Create {
 		scopes = append(scopes, "CREATE")
 	}
-	if index {
+	if userScope.Update {
+		scopes = append(scopes, "UPDATE")
+	}
+	if userScope.Index {
 		scopes = append(scopes, "INDEX")
 	}
-	if objectPermissions {
+	if userScope.ObjectPermissions {
 		scopes = append(scopes, "OBJECTPERMISSIONS")
 	}
-	if userManagement {
+	if userScope.UserManagement {
 		scopes = append(scopes, "USERMANAGEMENT")
 	}
 

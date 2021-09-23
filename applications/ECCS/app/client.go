@@ -236,6 +236,46 @@ func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
 	return m, aad, nil
 }
 
+// Update calls the Encryptonize Update endpoint
+func (c *Client) Update(oid string, plaintext, associatedData []byte) error {
+	mth, err := c.findMethod("storage.Encryptonize", "Update")
+	if err != nil {
+		return err
+	}
+
+	// sanitize input and output
+	inType := mth.GetInputType()
+	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
+		"object_id":       descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
+	}
+	if !sanitize(inType, inExp) {
+		return errors.New("Unexpected input type of Update method")
+	}
+
+	outType := mth.GetOutputType()
+	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
+	if !sanitize(outType, outExp) {
+		return errors.New("Unexpected output type of Update method")
+	}
+
+	// create argument
+	msg := dynamic.NewMessage(inType)
+	msg.SetFieldByName("object_id", oid)
+	msg.SetFieldByName("plaintext", plaintext)
+	msg.SetFieldByName("associated_data", associatedData)
+
+	// invoke RPC and disregard nonexisting return values
+	stub := grpcdynamic.NewStub(c.connection)
+	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetPermissions calls the Encryptonize GetPermissions endpoint
 func (c *Client) GetPermissions(oid string) ([]string, error) {
 	mth, err := c.findMethod("authz.Encryptonize", "GetPermissions")
