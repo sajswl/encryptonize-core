@@ -32,15 +32,14 @@ source ./scripts/dev-env
 
 storage=${STORAGE_ENABLED:-true}
 encryption=${ENCRYPTION_ENABLED:-true}
-
-tags=""
+tags=${TAGS:-""}
 
 if [ "$storage" == "true" ]; then 
-    tags+="storage "
+    tags+=" storage"
 fi
 
 if [ "$encryption" == "true" ]; then 
-    tags+="encryption "
+    tags+=" encryption"
 fi
 
 echo '[*] running end-to-end tests'
