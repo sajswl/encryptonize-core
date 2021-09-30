@@ -16,7 +16,7 @@ limitations under the License.
 # Overview
 This document will provide a quick introduction on how to use the Encryptonize service and introduce
 essential concepts and terminology. For a detailed description of the gRPC API, see [the
-specification](../api/api-v2.md).
+specification](../api/api-v3.0.0.md).
 
 1. [Authentication](#authentication)
 1. [Users](#users)
