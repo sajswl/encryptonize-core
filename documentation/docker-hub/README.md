@@ -1,4 +1,4 @@
-# Encryptonize® Core
+# Encryptonize® Core 3.0.0
 
 <img alt="Encryptonize" src="https://raw.githubusercontent.com/cyber-crypt-com/encryptonize-core/master/documentation/imgs/rook-hex.png" width="250">
 
