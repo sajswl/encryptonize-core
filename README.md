@@ -1,4 +1,4 @@
-# Encryptonize&reg; Core
+# Encryptonize&reg; Core 3.0.0
 
 ![es build](https://github.com/cyber-crypt-com/encryptonize-core/workflows/Encryption%20service%20build/badge.svg)
 ![es deploy](https://github.com/cyber-crypt-com/encryptonize-core/workflows/Encryption%20service%20deploy/badge.svg)

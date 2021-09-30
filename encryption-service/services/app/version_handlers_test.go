@@ -19,8 +19,8 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	GitCommit = "3c9c1080d50ffd306213c3ea320e7856088d3ad8"
-	GitTag = "v2.0"
+	GitCommit = "This git commit should be injected"
+	GitTag = "This git tag should be injected"
 
 	app := App{}
 
