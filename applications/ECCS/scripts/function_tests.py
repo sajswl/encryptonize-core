@@ -98,12 +98,12 @@ def login_user(uid, password):
 
 	return at
 
-def create_object(token, data):
+def create_object(token, data, associated_data):
 	cmd = ["./eccs", "-a", token, "store", "-s"]
-	if data is not None:
-		cmd += ["-d", data]
+	if associated_data is not None:
+		cmd += ["-d", associated_data]
 
-	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
+	res = subprocess.run(cmd, input=data, capture_output=True, check=True, text=True)
 
 	oid = None
 	for match in re.finditer(r"ObjectID:\s+([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})", res.stderr):
@@ -119,6 +119,28 @@ def create_object(token, data):
 		sys.exit(1)
 
 	return oid
+
+def retrieve_object(token, oid):
+	cmd = ["./eccs", "-a", token, "retrieve", "-o", oid]
+
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+
+	obj = re.search("m=\"(.*)\", aad=\"(.*)\"", res.stderr)
+	
+	return obj.group(1), obj.group(2)
+
+def update_object(token, oid, new_data, new_associated_data):
+	cmd = ["./eccs", "-a", token, "update", "-o", oid, "-s"]
+
+	if new_associated_data is not None:
+		cmd += ["-d", new_associated_data]
+
+	subprocess.run(cmd, input=new_data, check=True, text=True)
+
+def delete_object(token, oid):
+	cmd = ["./eccs", "-a", token, "delete", "-o", oid]
+
+	res = subprocess.run(cmd, check=True, text=True)
 
 def encrypt_object(token, plaintext, aad, filename):
 	cmd = ["./eccs", "-a", token, "encrypt", "-s"]
@@ -143,7 +165,7 @@ def decrypt_object(token, filename):
 
 if __name__ == "__main__":
 	at = init()
-	uid1, password1 = create_user(at, "-rcip")
+	uid1, password1 = create_user(at, "-rcudip")
 	print(f"[+] created first user:  UID {uid1}, Password {password1}")
 	uid2, password2 = create_user(at, "-r")
 	print(f"[+] created second user: UID {uid2}, Password {password2}")
@@ -157,7 +179,9 @@ if __name__ == "__main__":
 	at1 = login_user(uid1, password1)
 	print(f"[+] logged in as first user:  UID {uid1}, AT {at1}")
 
-	oid = create_object(at1, "no one has the intention to store bytes here.")
+	obj = {"data": "", "associated_data": "no one has the intention to store bytes here."}
+
+	oid = create_object(at1, obj["data"], obj["associated_data"])
 	print(f"[+] object created:      OID {oid}")
 
 	plaintext = "hello encryption algorithm"
@@ -168,7 +192,19 @@ if __name__ == "__main__":
 
 	decrypt_object(at1, filename)
 	print(f"[+] object decrypted:      OID {oid2}")
+
+	delete_object(at1, oid2)
+	try:
+		retrieve_object(at1, oid2)
+	except subprocess.CalledProcessError:
+		print(f"[+] object was deleted successfully")
 	
+	new_obj = {"data": "new data", "associated_data": "this was updated"}
+	update_object(at1, oid, new_obj["data"], new_obj["associated_data"])
+
+	d, ad = retrieve_object(at1, oid)
+	print(f"[+] object was updated successfully: {d == new_obj['data'] and ad == new_obj['associated_data']}")
+
 	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
 	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)

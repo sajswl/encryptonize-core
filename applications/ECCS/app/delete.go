@@ -11,30 +11,30 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package app
 
 import (
-	"context"
-	"testing"
+	"log"
+
+	"eccs/utils"
 )
 
-func TestVersion(t *testing.T) {
-	GitCommit = "This git commit should be injected"
-	GitTag = "This git tag should be injected"
-
-	app := App{}
-
-	versionResponse, err := app.Version(context.Background(), &VersionRequest{})
-
+// Delete creates a new client and calls Delete through the client
+func Delete(userAT, objectID string) error {
+	// Create client
+	client, err := NewClient(userAT)
 	if err != nil {
-		t.Fatalf("Failed to retrieve version: %v", err)
+		log.Fatalf("%v: %v", utils.Fail("Delete failed at NewClient"), err)
 	}
 
-	if versionResponse.Commit != GitCommit {
-		t.Fatalf("Version endpoint returned wrong commit. Expected: %v. Received: %v", GitCommit, versionResponse.Commit)
+	// Call Encryptonize and delete the object
+	err = client.Delete(objectID)
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("Delete failed at Delete"), err)
 	}
 
-	if versionResponse.Tag != GitTag {
-		t.Fatalf("Version endpoint returned wrong tag. Expected: %v. Received: %v", GitTag, versionResponse.Tag)
-	}
+	log.Printf("%v", utils.Pass("Successfully deleted object!\n"))
+
+	return nil
 }
