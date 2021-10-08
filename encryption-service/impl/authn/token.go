@@ -28,6 +28,8 @@ import (
 	"encryption-service/users"
 )
 
+var ErrTokenExpired = errors.New("token expired")
+
 // AccessToken is the internal representation of an access token
 type AccessToken struct {
 	userID uuid.UUID
@@ -99,8 +101,8 @@ func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface)
 	return base64.RawURLEncoding.EncodeToString(wrappedKey) + "." + base64.RawURLEncoding.EncodeToString(ciphertext), nil
 }
 
-// ParseAccessToken decrypts and unserializes an access token from a string.
-// Addtionally, it checks if the token hasn't expired.
+// ParseAccessToken decrypts and deserializes an access token from a string.
+// Additionally, it checks whether the token has expired, returning `ErrTokenExpired` if it as.
 func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*AccessToken, error) {
 	tokenParts := strings.Split(token, ".")
 	if len(tokenParts) != 2 {
@@ -140,7 +142,7 @@ func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*Acces
 
 	expiryTime := time.Unix(accessTokenClient.ExpiryTime, 0)
 	if time.Now().After(expiryTime) {
-		return nil, errors.New("token expired")
+		return nil, ErrTokenExpired
 	}
 
 	return &AccessToken{

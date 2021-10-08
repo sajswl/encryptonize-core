@@ -50,19 +50,16 @@ To authenticate a user needs to provide an access token via `authorization`. It 
 `bearer <user access token>`. A correct authentication metadata query could look like this:
 ```
 {
-  "authorization": "bearer ChAAAAAAAABAAIAAAAAAAAAC.AAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "authorization": "bearer AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
 }
 ```
 
 In order to obtain a token, see the `authn.CreateUser` and `authn.LoginUser` functions.
 
-The access token consists of three parts separated by a dot. Each part is individually base64url
-encoded. The first part is a serialized protobuf message containing the user ID and set of scopes.
-The second part is a nonce to make the token unique even if the user ID and set of scopes is
-identical to another token. The third part is an HMAC for integrity protection. The HMAC is created
-as `HMAC(nonce||message)`.
-
-This user ID is a UUID (version 4).
+The access token consists of two parts separated by a dot (`.`). Each part is individually base64url
+encoded. The first part is a wrapped encryption key. The second part is a serialized protobuf
+message containing the user ID, a set of scopes, and an expiry time. This part is encrypted using
+the wrapped key. The user ID is a UUID (version 4).
 
 A user is created with a chosen set of scopes that governs the endpoints this user may access.
 Any combination of the different scopes is valid. The scopes are:
@@ -304,6 +301,7 @@ and Password of a previously created user.
 
 ## `authn.LoginUserResponse`
 The structure returned by a `authn.LoginUserResponse` request. It contains the User Access Token.
+Note that the User Access Token is valid for 1 hour.
 
 | Name           | Type   | Description                |
 |----------------|--------|----------------------------|
@@ -433,9 +431,9 @@ rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)
 
 ## `authn.LoginUser`
 
-Logs in an existing user, returning a User Access Token. This call can fail if the caller the wrong
-credentials or if the Auth Service cannot reach the auth storage, in which case an error is
-returned.
+Logs in an existing user, returning a User Access Token. Note that this token is valid for 1 hour.
+This call can fail if the caller the wrong credentials or if the Auth Service cannot reach the auth
+storage, in which case an error is returned.
 
 ```
 rpc LoginUser (LoginUserRequest) returns (LoginUserResponse)

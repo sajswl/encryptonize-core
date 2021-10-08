@@ -15,12 +15,14 @@ package authn
 
 import (
 	context "context"
+	"errors"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
+	"encryption-service/impl/authn"
 	log "encryption-service/logger"
 	"encryption-service/services/health"
 	users "encryption-service/users"
@@ -77,6 +79,10 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 	}
 
 	accessToken, err := au.UserAuthenticator.ParseAccessToken(token)
+	if errors.Is(err, authn.ErrTokenExpired) {
+		log.Error(ctx, err, "AuthenticateUser: Access Token expired")
+		return nil, status.Errorf(codes.Unauthenticated, "access token expired")
+	}
 	if err != nil {
 		log.Error(ctx, err, "AuthenticateUser: Unable to parse Access Token")
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
