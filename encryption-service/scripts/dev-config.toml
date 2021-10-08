@@ -45,6 +45,6 @@ MIIBpjCCAVigAwIBAgIUQ3byU/Dxv0eA11bPDYVC4xD36dwwBQYDK2VwMGUxCzAJBgNVBAYTAkRLMQow
 # Feature flags
 [features]
 # Flag for enabling the storage service API
-storageservice = false
+storageservice = true
 # Flag for enabling the encrypt/decrypt API
-encryptionservice = false
+encryptionservice = true
