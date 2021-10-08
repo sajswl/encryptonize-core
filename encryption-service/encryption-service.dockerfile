@@ -35,7 +35,7 @@ COPY . /encryption-service
 # Build binary
 ARG COMMIT
 ARG TAG
-RUN make ldflags="-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" build
+RUN make git-commit=$COMMIT git-tag=$TAG build
 
 ##############################
 ### Runtime Image

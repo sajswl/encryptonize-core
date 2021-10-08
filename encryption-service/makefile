@@ -38,6 +38,10 @@ ldflags =
 
 ##### Build targets #####
 .PHONY: build
+build: git-commit=$(shell git rev-list -1 HEAD)
+build: git-tag=$(shell git tag --points-at HEAD)
+build: ldflags += -X 'encryption-service/services/app.GitCommit=${git-commit}'
+build: ldflags += -X 'encryption-service/services/app.GitTag=${git-tag}'
 build: $(protobufs)  ## Build the Encryption Service binary
 	source ./scripts/build-env && go build -v -ldflags "$(ldflags)" -tags "$(tags)" .
 
