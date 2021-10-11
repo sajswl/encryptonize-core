@@ -28,6 +28,8 @@ import (
 	"encryption-service/users"
 )
 
+const tokenExpiryTime = time.Hour
+
 type UserAuthenticator struct {
 	TokenCryptor interfaces.CryptorInterface
 	UserCryptor  interfaces.CryptorInterface
@@ -127,7 +129,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	accessToken := NewAccessTokenDuration(userID, userscopes, time.Hour*24*365*150) // TODO: currently use a duration longer than I will survive
+	accessToken := NewAccessTokenDuration(userID, userscopes, tokenExpiryTime)
 
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {

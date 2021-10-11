@@ -15,6 +15,7 @@ package authn
 
 import (
 	"encoding/hex"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -103,7 +104,7 @@ func TestParseExpiry(t *testing.T) {
 	time.Sleep(time.Second)
 
 	_, err = ParseAccessToken(cryptor, token)
-	if err == nil || err.Error() != "token expired" {
+	if err == nil || !errors.Is(err, ErrTokenExpired) {
 		t.Fatalf("ParseAccessToken should have errored: %v", err)
 	}
 }
