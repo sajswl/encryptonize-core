@@ -15,15 +15,20 @@
 # limitations under the License.
 
 # Run all unit tests. Usage:
-#   ./scripts/unit_tests.sh
+#   ./scripts/unit_tests.sh [coverage]
 
 set -euo pipefail
 
 source ./scripts/build-env
 source ./scripts/dev-env
 
+COVERAGE=""
+if [[ ${1-} == "coverage" ]]; then
+  COVERAGE="-coverprofile coverage-unit.out"
+fi
+
 export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|tests')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'
-go test -count=1 -v $TEST_FOLDERS
+go test -count=1 ${COVERAGE} -v $TEST_FOLDERS

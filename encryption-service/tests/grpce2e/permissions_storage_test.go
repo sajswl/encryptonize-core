@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build authz && storage
 // +build authz,storage
 
 package grpce2e
