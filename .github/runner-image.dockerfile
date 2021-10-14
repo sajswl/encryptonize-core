@@ -54,3 +54,10 @@ RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-c
 # kubectl
 RUN curl -L https://storage.googleapis.com/kubernetes-release/release/v1.21.3/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && \
   chmod +x /usr/local/bin/kubectl
+
+# openjdk-11
+RUN apt-get update && \
+  apt-get update && apt-get install -y openjdk-11-jdk && \
+  rm -rf /var/lib/apt/lists/*
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH=$PATH:$JAVA_HOME/bin
