@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Dependencies
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
-  ca-certificates wget curl git make \
+  ca-certificates wget curl git make gettext-base jq \
   python3 python3-crypto python3-pycryptodome \
   iproute2 build-essential clang openssh-client libmbedtls-dev && \
   rm -rf /var/lib/apt/lists/*
