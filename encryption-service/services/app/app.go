@@ -127,11 +127,14 @@ func (app *App) StartServer() {
 
 		cmd := os.Args[1]
 		switch cmd {
-		case "create-admin":
+		case "create-user":
 			msg := fmt.Sprintf("AuthenticatorInterface is of dynamic type: %v", reflect.TypeOf(app.AuthnService))
 			log.Info(ctx, msg)
-			if err := app.AuthnService.UserAuthenticator.NewAdminUser(app.AuthnService.AuthStore); err != nil {
-				log.Fatal(ctx, err, "CreateAdminCommand")
+			if len(os.Args) != 3 {
+				log.Fatal(ctx, errors.New("Scopes argument missing"), "CreateUserCommand")
+			}
+			if err := app.AuthnService.UserAuthenticator.NewCLIUser(os.Args[2], app.AuthnService.AuthStore); err != nil {
+				log.Fatal(ctx, err, "CreateUserCommand")
 			}
 		default:
 			msg := fmt.Sprintf("Invalid command: %v", cmd)

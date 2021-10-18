@@ -66,6 +66,31 @@ func MapScopesToScopeType(scopes []UserScope) (ScopeType, error) {
 	return userScopes, nil
 }
 
+func MapStringToScopeType(scopes string) (ScopeType, error) {
+	var userScopes ScopeType
+	for _, scope := range scopes {
+		switch string(scope) {
+		case "r":
+			userScopes |= ScopeRead
+		case "c":
+			userScopes |= ScopeCreate
+		case "u":
+			userScopes |= ScopeUpdate
+		case "d":
+			userScopes |= ScopeDelete
+		case "i":
+			userScopes |= ScopeIndex
+		case "o":
+			userScopes |= ScopeObjectPermissions
+		case "m":
+			userScopes |= ScopeUserManagement
+		default:
+			return 0, fmt.Errorf("CreateUser: Invalid scope %v", string(scope))
+		}
+	}
+	return userScopes, nil
+}
+
 func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
 	userScope := []UserScope{}
 	// scopes is a bitmap. This checks each bit individually

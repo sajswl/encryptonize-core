@@ -36,6 +36,9 @@ tags =
 # Linker flags variable
 ldflags =
 
+# Scopes set when creating users
+scopes = rcudiom
+
 ##### Build targets #####
 .PHONY: build
 build: git-commit=$(shell git rev-list -1 HEAD)
@@ -113,14 +116,14 @@ run-in-mem: tags += storage_mocked
 run-in-mem: build  ## Start a local instance of the Encryption Service with mock backends
 	./scripts/run.sh
 
-.PHONY: create-admin
-create-admin: build  ## Creates an admin for the local instance of the Encryption Service
-	./scripts/run.sh create-admin
+.PHONY: create-user
+create-user: build  ## Creates a user with all scopes for the local instance of the Encryption Service
+	./scripts/run.sh create-user $(scopes)
 
-.PHONY: create-admin-mem
-create-admin-mem: tags += storage_mocked
-create-admin-mem: build  ## Creates an admin for the local instance of the Encryption Service
-	./scripts/run.sh create-admin
+.PHONY: create-user-mem
+create-user-mem: tags += storage_mocked
+create-user-mem: build  ## Creates a user with all scopes for the local instance of the Encryption Service
+	./scripts/run.sh create-user $(scopes)
 
 .PHONY: docker-up
 docker-up:  ## Start a dockerized instance of the Encryption Service
@@ -130,9 +133,9 @@ docker-up:  ## Start a dockerized instance of the Encryption Service
 docker-down:  ## Stop a dockerized instance of the Encryption Service
 	docker-compose down -v
 
-.PHONY: docker-create-admin
-docker-create-admin: docker-up  ## Creates an admin for the dockerized instance of the Encryption Service
-	docker-compose run encryption-service create-admin
+.PHONY: docker-create-user
+docker-create-user: docker-up  ## Creates a user with all scopes for the dockerized instance of the Encryption Service
+	docker-compose run encryption-service create-user $(scopes)
 
 ##### Cleanup targets #####
 .PHONY: clean  ## Remove build artifacts

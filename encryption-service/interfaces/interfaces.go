@@ -105,8 +105,8 @@ type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
 	NewUser(ctx context.Context, userscopes users.ScopeType) (userID *uuid.UUID, password string, err error)
 
-	// Create a new user with admin rights
-	NewAdminUser(authStore AuthStoreInterface) (err error)
+	// Create a new user with the requested scopes
+	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
 
 	// Parses a token string into the internal data type
 	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
