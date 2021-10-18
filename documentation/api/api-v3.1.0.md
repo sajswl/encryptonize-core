@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 # Overview
-This document introduces version 3.0.0 of the API for the Encryptionize&reg; Service.
+This document introduces version 3.1.0 of the API for the Encryptionize&reg; Service.
 
 The Encryptonize&reg; API exposes several service addresses: `app.Encryptonize`,
 `storage.Encryptonize`, `enc.Encryptonize`, `authz.Encryptonize`, `authn.Encryptonize`, which define the following functions

@@ -25,4 +25,4 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        image: encryptonize:v3.0.0
+        image: encryptonize:v3.1.0

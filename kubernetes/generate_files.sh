@@ -30,7 +30,7 @@ export OBJECT_STORAGE_HOSTNAME=object.example.com
 export AUTH_STORAGE_HOSTNAME=db.example.com
 export ENCRYPTION_SERVICE_HOSTNAME=encryptonize.example.com
 export ELASTICSEARCH_HOSTNAME=elasticsearch.example.com
-export ENCRYPTION_SERVICE_IMAGE=cybercryptcom/encryptonize-core:v3.0.0
+export ENCRYPTION_SERVICE_IMAGE=cybercryptcom/encryptonize-core:v3.1.0
 export SECRETS_PATH=./encryptonize-secrets
 
 ##########################
