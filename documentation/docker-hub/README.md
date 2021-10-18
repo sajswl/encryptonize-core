@@ -32,10 +32,9 @@ TODO: insert docker-compose.yml here
 
 ### Create an Initial Admin User
 
-`docker-compose run encryption-service create-admin`
+`docker-compose run encryption-service create-user m`
 
-Note down the generated admin credentials: `User ID`, `Password`
-
+Note down the generated admin credentials: `User ID`, `Password`.
 
 ### Usage Example
 The following example script shows the basic use cases for Encryptonize®.

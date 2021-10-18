@@ -172,7 +172,8 @@ The base command to create a user on the Encryptonize service is:
 ```
 ./eccs -a <uat> createuser <flags>
 ```
-Keep in mind that to create a user, the credentials supplied via `ECCS_UID` and `ECCS_UAT` must be admin credentials.
+Keep in mind that to create a user, the credentials supplied via `ECCS_UID` and `ECCS_UAT` must
+belong to a user with the `USERMANAGEMENT` scope.
 
 ### Flags
 

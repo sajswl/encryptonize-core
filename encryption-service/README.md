@@ -33,7 +33,7 @@ You can build the Encryption Service docker image by running:
 ```bash
 make docker-build
 ```
-This wil generate an image with the tag `encryptonize`.
+This will generate an image with the tag `encryptonize`.
 
 In order to run the Encryption Service locally, you have two options: standalone and Docker Compose.
 
@@ -44,11 +44,11 @@ make run
 ```
 This will expose the gRPC endpoints of Encryption Service on `localhost:9000`. To connect the
 service to existing storage solutions you need to set the environment variables in [`scripts/run.sh`](scripts/run.sh).
-To create and obtain an admin token, run `make create-admin`.
 
+To create an initial user run `make create-user`. The resulting user will have all possible scopes.
 
 ### Docker Compose
-A selfcontained instance of Encryptonize can be started using Docker Compose. *Note that this setup
+A self contained instance of Encryptonize can be started using Docker Compose. *Note that this setup
 is only intended for test and development use.*
 
 To start the Docker Compose setup, call
@@ -56,7 +56,8 @@ To start the Docker Compose setup, call
 make docker-up
 ```
 This will start local instances of CockroachDB and MinIO and connect a dockerized version of the
-Encryption Service to these. To create and obtain an admin token, run `make docker-create-admin`.
+Encryption Service to these. To create an initial user run `make docker-create-user`. The resulting
+user will have all possible scopes.
 
 The gRPC endpoints of the Encryption Service are exposed on `localhost:9000`. MinIO's web console is
 exposed on `localhost:7000` (ID `storageid` and key `storagekey`) while CockroachDB's web console is
