@@ -14,11 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: This is the bootstrapping part for Encryptonize.
+# We need to figure out exactly what to do here and how to do it.
+
 set -euo pipefail
 
-# Nicer docker builds
-export DOCKER_BUILDKIT=1
+source ./scripts/encryptonize_env # Read kubernetes related configs into environment
 
-COMMIT=$(git rev-list -1 HEAD)
-TAG=$(git tag --points-at HEAD)
-docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t "${ENCRYPTION_SERVICE_IMAGE:-encryptonize}:${VERSION:-v3.0.0}" -f encryption-service.dockerfile .
+# Create encryptonize config
+envsubst < encryption-service/encryptonize-config.yaml | kubectl apply -f - 
+
+# Create file secrets
+
+# Create pull secret
+
+# Deploy cert-manager

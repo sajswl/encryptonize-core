@@ -8,7 +8,7 @@ You will need the following tools:
 
 * Go (version 1.15+) - [Install instructions](https://golang.org/doc/install)
 * Protobuf compiler (version 3.12+) - [Install instructions](https://grpc.io/docs/protoc-installation/)
-* Go plugin for protoc (version 1.25+) - [Install instructions](https://grpc.io/docs/languages/go/quickstart/#prerequisites)
+* Go plugin for protoc (version 1.26+) - [Install instructions](https://grpc.io/docs/languages/go/quickstart/#prerequisites)
 * golangci-lint (version 1.33+) - [Install instructions](https://golangci-lint.run/usage/install/#local-installation)
 * gocovmerge - `go get github.com/wadey/gocovmerge`
 * Docker (version 19+) - [Install instructions](https://docs.docker.com/engine/install/)

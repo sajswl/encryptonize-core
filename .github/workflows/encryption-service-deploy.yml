@@ -3,86 +3,31 @@ name: Encryption service deploy
 on:
   push:
     branches:
-      - master
+      - master 
 
 defaults:
   run:
     shell: bash
+    working-directory: kubernetes 
 
 jobs:
-  esd-build-bulwark:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
-      credentials:
-        username: USERNAME
-        password: ${{ secrets.GHCR_PULL_TOKEN }}
-
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
-      with:
-        repository: cyber-crypt-com/bulwark
-        token: ${{ secrets.CYBOT_TOKEN }}
-
-    - name: Build
-      run: go build
-
-    - name: Store binary
-      uses: actions/upload-artifact@v2
-      with:
-        name: bulwark
-        path: ./bw
-
-    - name: Store config
-      uses: actions/upload-artifact@v2
-      with:
-        name: config
-        path: ./config/staging.toml
-
-    - name: Notify slack fail
-      if: failure()
-      env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BUILD_ALERT_BOT_TOKEN }}
-      uses: voxmedia/github-action-slack-notify-build@v1
-      with:
-        channel: product-alerts
-        status: FAILURE
-        color: warning
-
   esd-push-docker-images:
-    needs: esd-build-bulwark
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
+      image: ghcr.io/cyber-crypt-com/github-runner:1.6
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
-      env:
-        BW_CONFIG: staging.toml
-        BW_GITTOKEN: ${{ secrets.CYBOT_TOKEN }}
-        BW_SAKEYPATH: /root/.gcp/deployer-staging.json
-
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
-
-    - name: Get bulwark
-      uses: actions/download-artifact@v2
-      with:
-        name: bulwark
-        path: .
-
-    - name: Get config
-      uses: actions/download-artifact@v2
-      with:
-        name: config
-        path: .
-
+    
     - name: Build new image
       run: |
-        chmod +x ./bw
-        ./bw docker deploy
+        echo ${{ secrets.DEPLOY_CONFIG }} > scripts/deploy_env
+        make docker-build
+        make gcp-login
+        make docker-push
 
     - name: Notify slack fail
       if: failure()
@@ -95,44 +40,23 @@ jobs:
         color: warning
 
   esd-deploy-to-staging:
-    needs: [esd-build-bulwark, esd-push-docker-images]
+    needs: [esd-push-docker-images]
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
+      image: ghcr.io/cyber-crypt-com/github-runner:1.6
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
-      env:
-        BW_CONFIG: staging.toml
-        BW_KUBERNETESPATH: .
-        BW_SAKEYPATH: /root/.gcp/deployer-staging.json
-    defaults:
-      run:
-        shell: bash
-        working-directory: kubernetes
-
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Get bulwark
-      uses: actions/download-artifact@v2
-      with:
-        name: bulwark
-        path: ./kubernetes/
-
-    - name: Get config
-      uses: actions/download-artifact@v2
-      with:
-        name: config
-        path: ./kubernetes/
-
     - name: Apply kubernetes files
       run: |
-        chmod +x ./bw
-        ./bw kubernetes deploy
-        ./bw kubernetes restart
-
+        echo ${{ secrets.DEPLOY_CONFIG }} > scripts/deploy_env
+        make gcp-login
+        make k8s-deploy
+        
     - name: Notify slack fail
       if: failure()
       env:
@@ -147,34 +71,20 @@ jobs:
     needs: esd-deploy-to-staging
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.3
+      image: ghcr.io/cyber-crypt-com/github-runner:1.6
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
-      env:
-        BW_CONFIG: staging.toml
-        BW_GITTOKEN: ${{ secrets.CYBOT_TOKEN }}
-        BW_GRPCADMINUAT: ${{secrets.STAGING_GRPC_ADMIN_UAT}}
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Get bulwark
-      uses: actions/download-artifact@v2
-      with:
-        name: bulwark
-        path: .
-
-    - name: Get config
-      uses: actions/download-artifact@v2
-      with:
-        name: config
-        path: .
-
     - name: Run end-to-end tests
+      shell: 'script -e -c "bash {0}"' # Forces a TTY so we can do "kubectl exec.."
       run: |
-        chmod +x ./bw
-        ./bw cluster test
+        echo ${{ secrets.DEPLOY_CONFIG }} > scripts/deploy_env
+        make gcp-login
+        make cluster-test 
 
     - name: Notify slack fail
       if: failure()

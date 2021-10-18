@@ -1,0 +1,29 @@
+# Copyright 2021 CYBERCRYPT
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+### GCP related configs ###
+export PROJECT=                        # The GCP project where the cluster resides
+export CLUSTER=                        # The name of the GKE cluster where you want to deploy Encryptonize
+export ZONE=                           # The name of the zone of the GKE cluster
+export GOOGLE_APPLICATION_CREDENTIALS= # The path to the Google Cloud SA which has authorization to deploy 
+### Encryptonize related settings ###
+export ENCRYPTION_SERVICE_IMAGE=       # The full name of the Encryption service image
+export ENCRYPTION_SERVICE_HOSTNAME=    # The DNS of Encryptonize ingress
+export AUTH_STORAGE_HOSTNAME=          # The DNS of auth storage ingress
+export OBJECT_STORAGE_HOSTNAME=        # The DNS of object storage ingress
+### Testing related settings ### 
+export E2E_TEST_URL=                   # The DNS of Encryptonize used for testing
+export E2E_TEST_ADMIN_UAT=             # Access Token for a user with User Management scope
+export E2E_TEST_HTTPS=                 # Set to "true" if testing an HTTPS endpoint 
+

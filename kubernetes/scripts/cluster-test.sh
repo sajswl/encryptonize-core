@@ -16,9 +16,8 @@
 
 set -euo pipefail
 
-# Nicer docker builds
-export DOCKER_BUILDKIT=1
+E2E_TEST_ADMIN_UAT=$(kubectl -n encryptonize exec -it deployment/encryptonize-deployment /encryption-service create-admin | grep "Access Token: " | awk '{print $(NF-1)}')
 
-COMMIT=$(git rev-list -1 HEAD)
-TAG=$(git tag --points-at HEAD)
-docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t "${ENCRYPTION_SERVICE_IMAGE:-encryptonize}:${VERSION:-v3.0.0}" -f encryption-service.dockerfile .
+export E2E_TEST_ADMIN_UAT
+make -C ../encryption-service credentials
+make -C ../encryption-service e2e-tests
