@@ -42,13 +42,8 @@ if [ "$encryption" == "true" ]; then
     tags+=" encryption"
 fi
 
-license_test=${LICENSE_TEST:-false}
-
-if [ "$license_test" == "false" ]; then    # Run all e2e tests except license tests
-    test_folders=$(go list ./... | grep tests | grep -vE 'lice2e')
-else                                       # Run e2e license tests
-    test_folders=$(go list ./... | grep lice2e)
-fi
+filter=${FILTER:-""}
+test_folders=$(go list ./tests/... | grep "${filter}")
 
 echo '[*] running end-to-end tests'
 echo '[*] testfolders: '
