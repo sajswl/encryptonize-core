@@ -14,7 +14,7 @@ jobs:
   esd-push-docker-images:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.6
+      image: ghcr.io/cyber-crypt-com/github-runner:1.7
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -43,7 +43,7 @@ jobs:
     needs: [esd-push-docker-images]
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.6
+      image: ghcr.io/cyber-crypt-com/github-runner:1.7
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
     needs: esd-deploy-to-staging
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyber-crypt-com/github-runner:1.6
+      image: ghcr.io/cyber-crypt-com/github-runner:1.7
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_PULL_TOKEN }}

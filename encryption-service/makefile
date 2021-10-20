@@ -83,7 +83,7 @@ lint: $(protobufs)  ## Lint the codebase
 
 ##### Test targets #####
 .PHONY: tests
-tests: unit-tests e2e-tests eccs-tests ## Run all tests
+tests: unit-tests service-tests eccs-tests ## Run all tests
 
 .PHONY: coverage
 coverage: build  ## Generate coverage report
@@ -97,13 +97,35 @@ unit-tests: build  ## Run unit tests
 e2e-tests: build  ## Run end-to-end tests
 	./scripts/e2e_tests.sh
 
+.PHONY: e2e-tests-local
+e2e-tests-local: build  ## Run end-to-end tests against a local instance
+	source <(./scripts/get-e2e-user.sh local) && \
+	./scripts/e2e_tests.sh
+
+.PHONY: e2e-tests-docker
+e2e-tests-docker:  ## Run end-to-end tests against docker
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
+	./scripts/e2e_tests.sh
+	$(MAKE) docker-down
+
+.PHONY: e2e-tests-kubernetes
+e2e-tests-kubernetes:  ## Run end-to-end tests against kubernetes
+	source <(./scripts/get-e2e-user.sh kubernetes) && \
+	./scripts/e2e_tests.sh
+
 .PHONY: service-tests
-service-tests: build  ## Run end-to-end tests while enabling/disabling services
+service-tests:  ## Run end-to-end tests while enabling/disabling services
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
 	./scripts/service_tests.sh
 
 .PHONY: eccs-tests
-eccs-tests: build ## Run tests of the ECCS application
+eccs-tests:  ## Run tests of the ECCS application
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
 	$(MAKE) -C ../applications/ECCS tests
+	$(MAKE) docker-down
 
 
 ##### Run targets #####
