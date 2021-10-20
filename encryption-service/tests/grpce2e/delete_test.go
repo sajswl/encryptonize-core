@@ -23,9 +23,12 @@ import (
 
 // Test the we can store an object and delete it later
 func TestStoreDeleteRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
@@ -41,9 +44,12 @@ func TestStoreDeleteRetrieve(t *testing.T) {
 }
 
 func TestStoreDeleteTwice(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")

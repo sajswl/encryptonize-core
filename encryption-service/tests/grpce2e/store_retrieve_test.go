@@ -29,9 +29,12 @@ import (
 
 // Test the we can store an object and retrieve it later
 func TestStoreAndRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
@@ -53,9 +56,12 @@ func TestStoreAndRetrieve(t *testing.T) {
 
 // Test that we can store the same object/data multiple times and still retrieve it
 func TestStoreSameObjectMultipleTimes(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
@@ -79,9 +85,12 @@ func TestStoreSameObjectMultipleTimes(t *testing.T) {
 
 // Test retrieving object with invalid oid
 func TestRetrieveBadOid(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	oid := "bad"
 	_, err = client.Retrieve(oid)
@@ -90,9 +99,12 @@ func TestRetrieveBadOid(t *testing.T) {
 
 // Test multiple retrieve operations of the same object
 func TestMultipleStoreRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
@@ -118,9 +130,12 @@ func TestMultipleStoreRetrieve(t *testing.T) {
 
 // Test that an older object can be retrieved after storing multiple objects.
 func TestRetrieveOlderObject(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	// Store first object
 	plaintext := []byte("foo1")
@@ -174,9 +189,11 @@ func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 	}
 
 	for _, token := range badTokens {
-		client, err := NewClient(endpoint, token, https)
+		client, err := NewClient(endpoint, https)
 		defer closeClient(client, t)
 		failOnError("Could not create client", err, t)
+
+		client.SetToken(token)
 
 		_, err = client.Store([]byte("plaintext"), []byte("associated data"))
 		failOnSuccess("Should not be able to store anything with wrong uat", err, t)
@@ -185,9 +202,12 @@ func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
 
 // Test that a user can store and retrieve a bigger object
 func TestStoreRetrieveBigObject(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	object, err := crypt.Random(1024 * 1024 * 2) // 2 MB object
 	failOnError("Could not create random object", err, t)
@@ -203,9 +223,12 @@ func TestStoreRetrieveBigObject(t *testing.T) {
 
 // Tests random sizes to store and retrieve
 func TestStoreRetrieveRandomSizes(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	storeRetrieve := func(obsz uint32, adsz uint32) bool {
 		// if the modulo is changed here, it also has to be changed in the error reporting below
@@ -281,10 +304,16 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 				globErr.append(fmt.Errorf("Couldn't create AD: %v", err))
 				return
 			}
-			client, err := NewClient(endpoint, uat, https)
+			client, err := NewClient(endpoint, https)
 			defer closeClient(client, t)
 			if err != nil { // Bail out early on error
 				globErr.append(fmt.Errorf("Couldn't create client: %v", err))
+				return
+			}
+
+			_, err = client.LoginUser(uid, pwd)
+			if err != nil { // Bail out early on error
+				globErr.append(fmt.Errorf("Couldn't log in user: %v", err))
 				return
 			}
 
@@ -314,9 +343,12 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 
 // Test storage and retrieval of objects with no data and no associated data
 func TestStoreRetrieveEmptyObjects(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	emptyPlaintext := []byte("")
 	emptyAssociatedData := []byte("")

@@ -23,10 +23,16 @@ import (
 
 var endpoint = "127.0.0.1:9000"
 var uid string
-var uat string
 var pwd string
-var adminAT = "wgiB4kxBTb3A0lJQNLj1Bm24g1zt-IljDda0fqoS84VfAJ_OoQsbBw.ysFgUjsYhQ_-irx0Yrf3xSeJ-CR-ZnMbq9mbBcHrPKV6g2hdBJnD0jznJJuhnLHlvJd7l20B1w"
-var protoUserScopes = []users.UserScope{users.UserScope_READ, users.UserScope_CREATE, users.UserScope_UPDATE, users.UserScope_DELETE, users.UserScope_INDEX, users.UserScope_OBJECTPERMISSIONS}
+var protoUserScopes = []users.UserScope{
+	users.UserScope_READ,
+	users.UserScope_CREATE,
+	users.UserScope_INDEX,
+	users.UserScope_OBJECTPERMISSIONS,
+	users.UserScope_USERMANAGEMENT,
+	users.UserScope_UPDATE,
+	users.UserScope_DELETE,
+}
 var https = false
 
 /**************************/
@@ -39,17 +45,21 @@ func TestMain(m *testing.M) {
 	if ok {
 		endpoint = v
 	}
-	v, ok = os.LookupEnv("E2E_TEST_ADMIN_UAT")
-	if ok {
-		adminAT = v
-	}
 	v, ok = os.LookupEnv("E2E_TEST_HTTPS")
 	if ok && v == "true" {
 		https = true
 	}
+	bootstrapUID, ok := os.LookupEnv("E2E_TEST_UID")
+	if !ok {
+		log.Fatal("E2E_TEST_UID is not set")
+	}
+	bootstrapPassword, ok := os.LookupEnv("E2E_TEST_PASS")
+	if !ok {
+		log.Fatal("E2E_TEST_PASS is not set")
+	}
 
 	// Create user for tests
-	client, err := NewClient(endpoint, adminAT, https)
+	client, err := NewClient(endpoint, https)
 	if err != nil {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
@@ -60,6 +70,13 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Couldn't ping test server: %v", err)
 	}
 
+	// Login boostrap user
+	_, err = client.LoginUser(bootstrapUID, bootstrapPassword)
+	if err != nil {
+		log.Fatalf("Couldn't login with test bootstrap user: %v", err)
+	}
+
+	// Create a new user with test scopes
 	createUserResponse, err := client.CreateUser(protoUserScopes)
 	if err != nil {
 		log.Fatalf("Couldn't create test user: %v", err)
@@ -67,13 +84,6 @@ func TestMain(m *testing.M) {
 
 	uid = createUserResponse.UserId
 	pwd = createUserResponse.Password
-
-	loginUserResponse, err := client.LoginUser(uid, pwd)
-	if err != nil {
-		log.Fatalf("Couldn't login with test user: %v", err)
-	}
-
-	uat = loginUserResponse.AccessToken
 
 	os.Exit(m.Run())
 }

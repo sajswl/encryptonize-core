@@ -23,9 +23,12 @@ import (
 
 // Test endpoint is disabled
 func TestStoreDisabled(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
