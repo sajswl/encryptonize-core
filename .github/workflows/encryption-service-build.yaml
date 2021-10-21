@@ -60,9 +60,6 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Start docker containers
-      run: make docker-up
-
     - name: Run all tests
       # Small hack to get docker-compose next to docker to work. We cannot attach to the host
       # network due to the way the workflow container is started, so we fetch the ip of the docker0
@@ -75,9 +72,6 @@ jobs:
     - name: Log on failure
       if: ${{ failure() }}
       run: docker-compose logs
-
-    - name: Stop docker containers
-      run: make docker-down
     
     - name: Get short SHA
       id: slug
