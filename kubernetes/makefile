@@ -1,0 +1,49 @@
+# Copyright 2021 CYBERCRYPT
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+##### Help message #####
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target> \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
+SHELL := /bin/bash # To allow source 
+deploy_env = ./scripts/deploy_env 
+
+.PHONY: docker-build
+docker-build: ## Build the Encryptonize image
+	source $(deploy_env) && \
+	make -C ../encryption-service docker-build	
+
+.PHONY: docker-push
+docker-push: # Push the Encryptonize docker image to remote registry
+	source $(deploy_env) && \
+	./scripts/docker-push.sh
+
+.PHONY: gcp-login 
+gcp-login: ## Use the configured service account to login to GCP and the Encryptonize cluster
+	source $(deploy_env) && \
+	./scripts/gcp-login.sh
+
+.PHONY: k8s-config
+k8s-config: ## Bootstrap the Encryptonize cluster by generating the necessary deployment configs
+	./scripts/k8s-config.sh
+
+.PHONY: k8s-deploy
+k8s-deploy: ## Deploy Encryptonize kubernetes resources
+	source $(deploy_env) && \
+	./scripts/k8s-deploy.sh
+
+.PHONY: cluster-test
+cluster-test: ## Run E2E tests on the Encryptonize deployment
+	source $(deploy_env) && \
+	./scripts/cluster-test.sh

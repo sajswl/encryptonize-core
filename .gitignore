@@ -30,6 +30,7 @@ __pycache__/
 client.root.key
 object_storage_key
 object_storage.key
+deployer-staging.json
 
 # Snyk output
 snyk-error.log

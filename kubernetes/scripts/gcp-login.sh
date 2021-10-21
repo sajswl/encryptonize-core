@@ -14,11 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euo pipefail
-
-# Nicer docker builds
-export DOCKER_BUILDKIT=1
-
-COMMIT=$(git rev-list -1 HEAD)
-TAG=$(git tag --points-at HEAD)
-docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t "${ENCRYPTION_SERVICE_IMAGE:-encryptonize}:${VERSION:-v3.0.0}" -f encryption-service.dockerfile .
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+gcloud container clusters get-credentials "${CLUSTER}" --zone "${ZONE}" --project "${PROJECT}"
+gcloud auth configure-docker --quiet

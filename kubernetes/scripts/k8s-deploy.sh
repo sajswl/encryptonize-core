@@ -16,9 +16,7 @@
 
 set -euo pipefail
 
-# Nicer docker builds
-export DOCKER_BUILDKIT=1
-
-COMMIT=$(git rev-list -1 HEAD)
-TAG=$(git tag --points-at HEAD)
-docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t "${ENCRYPTION_SERVICE_IMAGE:-encryptonize}:${VERSION:-v3.0.0}" -f encryption-service.dockerfile .
+envsubst '${ENCRYPTION_SERVICE_IMAGE}'  < encryption-service/encryptonize-service.yaml | kubectl apply -f -
+envsubst '${ENCRYPTION_SERVICE_HOSTNAME}' < encryption-service/encryptonize-ingress.yaml | kubectl apply -f -
+kubectl -n encryptonize rollout restart deployment encryptonize-deployment
+kubectl -n encryptonize rollout restart deployment encryptonize-ingress
