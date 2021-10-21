@@ -42,5 +42,10 @@ if [ "$encryption" == "true" ]; then
     tags+=" encryption"
 fi
 
+filter=${FILTER:-""}
+test_folders=$(go list ./tests/... | grep "${filter}")
+
 echo '[*] running end-to-end tests'
-go test -count=1 -v -tags="authz ${tags}" ./tests/...
+echo '[*] testfolders: '
+echo $test_folders
+go test -count=1 -v -tags="authz ${tags}" $test_folders
