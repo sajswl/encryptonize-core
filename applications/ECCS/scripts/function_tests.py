@@ -20,11 +20,8 @@
 # By default the tests are run on a local server. To change this behaviour, the following
 # environment variables can be set:
 #
-# - ECCS_TEST_ADMIN_AT: Admin user access token. As default it uses the following token:
-#                         UUID   00000000-0000-4000-8000-000000000002
-#                         scopes [UserManagement]
-#                         TEK    0000000000000000000000000000000000000000000000000000000000000002
-#                         which is the same one as in the authn unit test
+# - E2E_TEST_UID:       UID of a user with USERMANAGMENT scope
+# - E2E_TEST_PASS:      Password of the above mentioned user
 # - ECCS_ENDPOINT:      Address of the server (e.g.: 127.0.0.1:9000)
 # - ECCS_CRT:           Certification used by the Encryption server
 #                         leave unset for HTTP
@@ -39,18 +36,27 @@ import json
 
 # Initializes the server
 # Sets the endpoint if it is unset
-# Extracts the admin token from the environment if it is set
+# Logs in the admin user
 def init():
 	ENDPOINT_ENV = "ECCS_ENDPOINT"
 	if ENDPOINT_ENV not in os.environ:
 		os.environ[ENDPOINT_ENV] = "127.0.0.1:9000"
 	
-	ADMIN_TOKEN_ENV = "ECCS_TEST_ADMIN_AT"
-	admin_token = "wgiB4kxBTb3A0lJQNLj1Bm24g1zt-IljDda0fqoS84VfAJ_OoQsbBw.ysFgUjsYhQ_-irx0Yrf3xSeJ-CR-ZnMbq9mbBcHrPKV6g2hdBJnD0jznJJuhnLHlvJd7l20B1w"
-	if ADMIN_TOKEN_ENV in os.environ:
-		admin_token = os.environ[ADMIN_TOKEN_ENV]
+	ADMIN_UID_ENV = "E2E_TEST_UID"
+	if ADMIN_UID_ENV in os.environ:
+		admin_uid = os.environ[ADMIN_UID_ENV]
+	else:
+		print(f"{ADMIN_UID_ENV} must be set")
+		sys.exit(1)
 
-	return admin_token
+	ADMIN_PASS_ENV = "E2E_TEST_PASS"
+	if ADMIN_PASS_ENV in os.environ:
+		admin_pass = os.environ[ADMIN_PASS_ENV]
+	else:
+		print(f"{ADMIN_PASS_ENV} must be set")
+		sys.exit(1)
+
+	return login_user(admin_uid, admin_pass)
 
 def create_user(token, flags=None):
 	cmd = ["./eccs", "-a", token, "createuser"]

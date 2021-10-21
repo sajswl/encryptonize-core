@@ -17,9 +17,12 @@ import "testing"
 
 // Test that the version endpoints works and returns a non-empty git commit hash
 func TestGetVersion(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	versionResponse, err := client.GetVersion()
 	failOnError("Getting version failed", err, t)

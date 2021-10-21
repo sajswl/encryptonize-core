@@ -45,7 +45,7 @@ type Client struct {
 }
 
 // Create a new client.
-func NewClient(endpoint, token string, https bool) (*Client, error) {
+func NewClient(endpoint string, https bool) (*Client, error) {
 	var dialOption grpc.DialOption
 
 	if https {
@@ -70,10 +70,8 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 	authClient := authn.NewEncryptonizeClient(connection)
 	authzClient := authz.NewEncryptonizeClient(connection)
 	healthClient := grpc_health_v1.NewHealthClient(connection)
-	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
-	ctx := metadata.NewOutgoingContext(context.Background(), authMetadata)
 
-	return &Client{
+	client := &Client{
 		connection:    connection,
 		appClient:     appClient,
 		storageClient: storageClient,
@@ -81,14 +79,22 @@ func NewClient(endpoint, token string, https bool) (*Client, error) {
 		authClient:    authClient,
 		authzClient:   authzClient,
 		healthClient:  healthClient,
-		ctx:           ctx,
-	}, nil
+		ctx:           context.Background(),
+	}
+
+	return client, nil
 }
 
 // Close the client connection. Call when done with the client.
 func (c *Client) Close() error {
 	err := c.connection.Close()
 	return err
+}
+
+// SetToken sets the user access token for all future calls
+func (c *Client) SetToken(token string) {
+	authMetadata := metadata.Pairs("authorization", fmt.Sprintf("bearer %v", token))
+	c.ctx = metadata.NewOutgoingContext(c.ctx, authMetadata)
 }
 
 // Perform a `Store` request.
@@ -222,8 +228,9 @@ func (c *Client) CreateUser(userscopes []users.UserScope) (*authn.CreateUserResp
 	return createUserResponse, nil
 }
 
-// Perform a `LoginUser` request.
-func (c *Client) LoginUser(userid string, password string) (*authn.LoginUserResponse, error) {
+// Perform a `LoginUser` request. This also sets the resulting access token in the client's context
+// for all future calls.
+func (c *Client) LoginUser(userid, password string) (*authn.LoginUserResponse, error) {
 	loginUserRequest := &authn.LoginUserRequest{
 		UserId:   userid,
 		Password: password,
@@ -233,6 +240,9 @@ func (c *Client) LoginUser(userid string, password string) (*authn.LoginUserResp
 	if err != nil {
 		return nil, fmt.Errorf("LoginUser failed: %v", err)
 	}
+
+	c.SetToken(loginUserResponse.AccessToken)
+
 	return loginUserResponse, nil
 }
 

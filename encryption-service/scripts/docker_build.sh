@@ -21,4 +21,4 @@ export DOCKER_BUILDKIT=1
 
 COMMIT=$(git rev-list -1 HEAD)
 TAG=$(git tag --points-at HEAD)
-docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t "${ENCRYPTION_SERVICE_IMAGE:-encryptonize}:${VERSION:-v3.0.0}" -f encryption-service.dockerfile .
+docker build --build-arg COMMIT="${COMMIT}" --build-arg TAG="${TAG}" -t "${ENCRYPTION_SERVICE_IMAGE:-encryptonize}:${VERSION:-v3.1.0}" -f encryption-service.dockerfile .

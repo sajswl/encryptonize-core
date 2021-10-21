@@ -50,7 +50,7 @@ services:
     build:
       context: .
       dockerfile: ./encryption-service.dockerfile
-    image: cybercryptcom/encryptonize-core:v3.0.0
+    image: cybercryptcom/encryptonize-core:v3.1.0
     environment:
       <<: *service-variables
     ports:

@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 # Overview
-This user manual is updated to correspond to version 3.0.0 of the API.
+This user manual is updated to correspond to version 3.1.0 of the API.
 
 This document will provide a quick introduction on how to use the Encryptonize service and introduce
 essential concepts and terminology. For a detailed description of the gRPC API, see [the
-specification](../api/api-v3.0.0.md).
+specification](../api/api-v3.1.0.md).
 
 1. [Authentication](#authentication)
 1. [Users](#users)
     1. [Managing Users](#managing-users)
-        1. [Bootstrapping admin user](#bootstrapping-admin-user)
+        1. [Bootstrapping users](#bootstrapping-users)
         1. [Generating users through API](#generating-users-through-api)
 1. [Storage](#storage)
     1. [Storing data](#storing-data)
@@ -76,21 +76,34 @@ public information and safely shared between parties.
 All IDs are of the format version 4 UUID ([RFC 4122](https://tools.ietf.org/html/rfc4122) section 4.4)  and access tokens are 64 character hex strings.
 
 ## Managing Users
-### Bootstraping admin user
-To bootstrap the Encryptonize service with an admin user, once the service has been started, connect
-to it and execute `./encryption-service create-admin`. Note that admin users created this way are only valid
-for other Encryption Services that use the same key material.
+### Bootstrapping users
+To bootstrap the Encryptonize service with a user, once the service has been started, connect to it
+and execute `./encryption-service create-user <scopes>`. Here, `<scopes>` is a string describing the
+scopes the users should have. Each scope is mapped to a character as described in the table below.
+E.g., to create a user with `READ` and `CREATE` scopes, call `./encryption-service create-user rc`.
+
+| Scope               | Character |
+| ---                 | ---       |
+| `READ`              | `r`       |
+| `CREATE`            | `c`       |
+| `UPDATE`            | `u`       |
+| `DELETE`            | `d`       |
+| `INDEX`             | `i`       |
+| `OBJECTPERMISSIONS` | `o`       |
+| `USERMANAGEMENT`    | `m`       |
+
+Note that users created this way are only valid for other Encryption Services that use the same key material.
 
 #### Docker example
 If using docker run:
 ```
-docker exec <CONTAINER ID> ./encryption-service create-admin
+docker exec <CONTAINER ID> ./encryption-service create-user <scopes>
 ```
 
 #### Kubernetes example
 If using kubernetes with kubectl run:
 ```
-kubectl -n encryptonize exec deployment/encryptonize-deployment -- /encryption-service create-admin
+kubectl -n encryptonize exec deployment/encryptonize-deployment -- /encryption-service create-user <scopes>
 ```
 
 ### Generating users through API

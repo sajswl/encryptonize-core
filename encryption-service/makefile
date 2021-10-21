@@ -36,6 +36,9 @@ tags =
 # Linker flags variable
 ldflags =
 
+# Scopes set when creating users
+scopes = rcudiom
+
 ##### Build targets #####
 .PHONY: build
 build: git-commit=$(shell git rev-list -1 HEAD)
@@ -80,7 +83,7 @@ lint: $(protobufs)  ## Lint the codebase
 
 ##### Test targets #####
 .PHONY: tests
-tests: unit-tests e2e-tests eccs-tests ## Run all tests
+tests: unit-tests service-tests eccs-tests ## Run all tests
 
 .PHONY: coverage
 coverage: build  ## Generate coverage report
@@ -94,13 +97,35 @@ unit-tests: build  ## Run unit tests
 e2e-tests: build  ## Run end-to-end tests
 	./scripts/e2e_tests.sh
 
+.PHONY: e2e-tests-local
+e2e-tests-local: build  ## Run end-to-end tests against a local instance
+	source <(./scripts/get-e2e-user.sh local) && \
+	./scripts/e2e_tests.sh
+
+.PHONY: e2e-tests-docker
+e2e-tests-docker:  ## Run end-to-end tests against docker
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
+	./scripts/e2e_tests.sh
+	$(MAKE) docker-down
+
+.PHONY: e2e-tests-kubernetes
+e2e-tests-kubernetes:  ## Run end-to-end tests against kubernetes
+	source <(./scripts/get-e2e-user.sh kubernetes) && \
+	./scripts/e2e_tests.sh
+
 .PHONY: service-tests
-service-tests: build  ## Run end-to-end tests while enabling/disabling services
+service-tests:  ## Run end-to-end tests while enabling/disabling services
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
 	./scripts/service_tests.sh
 
 .PHONY: eccs-tests
-eccs-tests: build ## Run tests of the ECCS application
+eccs-tests:  ## Run tests of the ECCS application
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
 	$(MAKE) -C ../applications/ECCS tests
+	$(MAKE) docker-down
 
 
 ##### Run targets #####
@@ -113,14 +138,14 @@ run-in-mem: tags += storage_mocked
 run-in-mem: build  ## Start a local instance of the Encryption Service with mock backends
 	./scripts/run.sh
 
-.PHONY: create-admin
-create-admin: build  ## Creates an admin for the local instance of the Encryption Service
-	./scripts/run.sh create-admin
+.PHONY: create-user
+create-user: build  ## Creates a user with all scopes for the local instance of the Encryption Service
+	./scripts/run.sh create-user $(scopes)
 
-.PHONY: create-admin-mem
-create-admin-mem: tags += storage_mocked
-create-admin-mem: build  ## Creates an admin for the local instance of the Encryption Service
-	./scripts/run.sh create-admin
+.PHONY: create-user-mem
+create-user-mem: tags += storage_mocked
+create-user-mem: build  ## Creates a user with all scopes for the local instance of the Encryption Service
+	./scripts/run.sh create-user $(scopes)
 
 .PHONY: docker-up
 docker-up:  ## Start a dockerized instance of the Encryption Service
@@ -130,9 +155,9 @@ docker-up:  ## Start a dockerized instance of the Encryption Service
 docker-down:  ## Stop a dockerized instance of the Encryption Service
 	docker-compose down -v
 
-.PHONY: docker-create-admin
-docker-create-admin: docker-up  ## Creates an admin for the dockerized instance of the Encryption Service
-	docker-compose run encryption-service create-admin
+.PHONY: docker-create-user
+docker-create-user: docker-up  ## Creates a user with all scopes for the dockerized instance of the Encryption Service
+	docker-compose run encryption-service create-user $(scopes)
 
 ##### Cleanup targets #####
 .PHONY: clean  ## Remove build artifacts

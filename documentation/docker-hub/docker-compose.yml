@@ -32,7 +32,7 @@ x-service-variables: &service-variables
 
 services:
   encryption-service:
-    image: cybercryptcom/encryptonize-core:v3.0.0
+    image: cybercryptcom/encryptonize-core:v3.1.0
     environment:
       <<: *service-variables
     ports:

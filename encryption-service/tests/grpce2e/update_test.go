@@ -24,9 +24,12 @@ import (
 
 // Test the we can store an object, update and retrieve it later
 func TestStoreAndUpdate(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("ChunkID")
@@ -53,9 +56,12 @@ func TestStoreAndUpdate(t *testing.T) {
 }
 
 func TestStoreAndUpdateWrongOid(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("ChunkID")
@@ -70,9 +76,12 @@ func TestStoreAndUpdateWrongOid(t *testing.T) {
 }
 
 func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
 	associatedData := []byte("ChunkID")
@@ -83,32 +92,23 @@ func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
 	oid := storeResponse.ObjectId
 
 	// Create another user to share the object with
-	adminClient, err := NewClient(endpoint, adminAT, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(adminClient, t)
-
-	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 
 	uid2 := createUserResponse.UserId
-	uat2 := loginUserResponse.AccessToken
-	failOnError("Couldn't parse UAT", err, t)
+	pwd2 := createUserResponse.Password
 
 	// Add the new user to object permission list
 	_, err = client.AddPermission(oid, uid2)
 	failOnError("Add permission request failed", err, t)
 
-	client2, err := NewClient(endpoint, uat2, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client2, t)
-
 	plaintext2 := []byte("foo2")
 
 	// Update the object from the new user
-	_, err = client2.Update(oid, plaintext2, associatedData)
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not log in user", err, t)
+
+	_, err = client.Update(oid, plaintext2, associatedData)
 	failOnError("Store operation failed", err, t)
 
 	// Check that the original user can still retrieve the object

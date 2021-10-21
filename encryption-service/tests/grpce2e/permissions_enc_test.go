@@ -24,9 +24,12 @@ import (
 
 // Test that a user can remove themselves from the object ACL and cannot decrypt the object afterwards
 func TestDecryptSameUserWithoutPermissions(t *testing.T) {
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not create client", err, t)
 
 	encResponse, err := client.Encrypt([]byte("foo"), []byte("bar"))
 	failOnError("Encrypt operation failed", err, t)
@@ -44,24 +47,20 @@ func TestDecryptSameUserWithoutPermissions(t *testing.T) {
 // Test that an encrypted object can be retrieved by another user with permissions
 func TestShareEncryptedObjectWithUser(t *testing.T) {
 	// Create another user to share the object with
-	adminClient, err := NewClient(endpoint, adminAT, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
-	defer closeClient(adminClient, t)
+	defer closeClient(client, t)
 
-	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
-	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 
 	uid2 := createUserResponse.UserId
-	uat2 := loginUserResponse.AccessToken
-	failOnError("Couldn't parse UAT", err, t)
+	pwd2 := createUserResponse.Password
 
 	// Encrypt an object
-	client, err := NewClient(endpoint, uat, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
 	encryptResponse, err := client.Encrypt(plaintext, associatedData)
@@ -73,13 +72,16 @@ func TestShareEncryptedObjectWithUser(t *testing.T) {
 	failOnError("Add permission request failed", err, t)
 
 	// Try to retrieve object with another user
-	client2, err := NewClient(endpoint, uat2, https)
-	failOnError("Could not create client for new user", err, t)
-	defer closeClient(client2, t)
-	_, err = client2.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not log in user", err, t)
+
+	_, err = client.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
 	failOnError("Authorized user could not decrypt object created by another user", err, t)
 
 	// Try to retrieve object with the original user
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
 	_, err = client.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
 	failOnError("Object creator could not decrypt object", err, t)
 }
@@ -88,23 +90,20 @@ func TestShareEncryptedObjectWithUser(t *testing.T) {
 // retrieved by another user without permissions
 func TestDecryptWithoutPermissions(t *testing.T) {
 	// Create another user to share the object with
-	adminClient, err := NewClient(endpoint, adminAT, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(adminClient, t)
-
-	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
-	failOnError("Login user request failed", err, t)
-
-	uat2 := loginUserResponse.AccessToken
-	failOnError("Couldn't parse UAT", err, t)
-
-	// Encrypt an object
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	createUserResponse, err := client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+
+	uid2 := createUserResponse.UserId
+	pwd2 := createUserResponse.Password
+
+	// Encrypt an object
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
 	encryptResponse, err := client.Encrypt(plaintext, associatedData)
@@ -112,10 +111,10 @@ func TestDecryptWithoutPermissions(t *testing.T) {
 	oid := encryptResponse.ObjectId
 
 	// Try to retrieve object with another user
-	client2, err := NewClient(endpoint, uat2, https)
-	failOnError("Could not create client for new user", err, t)
-	defer closeClient(client2, t)
-	_, err = client2.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not log in user", err, t)
+
+	_, err = client.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
 	failOnSuccess("Unauthorized user should not be able to decrypt object", err, t)
 }
 
@@ -123,35 +122,27 @@ func TestDecryptWithoutPermissions(t *testing.T) {
 // If user A grants access to user B, then user B should be able to grant access to user C
 func TestPermissionTransitivityEnc(t *testing.T) {
 	// Create admin client for user creation
-	adminClient, err := NewClient(endpoint, adminAT, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(adminClient, t)
-
-	// Create users B and C
-	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
-	failOnError("Login user request failed", err, t)
-
-	uid2 := createUserResponse.UserId
-	uat2 := loginUserResponse.AccessToken
-	failOnError("Could not parse access token", err, t)
-
-	createUserResponse, err = adminClient.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	loginUserResponse, err = adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
-	failOnError("Login user request failed", err, t)
-
-	uid3 := createUserResponse.UserId
-	uat3 := loginUserResponse.AccessToken
-	failOnError("Could not parse access token", err, t)
-
-	// Encrypt an object
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not create client", err, t)
+
+	// Create users B and C
+	createUserResponse, err := client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+
+	uid2 := createUserResponse.UserId
+	pwd2 := createUserResponse.Password
+
+	createUserResponse, err = client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+
+	uid3 := createUserResponse.UserId
+	pwd3 := createUserResponse.Password
+
+	// Encrypt an object
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
 	encryptResponse, err := client.Encrypt(plaintext, associatedData)
@@ -163,17 +154,17 @@ func TestPermissionTransitivityEnc(t *testing.T) {
 	failOnError("Add permission request failed", err, t)
 
 	// Use user B to grant permissions to user C
-	client2, err := NewClient(endpoint, uat2, https)
-	failOnError("Could not create client2", err, t)
-	defer closeClient(client2, t)
-	_, err = client2.AddPermission(oid, uid3)
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not create client", err, t)
+
+	_, err = client.AddPermission(oid, uid3)
 	failOnError("Add permission request failed", err, t)
 
 	// Check that user C has access to object
-	client3, err := NewClient(endpoint, uat3, https)
-	failOnError("Could not create client3", err, t)
-	defer closeClient(client3, t)
-	_, err = client3.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
+	_, err = client.LoginUser(uid3, pwd3)
+	failOnError("Could not create client", err, t)
+
+	_, err = client.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
 	failOnError("Could not decrypt object", err, t)
 }
 
@@ -181,27 +172,21 @@ func TestPermissionTransitivityEnc(t *testing.T) {
 // and that add/remove permission inflicts the outcome of get permissions
 func TestGetPermissionsEnc(t *testing.T) {
 	// Create admin client for user creation
-	adminClient, err := NewClient(endpoint, adminAT, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(adminClient, t)
-
-	// Create user 2
-	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	loginUserResponse, err := adminClient.LoginUser(createUserResponse.UserId, createUserResponse.Password)
-	failOnError("Login user request failed", err, t)
-
-	uid2 := createUserResponse.UserId
-	uat2 := loginUserResponse.AccessToken
-	client2, err := NewClient(endpoint, uat2, https)
-	failOnError("Could not create client2", err, t)
-	defer closeClient(client2, t)
-
-	// Encrypt an object
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	// Create user 2
+	createUserResponse, err := client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+
+	uid2 := createUserResponse.UserId
+	pwd2 := createUserResponse.Password
+
+	// Encrypt an object
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
 	encryptResponse, err := client.Encrypt(plaintext, associatedData)
@@ -209,16 +194,26 @@ func TestGetPermissionsEnc(t *testing.T) {
 	oid := encryptResponse.ObjectId
 
 	//Check that user 2 cannot get permissions from object, without permissions
-	_, err = client2.GetPermissions(oid)
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not create client", err, t)
+
+	_, err = client.GetPermissions(oid)
 	failOnSuccess("Unauthorized user should not be able to access object permissions", err, t)
 
 	// Grant permissions to user 2
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not create client", err, t)
+
 	_, err = client.AddPermission(oid, uid2)
 	failOnError("Add permission request failed", err, t)
 
 	getPermissionsResponse1, err := client.GetPermissions(oid)
 	failOnError("Could not get permissions", err, t)
-	getPermissionsResponse2, err := client2.GetPermissions(oid)
+
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not create client", err, t)
+
+	getPermissionsResponse2, err := client.GetPermissions(oid)
 	failOnError("Could not get permissions", err, t)
 
 	// Check that permissions response contains the right uids
@@ -236,6 +231,9 @@ func TestGetPermissionsEnc(t *testing.T) {
 	}
 
 	// Remove user 2
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not create client", err, t)
+
 	_, err = client.RemovePermission(oid, uid2)
 	failOnError("Could not remove permissions", err, t)
 
@@ -252,7 +250,10 @@ func TestGetPermissionsEnc(t *testing.T) {
 	}
 
 	// Check that user 2 doesn't have permissions
-	_, err = client2.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not create client", err, t)
+
+	_, err = client.Decrypt(encryptResponse.Ciphertext, encryptResponse.AssociatedData, oid)
 	failOnSuccess("Unauthorized user should not be able to decrypt object", err, t)
 }
 
@@ -260,9 +261,12 @@ func TestGetPermissionsEnc(t *testing.T) {
 func TestAddPermissionNoTargetUserEnc(t *testing.T) {
 	nonExistingUser := "00000000-0000-0000-0000-000000000000"
 
-	client, err := NewClient(endpoint, uat, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not create client", err, t)
 
 	encryptResponse, err := client.Encrypt([]byte("foo"), []byte("bar"))
 	failOnError("Encrypt operation failed", err, t)
@@ -276,18 +280,18 @@ func TestAddPermissionNoTargetUserEnc(t *testing.T) {
 // Test that a deleted user can't be added to permissions
 func TestAddPermissionsRemovedUserEnc(t *testing.T) {
 	// Create admin client for user creation
-	adminClient, err := NewClient(endpoint, adminAT, https)
+	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
-	defer closeClient(adminClient, t)
+	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not create client", err, t)
 
 	// Create user 2
-	createUserResponse, err := adminClient.CreateUser(protoUserScopes)
+	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 
 	// Encrypt an object
-	client, err := NewClient(endpoint, uat, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
 	plaintext := []byte("foo")
 	associatedData := []byte("bar")
 	encryptResponse, err := client.Encrypt(plaintext, associatedData)
@@ -295,7 +299,7 @@ func TestAddPermissionsRemovedUserEnc(t *testing.T) {
 	oid := encryptResponse.ObjectId
 
 	// Test user removal
-	_, err = adminClient.RemoveUser(createUserResponse.UserId)
+	_, err = client.RemoveUser(createUserResponse.UserId)
 	failOnError("Remove user request failed", err, t)
 
 	// Grant permissions to user 2
