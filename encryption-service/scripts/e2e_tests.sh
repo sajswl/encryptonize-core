@@ -21,8 +21,8 @@
 # environment variables can be set:
 #
 # - E2E_TEST_URL       : Server endpoint
-# - E2E_TEST_ADMIN_UID : Admin user ID
-# - E2E_TEST_ADMIN_UAT : Admin user access token
+# - E2E_TEST_UID       : UID of a user with USERMANAGEMENT scope
+# - E2E_TEST_PASS      : Password of the above mentioned user
 # - E2E_TEST_HTTPS     : Set to "true" if testing an HTTPS endpoint
 
 set -euo pipefail

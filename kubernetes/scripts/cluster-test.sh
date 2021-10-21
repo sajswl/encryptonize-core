@@ -16,8 +16,5 @@
 
 set -euo pipefail
 
-E2E_TEST_ADMIN_UAT=$(kubectl -n encryptonize exec -it deployment/encryptonize-deployment /encryption-service create-admin | grep "Access Token: " | awk '{print $(NF-1)}')
-
-export E2E_TEST_ADMIN_UAT
 make -C ../encryption-service credentials
-make -C ../encryption-service e2e-tests
+make -C ../encryption-service e2e-tests-kubernetes

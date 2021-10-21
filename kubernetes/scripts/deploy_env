@@ -24,6 +24,5 @@ export AUTH_STORAGE_HOSTNAME=          # The DNS of auth storage ingress
 export OBJECT_STORAGE_HOSTNAME=        # The DNS of object storage ingress
 ### Testing related settings ### 
 export E2E_TEST_URL=                   # The DNS of Encryptonize used for testing
-export E2E_TEST_ADMIN_UAT=             # Access Token for a user with User Management scope
 export E2E_TEST_HTTPS=                 # Set to "true" if testing an HTTPS endpoint 
 
