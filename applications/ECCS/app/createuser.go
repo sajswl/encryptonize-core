@@ -24,7 +24,7 @@ type UserScope struct {
 	Read              bool
 	Create            bool
 	Update            bool
-  Delete            bool
+	Delete            bool
 	Index             bool
 	ObjectPermissions bool
 	UserManagement    bool
@@ -41,10 +41,10 @@ func CreateUser(userAT string, userScope UserScope) error {
 	if userScope.Create {
 		scopes = append(scopes, "CREATE")
 	}
-  if userScope.Update {
+	if userScope.Update {
 		scopes = append(scopes, "UPDATE")
 	}
-  if userScope.Delete {
+	if userScope.Delete {
 		scopes = append(scopes, "DELETE")
 	}
 	if userScope.Index {
@@ -61,6 +61,8 @@ func CreateUser(userAT string, userScope UserScope) error {
 		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
 	}
 
+	log.Printf("%v", scopes)
+
 	// Create client
 	client, err := NewClient(userAT)
 	if err != nil {
@@ -68,13 +70,12 @@ func CreateUser(userAT string, userScope UserScope) error {
 	}
 
 	// Call Encryptonize and create a user
-	uid, password, err := client.CreateUser(scopes)
+	response, err := client.CreateUser(scopes)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
 
-	// Print create user credentials back to user
-	log.Printf("%vUID: \"%s\" Password: \"%s\"", utils.Pass("Successfully created user!\n"), uid, password)
+	log.Printf("%v\n%s", utils.Pass("Successfully created user!"), response)
 
 	return nil
 }
@@ -86,13 +87,12 @@ func LoginUser(uid, password string) error {
 		log.Fatalf("%v: %v", utils.Fail("LoginUser failed"), err)
 	}
 
-	uat, err := client.LoginUser(uid, password)
+	response, err := client.LoginUser(uid, password)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("LoginUser failed"), err)
 	}
 
-	// Print login user credentials back to user
-	log.Printf("%vUid: \"%s\" AT: \"%s\"", utils.Pass("Successfully logged in user!\n"), uid, uat)
+	log.Printf("%v\n%s", utils.Pass("Successfully logged in user!"), response)
 
 	return nil
 }

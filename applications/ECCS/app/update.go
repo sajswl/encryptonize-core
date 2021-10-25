@@ -35,7 +35,7 @@ func Update(userAT, objectID, filename, associatedData string, stdin bool) error
 	}
 
 	// Call Encryptonize and update the object
-	err = client.Update(objectID, plaintext, []byte(associatedData))
+	_, err = client.Update(objectID, plaintext, []byte(associatedData))
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Update failed at Update"), err)
 	}

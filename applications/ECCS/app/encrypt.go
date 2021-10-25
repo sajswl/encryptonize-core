@@ -15,8 +15,6 @@
 package app
 
 import (
-	b64 "encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -25,8 +23,8 @@ import (
 
 type EncryptedData struct {
 	Ciphertext     string `json:"ciphertext"`
-	ObjectID       string `json:"oid"`
-	AssociatedData string `json:"aad"`
+	AssociatedData string `json:"associatedData"`
+	ObjectID       string `json:"objectId"`
 }
 
 func Encrypt(userAT, filename, associatedData string, stdin bool) error {
@@ -42,27 +40,16 @@ func Encrypt(userAT, filename, associatedData string, stdin bool) error {
 	}
 
 	// Call Encryptonize and encrypt the object
-	oid, ciphertext, aad, err := client.Encrypt(plaintext, []byte(associatedData))
+	response, err := client.Encrypt(plaintext, []byte(associatedData))
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Encrypt failed"), err)
-	}
-
-	enc := &EncryptedData{
-		Ciphertext:     b64.StdEncoding.EncodeToString(ciphertext),
-		AssociatedData: b64.StdEncoding.EncodeToString(aad),
-		ObjectID:       oid,
-	}
-
-	jsonOutput, err := json.MarshalIndent(enc, "", "    ")
-	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Formatting output as JSON failed!"), err)
 	}
 
 	// Log status to logging output
 	log.Printf("%v\n", utils.Pass("Successfully encrypted object!"))
 
 	// Output actual output to stdout
-	fmt.Printf("%s\n", jsonOutput)
+	fmt.Printf("%s\n", response)
 
 	return nil
 }

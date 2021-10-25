@@ -68,13 +68,12 @@ func Store(userAT, filename, associatedData string, stdin bool) error {
 		log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
 	}
 	// Call Encryptonize and store the object
-	out, err := client.Store(plaintext, []byte(associatedData))
+	response, err := client.Store(plaintext, []byte(associatedData))
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Store failed"), err)
 	}
 
-	// Give back the object id to the user
-	log.Printf("%vObjectID: %v", utils.Pass("Successfully stored object!\n"), out)
+	log.Printf("%v\n%s", utils.Pass("Successfully stored object!"), response)
 
 	return nil
 }

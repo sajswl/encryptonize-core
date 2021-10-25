@@ -51,13 +51,12 @@ func Decrypt(userAT, filename string, stdin bool) error {
 	}
 
 	// Call Encryptonize and decrypt object
-	m, aad, err := client.Decrypt(enc.ObjectID, decodedCiphertext, decodedAAD)
+	response, err := client.Decrypt(enc.ObjectID, decodedCiphertext, decodedAAD)
 	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Retrieve failed"), err)
+		log.Fatalf("%v: %v", utils.Fail("Decryptt failed"), err)
 	}
 
-	// Print object back to user
-	log.Printf("%vObject: m=\"%s\", aad=\"%s\"", utils.Pass("Successfully decrypted object!\n"), string(m), string(aad))
+	log.Printf("%v\n%s", utils.Pass("Successfully decrypted object!"), response)
 
 	return nil
 }

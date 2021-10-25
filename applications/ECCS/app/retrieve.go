@@ -15,10 +15,21 @@
 package app
 
 import (
+	"encoding/json"
 	"log"
 
 	"eccs/utils"
 )
+
+type RetrievedData struct {
+	Plaintext      []byte `json:"plaintext"`
+	AssociatedData []byte `json:"associatedData"` //TODO: change to associated_data (encryptonize core api)
+}
+
+type DecodedRetrievedData struct {
+	Plaintext      string `json:"plaintext"`
+	AssociatedData string `json:"associated_data"`
+}
 
 // Retrieve creates a new client and calls Retrieve through the client
 func Retrieve(userAT, oid string) error {
@@ -29,13 +40,20 @@ func Retrieve(userAT, oid string) error {
 	}
 
 	// Call Encryptonize and retrieve object
-	m, aad, err := client.Retrieve(oid)
+	response, err := client.Retrieve(oid)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Retrieve failed"), err)
 	}
 
-	// Print object back to user
-	log.Printf("%vObject: m=\"%s\", aad=\"%s\"", utils.Pass("Successfully retrieved object!\n"), string(m), string(aad))
+	var data RetrievedData
+	err = json.Unmarshal([]byte(response), &data)
+	if err != nil {
+		log.Fatalf("Provided input does not contain the required structure!")
+	}
+
+	retrieved, err := json.Marshal(DecodedRetrievedData{Plaintext: string(data.Plaintext), AssociatedData: string(data.AssociatedData)})
+
+	log.Printf("%v\n%s", utils.Pass("Successfully retrieved object!"), retrieved)
 
 	return nil
 }

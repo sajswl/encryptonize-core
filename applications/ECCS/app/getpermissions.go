@@ -34,8 +34,7 @@ func GetPermissions(userAT, oid string) error {
 		log.Fatalf("%v: %v", utils.Fail("GetPermissions failed"), err)
 	}
 
-	// Print permissions for object to user
-	log.Printf("%vUsers: %v", utils.Pass("Successfully got permissions!\n"), out)
+	log.Printf("%v\n%s", utils.Pass("Successfully got permissions!"), out)
 
 	return nil
 }

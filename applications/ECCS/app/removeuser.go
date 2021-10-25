@@ -26,12 +26,11 @@ func RemoveUser(userAT, uid string) error {
 		log.Fatalf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	err = client.RemoveUser(uid)
+	_, err = client.RemoveUser(uid)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	// Print removal success to user
 	log.Printf("%vUid: \"%s\"", utils.Pass("Successfully removed user!\n"), uid)
 
 	return nil

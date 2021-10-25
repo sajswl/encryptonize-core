@@ -29,7 +29,7 @@ func Delete(userAT, objectID string) error {
 	}
 
 	// Call Encryptonize and delete the object
-	err = client.Delete(objectID)
+	_, err = client.Delete(objectID)
 	if err != nil {
 		log.Fatalf("%v: %v", utils.Fail("Delete failed at Delete"), err)
 	}
