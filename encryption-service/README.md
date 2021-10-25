@@ -12,7 +12,7 @@ You will need the following tools:
 * golangci-lint (version 1.33+) - [Install instructions](https://golangci-lint.run/usage/install/#local-installation)
 * gocovmerge - `go get github.com/wadey/gocovmerge`
 * Docker (version 19+) - [Install instructions](https://docs.docker.com/engine/install/)
-* Docker Compose (version 1.27+)- [Install instructions](https://docs.docker.com/compose/install/)
+* Docker Compose (version 2.0+)- [Install instructions](https://docs.docker.com/compose/install/)
 
 Additionally you need to add `$(go env GOPATH)/bin` to your `PATH`, i.e. by adding
 ```bash

@@ -31,6 +31,7 @@ client.root.key
 object_storage_key
 object_storage.key
 deployer-staging.json
+kubernetes/cockroachdb/certs/*
 
 # Snyk output
 snyk-error.log
@@ -46,3 +47,10 @@ object_storage_id
 object_storage.crt
 kubernetes/generated_files
 kubernetes/encryptonize-secrets
+
+# Output of template substitutions
+kubernetes/rook-ceph/nginx.conf
+kubernetes/rook-ceph/kustomization.yaml
+kubernetes/encryptonize/kustomization.yaml
+kubernetes/logging/agents/kustomization.yaml
+kubernetes/logging/elastic/kustomization.yaml

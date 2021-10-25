@@ -15,5 +15,4 @@
 # limitations under the License.
 
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-gcloud container clusters get-credentials "${CLUSTER}" --zone "${ZONE}" --project "${PROJECT}"
 gcloud auth configure-docker --quiet

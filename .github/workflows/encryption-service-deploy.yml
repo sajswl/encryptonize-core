@@ -24,7 +24,7 @@ jobs:
     
     - name: Build new image
       run: |
-        echo ${{ secrets.DEPLOY_CONFIG }} > scripts/deploy_env
+        echo "${{ secrets.DEPLOY_CONFIG }}" >> scripts/deploy_env
         make docker-build
         make gcp-login
         make docker-push
@@ -53,7 +53,7 @@ jobs:
 
     - name: Apply kubernetes files
       run: |
-        echo ${{ secrets.DEPLOY_CONFIG }} > scripts/deploy_env
+        echo "${{ secrets.DEPLOY_CONFIG }}" >> scripts/deploy_env
         make gcp-login
         make k8s-deploy
         
@@ -82,7 +82,7 @@ jobs:
     - name: Run end-to-end tests
       shell: 'script -e -c "bash {0}"' # Forces a TTY so we can do "kubectl exec.."
       run: |
-        echo ${{ secrets.DEPLOY_CONFIG }} > scripts/deploy_env
+        echo "${{ secrets.DEPLOY_CONFIG }}" >> scripts/deploy_env
         make gcp-login
         make cluster-test 
 

@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2021 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euo pipefail
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-gcloud container clusters get-credentials $ENC_CLUSTER --zone $ZONE --project $PROJECT
+namespace: fluentbit 
 
-make -C ../encryption-service credentials
-make -C ../encryption-service e2e-tests-kubernetes
+resources:
+- fluent-bit-deploy.yaml 
+- fluent-bit-rbac.yaml
+
+patches:
+- target:
+    kind: DaemonSet 
+    name: fluent-bit 
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/env/0/value 
+      value: ${ELASTICSEARCH_HOSTNAME}
+

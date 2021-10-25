@@ -75,131 +75,8 @@ You will also need to allocate four hostnames with your DNS provider:
 * A hostname for the CockroachDB database, e.g. `db.example.com`.
 * (Optional) A hostname for Elasticsearch, e.g. `elasticsearch.example.com`.
 
-### Edit Kubernetes Files
-You will need to edit a few settings in the provided Kubernetes files. The changes are described
-below. Strings to replace are expressed with bash syntax (e.g `${VAR}`) such that tools like
-`envsubst` can process them automatically. The script `generate_files.sh` provides this functionality.
-
-**1)** For easy deployment you can use our public docker image found at [Docker Hub](https://hub.docker.com/r/cybercryptcom/encryptonize-core). Set the image name of the desired version in `encryption-service/encryption-service.yaml`:
-```bash
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: encryptonize-deployment
-  namespace: encryptonize
-spec:
-  ...
-  containers:
-  - name: encryptonize-container
-    # Insert Encryption Service image name here
-    image: ${ENCRYPTION_SERVICE_IMAGE}
-  ...
-```
-
-**2)** If needed, adjust the `storageClassName` in `object-storage/cluster.yaml` to fit your cloud
-provider:
-```bash
-apiVersion: ceph.rook.io/v1
-kind: CephCluster
-metadata:
-  name: rook-ceph
-  namespace: rook-ceph
-spec:
-  ...
-  mon:
-    ...
-    # Set your vendor stoage class here
-    storageClassName: ${STORAGE_CLASS}
-
-  ...
-
-  storage:
-    ...
-    # Set your vendor stoage class here
-    storageClassName: ${STORAGE_CLASS}
-  ...
-```
-
-**3)** Set the `dnsName` of the `ingress-certificate` in `object-storage/ingress.yaml` to the
-hostname you will be using for the Rock-Ceph object store:
-```bash
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: ingress-certificate
-  namespace: rook-ceph
-spec:
-  ...
-  dnsNames:
-  # Set the hostname for the object store below
-  - ${OBJECT_STORAGE_HOSTNAME}
-  ...
-```
-
-Then set the `proxy_set_header` of the `ingress-config` to the same hostname:
-```bash
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ingress-config
-  namespace: rook-ceph
-data:
-  config : |
-  ...
-    # Set the hostname for the object store below
-    proxy_set_header Host '${OBJECT_STORAGE_HOSTNAME}';
-  ...
-
-```
-
-**4)** Set the `dnsName` of the `ingress-certificate` in
-`encryption-service/encryptonize-ingress.yaml` to the hostname you will be using for the encryption
-service:
-```bash
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: ingress-certificate
-  namespace: encryptonize
-spec:
-  ...
-  dnsNames:
-  # Set the hostname for the Encryption Service below
-  - ${ENCRYPTION_SERVICE_HOSTNAME}
-  ...
-```
-
-**5)** If you want to deploy the loggin setup, set the hostname you will be using for Elasticsearch
-in `logging/elastic-search.yaml`:
-```bash
-apiVersion: elasticsearch.k8s.elastic.co/v1
-kind: Elasticsearch
-metadata:
-  name: elasticsearch
-  namespace: elasticsearch
-spec:
-  ...
-  subjectAltNames:
-  # Set the hostname for Elasticsearch below
-  - dns: ${ELASTICSEARCH_HOSTNAME}
-  ...
-```
-
-Then set the Elasticsearch hostname you used above in `logging/fluent-bit-deploy.yaml`:
-```bash
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: fluent-bit
-  namespace: fluentbit
-spec:
-  ...
-  env:
-  - name: FLUENT_ELASTICSEARCH_HOST
-    # Set the hostname for the Encryption Service below
-    value: "${ELASTICSEARCH_HOSTNAME}"
-  ...
-```
+### Kubernetes config substitution
+In order to deploy the entire infrastructure, you will need to fill out the config in `kubernetes/scripts/deploy_env`. 
 
 ## CockroachDB Deployment
 
@@ -213,42 +90,25 @@ quickstart guide to set one up:
 Note that you might want to adjust the node type and quantity to suite your needs.
 Our default recommendation is a 3-node cluster with 4 CPU's and 16GB of memory for each node.
 
-*The remaining steps are provider agnostic.* Deploy the CockroachDB:
+*The remaining steps are provider agnostic.* First, create the cockroachdb namespace: 
 ```bash
-kubectl apply -f auth-storage/cockroachdb.yaml
+kubectl apply -f cockroachdb/namespace.yaml
 ```
 
-Wait for certificate signing requests to be created for each pod:
+Then generate the certificates needed for Cockroachdb and create them as Kubernetes secrets:
 ```bash
-watch kubectl get csr
+mkdir certs
+mkdir my-safe-directory
+cockroach cert create-ca --certs-dir=certs --ca-key=my-safe-directory/ca.key
+cockroach cert create-client root --certs-dir=certs --ca-key=my-safe-directory/ca.key
+kubectl create secret generic cockroachdb.client.root --from-file=certs
+cockroach cert create-node --certs-dir=certs --ca-key=my-safe-directory/ca.key localhost 127.0.0.1 cockroachdb-public cockroachdb-publidefault cockroachdb-public.default.svc.cluster.local *.cockroachdb *.cockroachdb.default *.cockroachdb.default.svc.cluster.local
+kubectl create secret generic cockroachdb.node --from-file=certs
 ```
 
-Approve the requests with the command below. You can inspect the certificate signing requests by
-running e.g. `kubectl describe csr default.node.cockroachdb-0`.
+Having the certs in place, you can now deploy the Cockroachdb:
 ```bash
-kubectl certificate approve cockroachdb.node.cockroachdb-0
-kubectl certificate approve cockroachdb.node.cockroachdb-1
-kubectl certificate approve cockroachdb.node.cockroachdb-2
-```
-
-Wait for the pods to be 'running' and for persistent volumes to be created:
-```bash
-watch "kubectl -n cockroachdb get pods && kubectl get pv"
-```
-
-Initialize the CockroachDB cluster:
-```bash
-kubectl apply -f auth-storage/cluster-init.yaml
-```
-
-Approve the client certificate signing request:
-```bash
-kubectl certificate approve cockroachdb.client.root
-```
-
-Wait for the init job to finish:
-```bash
-watch kubectl -n cockroachdb get job cluster-init-secure
+kubectl apply -k cockroachdb/
 ```
 
 ## Rook-Ceph Deployment
@@ -261,19 +121,15 @@ we provide a quickstart guide to set one up:
 
 Note that you might want to adjust the node type and quantity to suite your needs.
 If you do so, make sure to adjust the container resource requests and limits in
-`object-storage/cluster.yaml` and `object-storage/object.yaml` as well. Our default
+`rook-ceph/cluster.yaml` and `rook-ceph/object.yaml` as well. Our default
 recommendation is a 3-node cluster with 4 CPU's and 32GB of memory for each node.
 
 *The remaining steps are provider agnostic.* Deploy the Ceph Object Store to your cluster by running
 the following:
 ```bash
-kubectl apply -f common/cert-manager.yaml
-kubectl apply -f object-storage/crds.yaml
-kubectl apply -f object-storage/common.yaml
-kubectl apply -f object-storage/operator.yaml
-kubectl apply -f object-storage/cluster.yaml
-kubectl apply -f object-storage/object.yaml
-kubectl apply -f object-storage/ingress.yaml
+source ./scripts/deploy_env
+./scripts/substitute-configs.sh
+kubectl apply -k rook-ceph/
 ```
 
 Wait for everything to finish. You should see three `rook-ceph-osd` pods eventually (takes about 5
@@ -285,7 +141,7 @@ watch kubectl -n rook-ceph get pod
 At last you have to apply the following patch in order to enable ceph audit logs:
 
 ```bash
-kubectl patch deployment rook-ceph-rgw-encryptonize-store-a -n rook-ceph --patch "$(cat object-storage/rgw-patch.yaml)"
+kubectl patch deployment rook-ceph-rgw-encryptonize-store-a -n rook-ceph --patch "$(cat rook-ceph/rgw-patch.yaml)"
 ```
 
 ## Encryption Service Deployment
@@ -324,7 +180,7 @@ hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/TEK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/UEK
 ```
 
-Finally, you need to define the Encryption Service configuration in `encryption-service/encryptonize-config.yaml`
+Finally, you need to define the Encryption Service configuration in `encryptonize/encryptonize-config.yaml`
 using the secrets you created above as well as the Rook-Ceph and CockroachDB hostnames:
 ```bash
 apiVersion: v1
@@ -367,12 +223,12 @@ Using the CockroachDB CLI tool (see install instructions
 HOSTNAME=<CockroachDB Hostname>
 TLSOPTS="sslmode=verify-ca&sslrootcert=encryptonize-secrets/ca.crt&sslcert=encryptonize-secrets/client.root.crt&sslkey=encryptonize-secrets/client.root.key"
 echo 'CREATE DATABASE IF NOT EXISTS auth;' | cockroach sql --url "postgresql://root@${HOSTNAME}:26257/?${TLSOPTS}"
-cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryption-service/data/auth_storage_basic.sql
-cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryption-service/data/auth_storage_extended.sql
+cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryptonize/data/auth_storage_basic.sql
+cockroach sql --url "postgresql://root@${HOSTNAME}:26257/auth?${TLSOPTS}" < ../encryptonize/data/auth_storage_extended.sql
 ```
 
 ### Set up the cluster
-You need a Kubernetes cluster in order to deploy Ceph. If you don't have one,
+You need a Kubernetes cluster in order to deploy Encryptonize. If you don't have one,
 we provide a quickstart guide to set one up:
 
 1. [AWS cluster quickstart](aws_default_cluster_setup.md)
@@ -384,7 +240,7 @@ Our default recommendation is a 2-node cluster with 4 CPU's and 16B of memory fo
 
 *The remaining steps are provider agnostic.* Set up the basic configuration:
 ```bash
-kubectl apply -f encryption-service/encryptonize-config.yaml
+kubectl apply -f encryptonize/encryptonize-config.yaml
 ```
 Create a cluster secret for the Encryptonize files:
 ```bash
@@ -395,12 +251,11 @@ kubectl -n encryptonize create secret generic encryptonize-secrets \
 ```
 
 ### Deploy the service
-Set the `dnsName` in `encryptonize-service/encryptonize-ingress.yaml` to the hostname you will be
-using for the Encryption Service. Then, deploy the service.
+Having filled out `scripts/deploy_env`, deploy the service with the following commands:
 ```bash
-kubectl apply -f common/cert-manager.yaml
-kubectl apply -f encryption-service/encryptonize-service.yaml
-kubectl apply -f encryption-service/encryptonize-ingress.yaml
+source scripts/deploy_env
+./scripts/substitute-configs.sh
+kubectl apply -k encryptonize/
 ```
 
 Wait until everything has started:
@@ -424,14 +279,10 @@ kubectl -n encryptonize get svc encryptonize-ingress -o jsonpath="{.status.loadB
 ### Elasticsearch
 
 You will need to set up Elasticsearch in one of the existing clusters (we recommend the CockroachDB
-cluster). To deploy Elasticsearch and Kibana, run:
+cluster). Elasticsearch is already defined as a part of `cockroachdb/kustomization.yaml` and will therefore
+automatically be deployed when deploying the auth-storage. 
 
-```bash
-kubectl apply -f logging/elastic-crds.yaml
-kubectl apply -f logging/elastic-search.yaml
-```
-
-Wait for the `elasticsearch` and `kibana` pods to be "Ready":
+After deployment, wait for the `elasticsearch` and `kibana` pods to be "Ready":
 ```bash
 watch kubectl -n elasticsearch get pod
 ```
@@ -444,8 +295,10 @@ kubectl -n elasticsearch get svc elasticsearch-es-http -o jsonpath="{.status.loa
 
 ### Fluentbit
 
-You will need to deploy fluentbit to each of the three clusters. First fetch the Elasticsearch
-certificates:
+You will need to deploy fluentbit to each of the clusters that you want to monitor. Note that the kustomization
+files are already configured to deploy fluentbit, but you need to do some certificate bootstrapping to 
+enable Fluentbit connection to Elasticsearch. To do the bootstrapping fetch the Elasticsearch
+certificates from the cluster where Elasticsearch is deployed:
 ```bash
 kubectl -n elasticsearch get secrets elasticsearch-es-http-certs-public -o jsonpath="{.data['tls\.crt']}" | base64 -d > es.crt
 kubectl -n elasticsearch get secrets elasticsearch-es-http-certs-public -o jsonpath="{.data['ca\.crt']}" | base64 -d > es-ca.crt
@@ -454,16 +307,16 @@ export PASSWORD=$(kubectl -n elasticsearch get secret elasticsearch-es-elastic-u
 
 Then repeat the following steps in each cluster. First set up the configuration:
 ```bash
-kubectl apply -f logging/fluent-bit-rbac.yaml
+kubectl apply -f logging/agents/fluent-bit-rbac.yaml
 kubectl -n fluentbit create secret generic elasticsearch-config --from-literal=password=$PASSWORD
 kubectl -n fluentbit create secret generic elasticsearch-certs \
   --from-file=es.crt \
   --from-file=es-ca.crt
 ```
 
-Then deploy the fluent-bit agent:
+At last, restart the fluentbit agent:
 ```bash
-kubectl apply -f logging/fluent-bit-deploy.yaml
+kubectl -n fluentbit rollout restart ds/fluent-bit
 ```
 
 ### Accessing the Kibana UI

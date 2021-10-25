@@ -14,7 +14,9 @@
 
 ### GCP related configs ###
 export PROJECT=                        # The GCP project where the cluster resides
-export CLUSTER=                        # The name of the GKE cluster where you want to deploy Encryptonize
+export ENC_CLUSTER=                    # The name of the GKE cluster where you want to deploy Encryptonize
+export AUTH_CLUSTER=                   # The name of the GKE cluster where you want to deploy the auth storage
+export OBJ_CLUSTER=                    # The name of the GKE cluster where you want to deploy the object storage
 export ZONE=                           # The name of the zone of the GKE cluster
 export GOOGLE_APPLICATION_CREDENTIALS= # The path to the Google Cloud SA which has authorization to deploy 
 ### Encryptonize related settings ###
@@ -22,7 +24,12 @@ export ENCRYPTION_SERVICE_IMAGE=       # The full name of the Encryption service
 export ENCRYPTION_SERVICE_HOSTNAME=    # The DNS of Encryptonize ingress
 export AUTH_STORAGE_HOSTNAME=          # The DNS of auth storage ingress
 export OBJECT_STORAGE_HOSTNAME=        # The DNS of object storage ingress
+export VERSION=v3.1.0                  # The version of Encryptonize which will be tagged during build and depoyment 
 ### Testing related settings ### 
 export E2E_TEST_URL=                   # The DNS of Encryptonize used for testing
 export E2E_TEST_HTTPS=                 # Set to "true" if testing an HTTPS endpoint 
+### Storage settings ###
+export STORAGE_CLASS=                  # The storage class used by the cloud provider to provision disks for Ceph object storage
+### Logging settings ###
+export ELASTICSEARCH_HOSTNAME=         # The DNS of Elasticsearch.
 

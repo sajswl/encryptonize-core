@@ -1,80 +1,28 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cockroachdb
----
+# This config file defines a CockroachDB StatefulSet that uses certificates
+# created outside of Kubernetes. You may want to use it if you want to use a
+# different certificate authority from the one being used by Kubernetes or if
+# your Kubernetes cluster doesn't fully support certificate-signing requests
+# (e.g. as of July 2018, EKS doesn't work properly).
+#
+# To use this config file, first set up your certificates and load them into
+# your Kubernetes cluster as Secrets using the commands below:
+#
+# mkdir certs
+# mkdir my-safe-directory
+# cockroach cert create-ca --certs-dir=certs --ca-key=my-safe-directory/ca.key
+# cockroach cert create-client root --certs-dir=certs --ca-key=my-safe-directory/ca.key
+# kubectl create secret generic cockroachdb.client.root --from-file=certs
+# cockroach cert create-node --certs-dir=certs --ca-key=my-safe-directory/ca.key localhost 127.0.0.1 cockroachdb-public cockroachdb-public.default cockroachdb-public.default.svc.cluster.local *.cockroachdb *.cockroachdb.default *.cockroachdb.default.svc.cluster.local
+# kubectl create secret generic cockroachdb.node --from-file=certs
+# kubectl create -f bring-your-own-certs-statefulset.yaml
+# kubectl exec -it cockroachdb-0 -- /cockroach/cockroach init --certs-dir=/cockroach/cockroach-certs
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cockroachdb
   namespace: cockroachdb
+  name: cockroachdb
   labels:
     app: cockroachdb
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
-  name: cockroachdb
-  namespace: cockroachdb
-  labels:
-    app: cockroachdb
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  name: cockroachdb
-  namespace: cockroachdb
-  labels:
-    app: cockroachdb
-rules:
-- apiGroups:
-  - certificates.k8s.io
-  resources:
-  - certificatesigningrequests
-  verbs:
-  - create
-  - get
-  - watch
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
-metadata:
-  name: cockroachdb
-  namespace: cockroachdb
-  labels:
-    app: cockroachdb
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: cockroachdb
-subjects:
-- kind: ServiceAccount
-  name: cockroachdb
-  namespace: cockroachdb
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: cockroachdb
-  namespace: cockroachdb
-  labels:
-    app: cockroachdb
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cockroachdb
-subjects:
-- kind: ServiceAccount
-  name: cockroachdb
-  namespace: cockroachdb
 ---
 apiVersion: v1
 kind: Service
@@ -163,38 +111,20 @@ spec:
       app: cockroachdb
   template:
     metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/cockroachdb: runtime/default
+        container.apparmor.security.beta.kubernetes.io/chmod-certs: runtime/default
       labels:
         app: cockroachdb
     spec:
       serviceAccountName: cockroachdb
-      # Init containers are run only once in the lifetime of a pod, before
-      # it's started up for the first time. It has to exit successfully
-      # before the pod's main containers are allowed to start.
-      initContainers:
-      # The init-certs container sends a certificate signing request to the
-      # kubernetes cluster.
-      # You can see pending requests using: kubectl get csr
-      # CSRs can be approved using:         kubectl certificate approve <csr name>
-      #
-      # All addresses used to contact a node must be specified in the --addresses arg.
-      #
-      # In addition to the node certificate and key, the init-certs entrypoint will symlink
-      # the cluster CA to the certs directory.
-      - name: init-certs
-        image: cockroachdb/cockroach-k8s-request-cert:0.4
-        imagePullPolicy: IfNotPresent
-        command:
-        - "/bin/ash"
-        - "-ecx"
-        - "/request-cert -namespace=${POD_NAMESPACE} -certs-dir=/cockroach-certs -type=node -addresses=localhost,127.0.0.1,$(hostname -f),$(hostname -f|cut -f 1-2 -d '.'),cockroachdb-public,cockroachdb-public.$(hostname -f|cut -f 3- -d '.'),cockroachdb-public.$(hostname -f|cut -f 3-4 -d '.'),cockroachdb-public.$(hostname -f|cut -f 3 -d '.') -symlink-ca-from=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        volumeMounts:
-        - name: certs
-          mountPath: /cockroach-certs
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -207,47 +137,56 @@ spec:
                   values:
                   - cockroachdb
               topologyKey: kubernetes.io/hostname
-      containers:
-      - name: sql-auditlog
-        image: alpine
+      # Workaround for https://github.com/kubernetes/kubernetes/issues/57923
+      # Should get fixed in Kubernetes 1.22
+      initContainers:
+      - name: chmod-certs
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        image: alpine:3.14@sha256:1775bebec23e1f3ce486989bfc9ff3c4e951690df84aa9f926497d82f2ffca9d
         command:
-        - /bin/ash
-        - -c
-        args:
-        - until tail -f /tmp/cockroach-sql-audit.log; do echo waiting for audit log; sleep 10; done
+          - sh
+          - -c
+          - |-
+            cp /tmp/* /cockroach/cockroach-certs/
+            chmod 0600 /cockroach/cockroach-certs/*
         volumeMounts:
-        - name: shared-auditlog
-          mountPath: /tmp
+          - name: init-certs
+            mountPath: /tmp
+          - name: certs
+            mountPath: /cockroach/cockroach-certs
+      containers:
       - name: cockroachdb
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
         image: cockroachdb/cockroach:v20.1.7
         imagePullPolicy: IfNotPresent
         # TODO: Change these to appropriate values for the hardware that you're running. You can see
-        # the amount of allocatable resources on each of your Kubernetes nodes by running:
+        # the resources that can be allocated on each of your Kubernetes nodes by running:
         #   kubectl describe nodes
-        resources:
-          requests:
-            cpu: "2"
-            memory: "8Gi"
-          limits:
-            # NOTE: Unless you have enabled the non-default Static CPU Management Policy
-            # and are using an integer number of CPUs, we don't recommend setting a CPU limit.
-            # See:
-            #   https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/#static-policy
-            #   https://github.com/kubernetes/kubernetes/issues/51135
-            # cpu: "16"
-            memory: "8Gi"
+        # Note that requests and limits should have identical values.
+        # resources:
+        #   requests:
+        #     cpu: "2"
+        #     memory: "3Gi"
+        #   limits:
+        #     cpu: "2"
+        #     memory: "3Gi"
         ports:
         - containerPort: 26257
           name: grpc
         - containerPort: 8080
           name: http
-        livenessProbe:
-          httpGet:
-            path: "/health"
-            port: http
-            scheme: HTTPS
-          initialDelaySeconds: 30
-          periodSeconds: 5
+# We recommend that you do not configure a liveness probe on a production environment, as this can impact the availability of production databases.
+#      livenessProbe:
+#        httpGet:
+#          path: "/health"
+#          port: http
+#          scheme: HTTPS
+#        initialDelaySeconds: 30
+#        periodSeconds: 5
         readinessProbe:
           httpGet:
             path: "/health?ready=1"
@@ -261,8 +200,7 @@ spec:
           mountPath: /cockroach/cockroach-data
         - name: certs
           mountPath: /cockroach/cockroach-certs
-        - name: shared-auditlog
-          mountPath: /cockroach/cockroach-data/logs
+          readOnly: true
         env:
         - name: COCKROACH_CHANNEL
           value: kubernetes-secure
@@ -281,7 +219,6 @@ spec:
           - "-ecx"
           # The use of qualified `hostname -f` is crucial:
           # Other nodes aren't able to look up the unqualified hostname.
-          # Memory caches are set as a fraction of the pod's memory limit.
           - exec
             /cockroach/cockroach
             start
@@ -299,9 +236,10 @@ spec:
       - name: datadir
         persistentVolumeClaim:
           claimName: datadir
+      - name: init-certs
+        secret:
+          secretName: cockroachdb.node
       - name: certs
-        emptyDir: {}
-      - name: shared-auditlog
         emptyDir: {}
   podManagementPolicy: Parallel
   updateStrategy:

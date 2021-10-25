@@ -35,7 +35,7 @@ spec:
             drop:
               - all
         # Insert Encryption Service image name here
-        image: ${ENCRYPTION_SERVICE_IMAGE}
+        image: cybercryptcom/encryptonize-core:v3.1.0 
         imagePullPolicy: Always
         resources:
           requests:

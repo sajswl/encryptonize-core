@@ -82,9 +82,10 @@ see the [deployment README](kubernetes/README.md)
 ├── .github
 │   └── workflows                   # CI/CD files
 ├── kubernetes                  # Files for kubernetes deployment
-│   ├── auth-storage                # Deployment files for the auth storage
-│   ├── encryption-service          # Deployment files for the Encryption Service
+│   ├── cockroachdb                 # Deployment files for the auth storage
+│   ├── encryptonize                # Deployment files for the Encryption Service
+│   ├── cert-manager                # Deployment files for cert-manager 
 │   ├── logging                     # Deployment files for logging
-│   └── object-storage              # Deployment files for the object store
+│   └── rook-ceph                   # Deployment files for the object store
 └── README.md                   # This file
 ```
