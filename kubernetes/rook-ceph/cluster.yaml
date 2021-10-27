@@ -39,7 +39,7 @@ spec:
     volumeClaimTemplate:
       spec:
         # Set your vendor stoage class here
-        storageClassName: ${STORAGE_CLASS}
+        storageClassName: standard 
         resources:
           requests:
             storage: 60Gi # Mininmum recommended
@@ -99,7 +99,7 @@ spec:
             requests:
               storage: 1Ti # Size of each disk
           # Set your vendor stoage class here
-          storageClassName: ${STORAGE_CLASS}
+          storageClassName: standard 
           volumeMode: Block
           accessModes:
             - ReadWriteOnce

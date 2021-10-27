@@ -1,0 +1,50 @@
+# Copyright 2021 CYBERCRYPT
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../cert-manager/
+- crds.yaml
+- common.yaml
+- operator.yaml
+- cluster.yaml
+- object.yaml
+- ingress.yaml 
+- ../logging/agents/
+
+patches:
+- target:
+    kind: CephCluster
+    name: rook-ceph
+  patch: |-
+    - op: replace
+      path: /spec/mon/volumeClaimTemplate/spec/storageClassName
+      value: ${STORAGE_CLASS}
+    - op: replace
+      path: /spec/storage/storageClassDeviceSets/0/volumeClaimTemplates/0/spec/storageClassName 
+      value: ${STORAGE_CLASS} 
+- target:
+    kind: Certificate
+    name: ingress-certificate
+  patch: |-
+    - op: replace
+      path: /spec/dnsNames/0
+      value: ${OBJECT_STORAGE_HOSTNAME}
+
+configMapGenerator:
+- name: ingress-config
+  files:
+  - nginx.conf

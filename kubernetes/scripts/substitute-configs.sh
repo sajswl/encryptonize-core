@@ -15,8 +15,8 @@
 # limitations under the License.
 
 set -euo pipefail
-
-gcloud container clusters get-credentials $ENC_CLUSTER --zone $ZONE --project $PROJECT
-
-make -C ../encryption-service credentials
-make -C ../encryption-service e2e-tests-kubernetes
+envsubst < encryptonize/kustomization.yaml.tmpl > encryptonize/kustomization.yaml
+envsubst < rook-ceph/kustomization.yaml.tmpl > rook-ceph/kustomization.yaml
+envsubst < rook-ceph/nginx.conf.tmpl > rook-ceph/nginx.conf
+envsubst < logging/elastic/kustomization.yaml.tmpl > logging/elastic/kustomization.yaml
+envsubst < logging/agents/kustomization.yaml.tmpl > logging/agents/kustomization.yaml

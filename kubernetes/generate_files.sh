@@ -36,24 +36,24 @@ export SECRETS_PATH=./encryptonize-secrets
 ##########################
 
 FILE_DIR=./generated_files
-mkdir -p ${FILE_DIR}/object-storage
-mkdir -p ${FILE_DIR}/encryption-service
+mkdir -p ${FILE_DIR}/rook-ceph
+mkdir -p ${FILE_DIR}/encryptonize
 mkdir -p ${FILE_DIR}/logging
 
 echo "Generating files in '${FILE_DIR}'"
 
 envsubst '$STORAGE_CLASS' \
-  < ./object-storage/cluster.yaml \
-  > ${FILE_DIR}/object-storage/cluster.yaml
+  < ./rook-ceph/cluster.yaml \
+  > ${FILE_DIR}/rook-ceph/cluster.yaml
 envsubst '$OBJECT_STORAGE_HOSTNAME' \
-  < ./object-storage/ingress.yaml \
-  > ${FILE_DIR}/object-storage/ingress.yaml
+  < ./rook-ceph/ingress.yaml \
+  > ${FILE_DIR}/rook-ceph/ingress.yaml
 envsubst '$ENCRYPTION_SERVICE_HOSTNAME' \
-  < ./encryption-service/encryptonize-ingress.yaml \
-  > ${FILE_DIR}/encryption-service/encryptonize-ingress.yaml
+  < ./encryptonize/encryptonize-ingress.yaml \
+  > ${FILE_DIR}/encryptonize/encryptonize-ingress.yaml
 envsubst '$ENCRYPTION_SERVICE_IMAGE' \
-  < ./encryption-service/encryptonize-service.yaml \
-  > ${FILE_DIR}/encryption-service/encryptonize-service.yaml
+  < ./encryptonize/encryptonize-service.yaml \
+  > ${FILE_DIR}/encryptonize/encryptonize-service.yaml
 envsubst '$ELASTICSEARCH_HOSTNAME' \
   < ./logging/elastic-search.yaml \
   > ${FILE_DIR}/logging/elastic-search.yaml
@@ -74,8 +74,8 @@ if [ -d "$SECRETS_PATH" ]; then
   export OBJECT_STORAGE_CERT=$(cat ${SECRETS_PATH}/object_storage.crt | sed -e '2,$s/^/    /')
 
   envsubst '$KEK $ASK $TEK $UEK $AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME $OBJECT_STORAGE_ID $OBJECT_STORAGE_KEY $OBJECT_STORAGE_CERT' \
-    < ./encryption-service/encryptonize-config.yaml \
-    > ${FILE_DIR}/encryption-service/encryptonize-config.yaml
+    < ./encryptonize/encryptonize-config.yaml \
+    > ${FILE_DIR}/encryptonize/encryptonize-config.yaml
 else
   echo "'${SECRETS_PATH}' not found, skipping configuration"
 fi

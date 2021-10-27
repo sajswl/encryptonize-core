@@ -103,19 +103,19 @@ e2e-tests-local: build  ## Run end-to-end tests against a local instance
 	./scripts/e2e_tests.sh
 
 .PHONY: e2e-tests-docker
-e2e-tests-docker:  ## Run end-to-end tests against docker
+e2e-tests-docker: build  ## Run end-to-end tests against docker
 	$(MAKE) docker-up
 	source <(./scripts/get-e2e-user.sh docker) && \
 	./scripts/e2e_tests.sh
 	$(MAKE) docker-down
 
 .PHONY: e2e-tests-kubernetes
-e2e-tests-kubernetes:  ## Run end-to-end tests against kubernetes
+e2e-tests-kubernetes: build  ## Run end-to-end tests against kubernetes
 	source <(./scripts/get-e2e-user.sh kubernetes) && \
 	./scripts/e2e_tests.sh
 
 .PHONY: service-tests
-service-tests:  ## Run end-to-end tests while enabling/disabling services
+service-tests: build  ## Run end-to-end tests while enabling/disabling services
 	$(MAKE) docker-up
 	source <(./scripts/get-e2e-user.sh docker) && \
 	./scripts/service_tests.sh

@@ -48,7 +48,7 @@ spec:
       selfSignedCertificate:
         subjectAltNames:
         # Set the hostname for Elasticsearch below
-        - dns: ${ELASTICSEARCH_HOSTNAME}
+        - dns: elasticsearch.example.com 
 ---
 apiVersion: kibana.k8s.elastic.co/v1
 kind: Kibana
