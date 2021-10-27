@@ -23,7 +23,7 @@ USER_INFO=""
 if [[ "${1}" == "local" ]]; then
   USER_INFO=$(./encryption-service create-user m 2> /dev/null)
 elif [[ "${1}" == "docker" ]]; then
-  USER_INFO=$(docker exec encryption-service-encryption-service-1 /encryption-service create-user m 2> /dev/null)
+  USER_INFO=$(docker exec encryption-service /encryption-service create-user m 2> /dev/null)
 elif [[ "${1}" == "kubernetes" ]]; then
   USER_INFO=$(kubectl -n encryptonize exec deployment/encryptonize-deployment -- /encryption-service create-user m 2> /dev/null)
 else
