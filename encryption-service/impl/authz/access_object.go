@@ -18,39 +18,39 @@ import (
 )
 
 type AccessObject struct {
-	UserIDs map[uuid.UUID]bool
-	Woek    []byte
-	Version uint64
+	GroupIDs map[uuid.UUID]bool
+	Woek     []byte
+	Version  uint64
 }
 
-// NewAccessObject instantiates a new Access Object with given userID and WOEK.
+// NewAccessObject instantiates a new Access Object with given groupID and WOEK.
 // A new object starts with Version: 0
-func NewAccessObject(userID uuid.UUID, woek []byte) *AccessObject {
+func NewAccessObject(groupID uuid.UUID, woek []byte) *AccessObject {
 	return &AccessObject{
-		UserIDs: map[uuid.UUID]bool{userID: true},
-		Woek:    woek,
+		GroupIDs: map[uuid.UUID]bool{groupID: true},
+		Woek:     woek,
 	}
 }
 
-// AddUser adds a new userID to an Access Object
-func (a *AccessObject) AddUser(userID uuid.UUID) {
-	a.UserIDs[userID] = true
+// AddGroup adds a new groupID to an Access Object
+func (a *AccessObject) AddGroup(groupID uuid.UUID) {
+	a.GroupIDs[groupID] = true
 }
 
-// ContainsUser returns whether a userID is in the AccessObject
-func (a *AccessObject) ContainsUser(userID uuid.UUID) bool {
-	_, ok := a.UserIDs[userID]
+// ContainsGroup returns whether a groupID is in the AccessObject
+func (a *AccessObject) ContainsGroup(groupID uuid.UUID) bool {
+	_, ok := a.GroupIDs[groupID]
 	return ok
 }
 
-// RemoveUser removes a userID from an Access Object
-func (a *AccessObject) RemoveUser(userID uuid.UUID) {
-	delete(a.UserIDs, userID)
+// RemoveGroup removes a groupID from an Access Object
+func (a *AccessObject) RemoveGroup(groupID uuid.UUID) {
+	delete(a.GroupIDs, groupID)
 }
 
-// GetUsers returns a set of userIDs that may access the Object
-func (a *AccessObject) GetUsers() map[uuid.UUID]bool {
-	return a.UserIDs
+// GetGroups returns a set of groupIDs that may access the Object
+func (a *AccessObject) GetGroups() map[uuid.UUID]bool {
+	return a.GroupIDs
 }
 
 // GetWOEK returns the wrapped object encryption key

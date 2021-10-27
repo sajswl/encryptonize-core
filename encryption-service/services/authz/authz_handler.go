@@ -27,7 +27,7 @@ import (
 	log "encryption-service/logger"
 )
 
-// Retrieve a list of users who have access to the object specified in the request.
+// Retrieve a list of groups that have access to the object specified in the request.
 func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
 	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
 	if !ok {
@@ -36,21 +36,21 @@ func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsReque
 		return nil, err
 	}
 
-	// Grab user ids
-	uids := accessObject.GetUsers()
-	strUIDs := make([]string, 0, len(uids))
-	for uid := range uids {
-		strUIDs = append(strUIDs, uid.String())
+	// Grab group ids
+	groupIDs := accessObject.GetGroups()
+	strGIDs := make([]string, 0, len(groupIDs))
+	for gid := range groupIDs {
+		strGIDs = append(strGIDs, gid.String())
 	}
 	// Make sure order of returned list is consistent
-	sort.Strings(strUIDs)
+	sort.Strings(strGIDs)
 
 	log.Info(ctx, "GetPermissions: Permissions fetched")
 
-	return &GetPermissionsResponse{UserIds: strUIDs}, nil
+	return &GetPermissionsResponse{GroupIds: strGIDs}, nil
 }
 
-// Grant a user access to an object.
+// Grant a group access to an object.
 // The requesting user has to be authorized to access the object.
 func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
@@ -96,7 +96,7 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 	}
 
 	// Add the permission to the access object
-	accessObject.AddUser(target)
+	accessObject.AddGroup(target)
 	err = a.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
@@ -116,7 +116,7 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 	return &AddPermissionResponse{}, nil
 }
 
-// Remove a users access to an object.
+// Remove a group's access to an object.
 // The requesting user has to be authorized to access the object.
 func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
@@ -145,8 +145,8 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
 	}
 
-	// Add the permission to the access object
-	accessObject.RemoveUser(target)
+	// Remove the permission from the access object
+	accessObject.RemoveGroup(target)
 	err = a.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)

@@ -34,12 +34,12 @@ var authorizer = &Authorizer{
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
-	expected := accessObject.UserIDs
+	expected := accessObject.GroupIDs
 
-	accessObject.RemoveUser(uuid.Must(uuid.FromString("A0000000-0000-0000-0000-000000000000")))
+	accessObject.RemoveGroup(uuid.Must(uuid.FromString("A0000000-0000-0000-0000-000000000000")))
 
-	if !reflect.DeepEqual(expected, accessObject.UserIDs) {
-		t.Error("Remove User Non Existing failed")
+	if !reflect.DeepEqual(expected, accessObject.GroupIDs) {
+		t.Error("Remove Group Non Existing failed")
 	}
 }
 
@@ -72,14 +72,14 @@ func TestParseBadObjectID(t *testing.T) {
 }
 
 func TestParseBadSignedData(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
+	groupID := uuid.Must(uuid.NewV4())
 	data := []byte("parsers hate this string")
-	tag, err := authorizer.AccessObjectMAC.Tag(append(userID.Bytes(), data...))
+	tag, err := authorizer.AccessObjectMAC.Tag(append(groupID.Bytes(), data...))
 	if err != nil {
 		t.Fatalf("tag failed: %v", err)
 	}
 
-	parsedAccessObject, err := authorizer.ParseAccessObject(userID, data, tag)
+	parsedAccessObject, err := authorizer.ParseAccessObject(groupID, data, tag)
 	if parsedAccessObject != nil || err == nil {
 		t.Error("TestParseBadSignedData failed")
 	}
@@ -94,7 +94,7 @@ func TestParseBadTag(t *testing.T) {
 
 func TestCreateObject(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
-	userID := uuid.Must(uuid.NewV4())
+	groupID := uuid.Must(uuid.NewV4())
 	woek, err := crypt.Random(32)
 	if err != nil {
 		t.Fatalf("Random errored: %v", err)
@@ -108,13 +108,13 @@ func TestCreateObject(t *testing.T) {
 			if err != nil {
 				t.Errorf("parseAccessObject errored: %v", err)
 			}
-			insertCalledCorrectly = (oid == objectID) && accessObject.ContainsUser(userID)
+			insertCalledCorrectly = (oid == objectID) && accessObject.ContainsGroup(groupID)
 			return nil
 		},
 	}
 	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	err = authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err = authorizer.CreateAccessObject(ctx, objectID, groupID, woek)
 	if err != nil {
 		t.Error("CreateObject errored")
 	}
@@ -126,7 +126,7 @@ func TestCreateObject(t *testing.T) {
 
 func TestCreateObjectFail(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
-	userID := uuid.Must(uuid.NewV4())
+	groupID := uuid.Must(uuid.NewV4())
 	woek, err := crypt.Random(32)
 	if err != nil {
 		t.Fatalf("Random errored: %v", err)
@@ -139,7 +139,7 @@ func TestCreateObjectFail(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
 
-	err = authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err = authorizer.CreateAccessObject(ctx, objectID, groupID, woek)
 	if err == nil || err.Error() != "mock error" {
 		t.Error("CreateObject should have errored")
 	}
@@ -200,9 +200,9 @@ func TestAuthorizeParseFailed(t *testing.T) {
 func TestUpdatePermissions(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
 	accessObject := &AccessObject{
-		Version: 4,
-		UserIDs: map[uuid.UUID]bool{uuid.Must(uuid.NewV4()): true},
-		Woek:    []byte("woek"),
+		Version:  4,
+		GroupIDs: map[uuid.UUID]bool{uuid.Must(uuid.NewV4()): true},
+		Woek:     []byte("woek"),
 	}
 
 	var gotData, gotTag []byte

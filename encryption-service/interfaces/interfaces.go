@@ -119,17 +119,17 @@ type UserAuthenticatorInterface interface {
 }
 
 type AccessObjectInterface interface {
-	// AddUser adds a user to the permission list
-	AddUser(targetUserID uuid.UUID)
+	// AddGroup adds a group to the permission list
+	AddGroup(targetGroupID uuid.UUID)
 
-	// RemoveUser Removes a user from the permission list
-	RemoveUser(targetUserID uuid.UUID)
+	// RemoveGroup Removes a group from the permission list
+	RemoveGroup(targetGroupID uuid.UUID)
 
-	// GetUsers returns the list of users that may access the object
-	GetUsers() (userIDs map[uuid.UUID]bool)
+	// GetGroups returns the list of groups that may access the object
+	GetGroups() (groupIDs map[uuid.UUID]bool)
 
-	// ContainsUser checks if the user is present in the permission list
-	ContainsUser(targetUserID uuid.UUID) (exists bool)
+	// ContainsGroup checks if the group is present in the permission list
+	ContainsGroup(targetGroupID uuid.UUID) (exists bool)
 
 	// getWOEK retrieves the wrapped object encryption key
 	GetWOEK() (woek []byte)
@@ -138,7 +138,7 @@ type AccessObjectInterface interface {
 // Interface for authenticating and creating Access Objects
 type AccessObjectAuthenticatorInterface interface {
 	// Creates a new Access Object and inserts it into the Authstorage
-	CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) (err error)
+	CreateAccessObject(ctx context.Context, objectID, groupID uuid.UUID, woek []byte) (err error)
 
 	// Fetches an existing Access Object
 	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject AccessObjectInterface, err error)

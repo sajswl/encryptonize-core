@@ -330,7 +330,7 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 
 	outType := mth.GetOutputType()
 	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"group_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(outType, outExp) {
 		return nil, errors.New("Unexpected output type of GetPermissions method")
@@ -354,7 +354,7 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 	}
 
 	// collect repeated user_ids field
-	idsField := outType.FindFieldByName("user_ids")
+	idsField := outType.FindFieldByName("group_ids")
 	numIds := res.FieldLength(idsField)
 	var ids = []string{}
 	for i := 0; i < numIds; i++ {

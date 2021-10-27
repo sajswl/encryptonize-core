@@ -80,7 +80,7 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		authorized := accessObject.ContainsUser(userID)
+		authorized := accessObject.ContainsGroup(userID)
 		if !authorized {
 			log.Warn(ctx, "Couldn't authorize user")
 			return nil, status.Errorf(codes.PermissionDenied, "access not authorized")

@@ -216,17 +216,17 @@ func TestGetPermissions(t *testing.T) {
 	failOnError("Could not get permissions", err, t)
 
 	// Check that permissions response contains the right uids
-	ok := find(getPermissionsResponse1.UserIds, uid)
+	ok := find(getPermissionsResponse1.GroupIds, uid)
 	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
-	ok = find(getPermissionsResponse1.UserIds, uid2)
+	ok = find(getPermissionsResponse1.GroupIds, uid2)
 	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
 
-	if !reflect.DeepEqual(getPermissionsResponse1.UserIds, getPermissionsResponse2.UserIds) {
-		t.Fatalf("Permissions aren't the same: %v vs %v", getPermissionsResponse1.UserIds, getPermissionsResponse2.UserIds)
+	if !reflect.DeepEqual(getPermissionsResponse1.GroupIds, getPermissionsResponse2.GroupIds) {
+		t.Fatalf("Permissions aren't the same: %v vs %v", getPermissionsResponse1.GroupIds, getPermissionsResponse2.GroupIds)
 	}
 
 	// Remove user 2
@@ -239,13 +239,13 @@ func TestGetPermissions(t *testing.T) {
 	// Check that permissions have been removed
 	getPermissionsResponse1, err = client.GetPermissions(oid)
 	failOnError("Could not get permissions", err, t)
-	ok = find(getPermissionsResponse1.UserIds, uid)
+	ok = find(getPermissionsResponse1.GroupIds, uid)
 	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
-	ok = find(getPermissionsResponse1.UserIds, uid2)
+	ok = find(getPermissionsResponse1.GroupIds, uid2)
 	if ok {
-		t.Fatalf("Found %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Found %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
 
 	// Check that user 2 doesn't have permissions

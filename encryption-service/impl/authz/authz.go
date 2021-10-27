@@ -75,13 +75,13 @@ func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*A
 // Use cases for authorizer:
 
 // CreateObject creates a new object with given parameters and inserts it into the Auth Store.
-func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) error {
+func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, groupID uuid.UUID, woek []byte) error {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	accessObject := NewAccessObject(userID, woek)
+	accessObject := NewAccessObject(groupID, woek)
 
 	data, tag, err := a.SerializeAccessObject(objectID, accessObject)
 	if err != nil {

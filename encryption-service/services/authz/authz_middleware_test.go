@@ -50,7 +50,7 @@ func TestAuthorizeWrapper(t *testing.T) {
 	failOnError("Couldn't generate WOEK!", err, t)
 
 	accessObject := &authzimpl.AccessObject{
-		UserIDs: map[uuid.UUID]bool{
+		GroupIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
 		Woek:    Woek,
@@ -86,13 +86,13 @@ func TestAuthorizeWrapper(t *testing.T) {
 			t.Fatal("Access object not added to context")
 		}
 
-		usersFetched := accessObjectFetched.GetUsers()
+		groupsFetched := accessObjectFetched.GetGroups()
 		woekFetched := accessObjectFetched.GetWOEK()
 
-		if len(accessObject.UserIDs) != len(usersFetched) {
+		if len(accessObject.GroupIDs) != len(groupsFetched) {
 			t.Fatal("Access object in context not equal to original")
 		}
-		if !reflect.DeepEqual(accessObject.UserIDs, usersFetched) {
+		if !reflect.DeepEqual(accessObject.GroupIDs, groupsFetched) {
 			t.Fatal("Access object in context not equal to original")
 		}
 		if !bytes.Equal(accessObject.Woek, woekFetched) {
@@ -115,7 +115,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	failOnError("Couldn't generate WOEK!", err, t)
 
 	unAuthAccessObject := &authzimpl.AccessObject{
-		UserIDs: map[uuid.UUID]bool{
+		GroupIDs: map[uuid.UUID]bool{
 			uuid.Must(uuid.NewV4()): true,
 		},
 		Woek:    Woek,

@@ -41,7 +41,7 @@ var objectID = uuid.Must(uuid.NewV4())
 var Woek, err = crypt.Random(32)
 
 var accessObject = &authzimpl.AccessObject{
-	UserIDs: map[uuid.UUID]bool{
+	GroupIDs: map[uuid.UUID]bool{
 		userID: true,
 	},
 	Woek:    Woek,
@@ -73,7 +73,7 @@ func TestGetPermissions(t *testing.T) {
 		t.Fatalf("Couldn't get user: %v", err)
 	}
 
-	if !reflect.DeepEqual(expected, getPermissionsResponse.UserIds) {
+	if !reflect.DeepEqual(expected, getPermissionsResponse.GroupIds) {
 		t.Fatal("Wrong users returned")
 	}
 }
