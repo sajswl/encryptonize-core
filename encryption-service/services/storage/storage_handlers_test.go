@@ -91,6 +91,14 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Storing object failed: %v", err)
 	}
 
+	// Add access object to context
+	accessObject, err := strg.Authorizer.FetchAccessObject(ctx, uuid.FromStringOrNil(storeResponse.ObjectId))
+	if err != nil {
+		t.Fatalf("Failed to fetch access object: %s", err)
+	}
+
+	ctx = context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+
 	retrieveResponse, err := strg.Retrieve(
 		ctx,
 		&RetrieveRequest{

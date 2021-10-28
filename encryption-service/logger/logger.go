@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
+	"encryption-service/interfaces"
 )
 
 // Initializes the global logger for uniform and structured logging
@@ -149,6 +150,25 @@ func StreamMethodNameInterceptor() grpc.StreamServerInterceptor {
 		err := handler(srv, wrapped)
 
 		return err
+	}
+}
+
+// UnaryObjectIDInterceptor injects the requests object ID (if any) into a unary call
+func UnaryObjectIDInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		objectReq, ok := req.(interfaces.ObjectRequest)
+		if !ok {
+			return handler(ctx, req)
+		}
+
+		objectID, err := uuid.FromString(objectReq.GetObjectId())
+		if err != nil {
+			log.Error(ctx, "UnaryObjectIDInterceptor: Failed to parse objectID", err)
+			return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
+		}
+
+		newctx := context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
+		return handler(newctx, req)
 	}
 }
 

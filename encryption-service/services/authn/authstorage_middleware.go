@@ -26,6 +26,12 @@ import (
 	"encryption-service/services/health"
 )
 
+var skippedAuthStorageMethods = map[string]bool{
+	health.HealthEndpointCheck: true,
+	health.HealthEndpointWatch: true,
+	health.ReflectionEndpoint:  true,
+}
+
 // AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
 // It beginns a DB transcation and takes care of automatic rolling it back if needed.
 func (auth *Authn) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
@@ -40,7 +46,7 @@ func (auth *Authn) AuthStorageUnaryServerInterceptor() grpc.UnaryServerIntercept
 
 		// Don't start DB transaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
-		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
+		if _, ok := skippedAuthStorageMethods[methodName]; ok {
 			return handler(ctx, req)
 		}
 
@@ -76,7 +82,7 @@ func (auth *Authn) AuthStorageStreamingInterceptor() grpc.StreamServerIntercepto
 
 		// Don't start DB transaction on health checks
 		// IMPORTANT! This check MUST stay at the top of this function
-		if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
+		if _, ok := skippedAuthStorageMethods[methodName]; ok {
 			return handler(srv, stream)
 		}
 

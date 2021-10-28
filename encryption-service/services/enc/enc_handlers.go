@@ -10,7 +10,6 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/services/authz"
 )
 
 // API exposed function, encrypts provided plaintext
@@ -68,10 +67,10 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 // API exposed function, decrypts provided ciphertext
 // and returns the plaintext in the response
 func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
-	objectIDString := request.ObjectId
-	accessObject, err := authz.AuthorizeWrapper(ctx, enc.Authorizer, objectIDString)
-	if err != nil {
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while decrypting object")
+		log.Error(ctx, err, "Decrypt: Could not typecast access object to AccessObjectInterface")
 		return nil, err
 	}
 
