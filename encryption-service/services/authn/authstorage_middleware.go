@@ -16,7 +16,6 @@ package authn
 import (
 	"context"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -64,42 +63,5 @@ func (auth *Authn) AuthStorageUnaryServerInterceptor() grpc.UnaryServerIntercept
 
 		newCtx := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
 		return handler(newCtx, req)
-	}
-}
-
-// AuthStorageUnaryServerInterceptor creates a DB AuthStorage instance and injects it into the context.
-// It beginns a DB transcation and takes care of automatic rolling it back if needed.
-func (auth *Authn) AuthStorageStreamingInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		ctx := stream.Context()
-
-		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
-		if !ok {
-			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
-			log.Error(ctx, err, "Could not typecast methodName to string")
-			return err
-		}
-
-		// Don't start DB transaction on health checks
-		// IMPORTANT! This check MUST stay at the top of this function
-		if _, ok := skippedAuthStorageMethods[methodName]; ok {
-			return handler(srv, stream)
-		}
-
-		authStoreTx, err := auth.AuthStore.NewTransaction(ctx)
-		if err != nil {
-			log.Error(ctx, err, "NewDBAuthStore failed")
-			return status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
-		}
-		defer func() {
-			err := authStoreTx.Rollback(ctx)
-			if err != nil {
-				log.Error(ctx, err, "Performing rollback")
-			}
-		}()
-
-		newStream := grpc_middleware.WrapServerStream(stream)
-		newStream.WrappedContext = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
-		return handler(srv, newStream)
 	}
 }

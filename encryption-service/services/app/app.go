@@ -81,24 +81,12 @@ func (app *App) initgRPC(port int) (*grpc.Server, net.Listener) {
 		app.AuthzService.AuthorizationUnaryServerInterceptor(),
 	}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{
-		grpc_recovery.StreamServerInterceptor(recoveryOpt),
-		log.StreamRequestIDInterceptor(),
-		log.StreamMethodNameInterceptor(),
-		log.StreamLogInterceptor(),
-		app.AuthnService.AuthStorageStreamingInterceptor(),
-		grpc_auth.StreamServerInterceptor(app.AuthnService.CheckAccessToken),
-	}
-
 	// Add middlewares to the grpc server:
 	// The order is important: AuthenticateUser needs AuthStore and Authstore needs MethodName
 	grpcServer := grpc.NewServer(
 		grpc.MaxRecvMsgSize(65*1024*1024),
 		grpc_middleware.WithUnaryServerChain(
 			unaryInterceptors...,
-		),
-		grpc_middleware.WithStreamServerChain(
-			streamInterceptors...,
 		),
 	)
 

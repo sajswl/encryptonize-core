@@ -18,7 +18,6 @@ import (
 	"os"
 
 	"github.com/gofrs/uuid"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -141,18 +140,6 @@ func UnaryMethodNameInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// Inject full method name into stream call
-func StreamMethodNameInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		newCtx := context.WithValue(stream.Context(), contextkeys.MethodNameCtxKey, info.FullMethod)
-		wrapped := grpc_middleware.WrapServerStream(stream)
-		wrapped.WrappedContext = newCtx
-		err := handler(srv, wrapped)
-
-		return err
-	}
-}
-
 // UnaryObjectIDInterceptor injects the requests object ID (if any) into a unary call
 func UnaryObjectIDInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -188,25 +175,6 @@ func UnaryRequestIDInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// StreamRequestIDInterceptor injects a request-scoped requestID which is later
-// propagated to subsequent calls for tracing purposes
-func StreamRequestIDInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		requestID, err := uuid.NewV4()
-
-		if err != nil {
-			log.Error(context.TODO(), "StreamRequestIDInterceptor: Failed to create requestID", err)
-			return status.Errorf(codes.Internal, "error encountered while creating request ID")
-		}
-		newCtx := context.WithValue(stream.Context(), contextkeys.RequestIDCtxKey, requestID)
-		wrapped := grpc_middleware.WrapServerStream(stream)
-		wrapped.WrappedContext = newCtx
-		err = handler(srv, wrapped)
-
-		return err
-	}
-}
-
 // Logging interceptor for unary calls
 func UnaryLogInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -224,24 +192,5 @@ func UnaryLogInterceptor() grpc.UnaryServerInterceptor {
 
 		Info(ctx, "Request completed")
 		return res, err
-	}
-}
-
-// Logging interceptor for stream calls
-func StreamLogInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		ctx := stream.Context()
-		Info(ctx, "Request start")
-
-		err := handler(srv, stream)
-
-		status := "success"
-		if err != nil {
-			status = "failure"
-		}
-
-		ctx = context.WithValue(stream.Context(), contextkeys.StatusCtxKey, status)
-		Info(ctx, "Request completed")
-		return err
 	}
 }
