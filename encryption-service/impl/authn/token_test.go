@@ -31,9 +31,9 @@ var (
 	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
 	userScope = users.ScopeUserManagement
 	AT        = &AccessToken{
-		userID:     userID,
-		userScopes: userScope,
-		expiryTime: time.Now().Add(time.Hour * 24 * 365 * 150).Unix(),
+		UserID:     userID,
+		UserScopes: userScope,
+		ExpiryTime: time.Now().Add(time.Hour * 24 * 365 * 150),
 	}
 
 	tokenCryptor, _ = crypt.NewAESCryptor(TEK)

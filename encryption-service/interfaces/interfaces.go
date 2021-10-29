@@ -162,10 +162,10 @@ type MessageAuthenticatorInterface interface {
 // Interface representing an access token
 type AccessTokenInterface interface {
 	// Get the user ID contained in the token
-	UserID() (userID uuid.UUID)
+	GetUserID() (userID uuid.UUID)
 
 	// Get the scopes contained in the token
-	UserScopes() (scopes users.ScopeType)
+	GetUserScopes() (scopes users.ScopeType)
 
 	// Check if the token contains specific scopes
 	HasScopes(tar users.ScopeType) (res bool)
