@@ -25,9 +25,3 @@ enum UserScope{
   UPDATE = 5;
   DELETE = 6;
 }
-
-message ConfidentialUserData{
-  bytes hashed_password = 1;
-  bytes salt = 2;
-  repeated users.UserScope scopes = 3;
-}

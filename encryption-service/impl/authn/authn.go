@@ -14,14 +14,15 @@
 package authn
 
 import (
+	"bytes"
 	context "context"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/gofrs/uuid"
-	"google.golang.org/protobuf/proto"
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/crypt"
@@ -55,23 +56,21 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		return nil, "", err
 	}
 
-	scopes, err := users.MapScopetypeToScopes(userscopes)
-	if err != nil {
-		return nil, "", err
-	}
-
-	confidential := users.ConfidentialUserData{
+	confidential := &users.ConfidentialUserData{
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
-		Scopes:         scopes,
+		Scopes:         userscopes,
 	}
 
-	buf, err := proto.Marshal(&confidential)
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err = enc.Encode(confidential)
 	if err != nil {
 		return nil, "", err
 	}
 
-	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(buf, userID.Bytes())
+	data := buffer.Bytes()
+	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(data, userID.Bytes())
 	if err != nil {
 		return nil, "", err
 	}
@@ -115,9 +114,9 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", err
 	}
 
-	var confidential users.ConfidentialUserData
-	err = proto.Unmarshal(userData, &confidential)
-
+	confidential := &users.ConfidentialUserData{}
+	dec := gob.NewDecoder(bytes.NewReader(userData))
+	err = dec.Decode(confidential)
 	if err != nil {
 		return "", err
 	}
@@ -126,12 +125,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Incorrect password")
 	}
 
-	userscopes, err := users.MapScopesToScopeType(confidential.Scopes)
-	if err != nil {
-		return "", err
-	}
-
-	accessToken := NewAccessTokenDuration(userID, userscopes, tokenExpiryTime)
+	accessToken := NewAccessTokenDuration(userID, confidential.Scopes, tokenExpiryTime)
 
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {
