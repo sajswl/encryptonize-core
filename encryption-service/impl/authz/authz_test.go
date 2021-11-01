@@ -54,8 +54,7 @@ func TestSerializeParse(t *testing.T) {
 		t.Fatalf("parseAccessObject failed: %v", err)
 	}
 
-	// DeepEqual doesn't work here
-	if accessObject.String() != parsedAccessObject.String() {
+	if !reflect.DeepEqual(accessObject, parsedAccessObject) {
 		t.Error("TestSerializeParse failed")
 	}
 }
@@ -227,7 +226,7 @@ func TestUpdatePermissions(t *testing.T) {
 		t.Fatalf("parseAccessObject errored: %v", err)
 	}
 
-	if accessObject.String() != gotAccessObject.String() || gotAccessObject.Version != 5 {
+	if !reflect.DeepEqual(accessObject, gotAccessObject) || gotAccessObject.Version != 5 {
 		t.Error("access objects didn't match")
 	}
 }

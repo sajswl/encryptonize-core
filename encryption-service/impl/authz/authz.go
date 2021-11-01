@@ -14,11 +14,12 @@
 package authz
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"errors"
 
 	"github.com/gofrs/uuid"
-	"google.golang.org/protobuf/proto"
 
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
@@ -31,12 +32,15 @@ type Authorizer struct {
 
 // serializeAccessObject serializes and signs an Object ID + Access Object into data + tag
 func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *AccessObject) ([]byte, []byte, error) {
-	data, err := proto.Marshal(accessObject)
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(accessObject)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	msg := append(objectID.Bytes(), data...) // TODO: move linking to MessageAuthenticator?
+	data := buffer.Bytes()
+	msg := append(objectID.Bytes(), data...)
 	tag, err := a.AccessObjectMAC.Tag(msg)
 	if err != nil {
 		return nil, nil, err
@@ -47,7 +51,7 @@ func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *Acc
 
 // parseAccessObject verifies and parses an Object ID + data + tag into an Access Object
 func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*AccessObject, error) {
-	msg := append(objectID.Bytes(), data...) // TODO: move linking to MessageAuthenticator?
+	msg := append(objectID.Bytes(), data...)
 	valid, err := a.AccessObjectMAC.Verify(msg, tag)
 	if err != nil {
 		return nil, err
@@ -58,7 +62,9 @@ func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*A
 	}
 
 	accessObject := &AccessObject{}
-	err = proto.Unmarshal(data, accessObject)
+	dec := gob.NewDecoder(bytes.NewReader(data))
+
+	err = dec.Decode(accessObject)
 	if err != nil {
 		return nil, err
 	}
