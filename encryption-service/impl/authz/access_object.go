@@ -14,14 +14,11 @@
 package authz
 
 import (
-	"bytes"
-	"sort"
-
 	"github.com/gofrs/uuid"
 )
 
 type AccessObject struct {
-	UserIds [][]byte
+	UserIDs map[uuid.UUID]bool
 	Woek    []byte
 	Version uint64
 }
@@ -30,66 +27,33 @@ type AccessObject struct {
 // A new object starts with Version: 0
 func NewAccessObject(userID uuid.UUID, woek []byte) *AccessObject {
 	return &AccessObject{
-		UserIds: [][]byte{userID.Bytes()},
+		UserIDs: map[uuid.UUID]bool{userID: true},
 		Woek:    woek,
 	}
 }
 
 // AddUser adds a new userID to an Access Object
-// TODO: return error on existing user?
 func (a *AccessObject) AddUser(userID uuid.UUID) {
-	i, exists := a.findUser(userID)
-	if exists {
-		return
-	}
-
-	a.UserIds = append(a.UserIds, nil)
-	copy(a.UserIds[i+1:], a.UserIds[i:])
-	a.UserIds[i] = userID.Bytes()
+	a.UserIDs[userID] = true
 }
 
 // ContainsUser returns whether a userID is in the AccessObject
 func (a *AccessObject) ContainsUser(userID uuid.UUID) bool {
-	_, exists := a.findUser(userID)
-	return exists
+	_, ok := a.UserIDs[userID]
+	return ok
 }
 
-// AddUser removes a userID from an Access Object
-// TODO: return error on non-existing user?
+// RemoveUser removes a userID from an Access Object
 func (a *AccessObject) RemoveUser(userID uuid.UUID) {
-	i, exists := a.findUser(userID)
-	if exists {
-		a.UserIds = append(a.UserIds[:i], a.UserIds[i+1:]...)
-	}
+	delete(a.UserIDs, userID)
 }
 
-// findUser returns:
-// - the index of the first usersID that is >= than the given userID (can be after the last element)
-// - if the given userID is contained within the userIDs
-func (a *AccessObject) findUser(userID uuid.UUID) (int, bool) {
-	u := userID.Bytes()
-	i := sort.Search(len(a.UserIds), func(i int) bool {
-		return bytes.Compare(a.UserIds[i], u) >= 0
-	})
-	return i, i < len(a.UserIds) && bytes.Equal(a.UserIds[i], u)
+// GetUsers returns a set of userIDs that may access the Object
+func (a *AccessObject) GetUsers() map[uuid.UUID]bool {
+	return a.UserIDs
 }
 
-// GetUsers returns a list of userIDs that may access the Object
-func (a *AccessObject) GetUsers() ([]uuid.UUID, error) {
-	uidsBytes := a.UserIds
-	uids := make([]uuid.UUID, len(uidsBytes))
-	for i, uid := range uidsBytes {
-		newUID, err := uuid.FromBytes(uid)
-		if err != nil {
-			return nil, err
-		}
-
-		uids[i] = newUID
-	}
-	return uids, nil
-}
-
-// getWOEK returns the wrapped object encryption key
+// GetWOEK returns the wrapped object encryption key
 func (a *AccessObject) GetWOEK() []byte {
 	return a.Woek
 }

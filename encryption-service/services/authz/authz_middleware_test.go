@@ -14,9 +14,11 @@
 package authz
 
 import (
+	"testing"
+
 	"bytes"
 	"context"
-	"testing"
+	"reflect"
 
 	"github.com/gofrs/uuid"
 	codes "google.golang.org/grpc/codes"
@@ -48,8 +50,8 @@ func TestAuthorizeWrapper(t *testing.T) {
 	failOnError("Couldn't generate WOEK!", err, t)
 
 	accessObject := &authzimpl.AccessObject{
-		UserIds: [][]byte{
-			userID.Bytes(),
+		UserIDs: map[uuid.UUID]bool{
+			userID: true,
 		},
 		Woek:    Woek,
 		Version: 0,
@@ -84,15 +86,13 @@ func TestAuthorizeWrapper(t *testing.T) {
 			t.Fatal("Access object not added to context")
 		}
 
-		usersFetched, err := accessObjectFetched.GetUsers()
-		failOnError("Could not get users", err, t)
-
+		usersFetched := accessObjectFetched.GetUsers()
 		woekFetched := accessObjectFetched.GetWOEK()
 
-		if len(accessObject.UserIds) != len(usersFetched) {
+		if len(accessObject.UserIDs) != len(usersFetched) {
 			t.Fatal("Access object in context not equal to original")
 		}
-		if !bytes.Equal(accessObject.UserIds[0], usersFetched[0].Bytes()) {
+		if !reflect.DeepEqual(accessObject.UserIDs, usersFetched) {
 			t.Fatal("Access object in context not equal to original")
 		}
 		if !bytes.Equal(accessObject.Woek, woekFetched) {
@@ -115,8 +115,8 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	failOnError("Couldn't generate WOEK!", err, t)
 
 	unAuthAccessObject := &authzimpl.AccessObject{
-		UserIds: [][]byte{
-			uuid.Must(uuid.NewV4()).Bytes(),
+		UserIDs: map[uuid.UUID]bool{
+			uuid.Must(uuid.NewV4()): true,
 		},
 		Woek:    Woek,
 		Version: 0,
