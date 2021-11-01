@@ -20,8 +20,11 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// Extensions for the generated AccessObject:
-// UsersIds are inserted in a sorted order (insertion sort) to allow for binary search
+type AccessObject struct {
+	UserIds [][]byte
+	Woek    []byte
+	Version uint64
+}
 
 // NewAccessObject instantiates a new Access Object with given userID and WOEK.
 // A new object starts with Version: 0

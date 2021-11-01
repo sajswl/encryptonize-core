@@ -170,3 +170,9 @@ type AccessTokenInterface interface {
 	// Check if the token contains specific scopes
 	HasScopes(tar users.ScopeType) (res bool)
 }
+
+// Interface that represents a general request regarding an object
+type ObjectRequest interface {
+	// GetObjectId returns the object ID of the request
+	GetObjectId() (objectID string)
+}

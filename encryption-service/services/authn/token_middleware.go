@@ -49,6 +49,13 @@ var methodScopeMap = map[string]users.ScopeType{
 	baseAppPath + "Version":            users.ScopeNone,
 }
 
+var skippedTokenMethods = map[string]bool{
+	health.HealthEndpointCheck: true,
+	health.HealthEndpointWatch: true,
+	health.ReflectionEndpoint:  true,
+	baseAuthPath + "LoginUser": true,
+}
+
 // CheckAccessToken verifies the authenticity of a token and
 // that the token contains the required scope for the requested API
 // The Access Token contains uid, scopes, and a random value
@@ -64,11 +71,7 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 
 	// Don't authenticate health checks
 	// IMPORTANT! This check MUST stay at the top of this function
-	if methodName == health.HealthEndpointCheck || methodName == health.HealthEndpointWatch || methodName == health.ReflectionEndpoint {
-		return ctx, nil
-	}
-
-	if methodName == baseAuthPath+"LoginUser" {
+	if _, ok := skippedTokenMethods[methodName]; ok {
 		return ctx, nil
 	}
 
