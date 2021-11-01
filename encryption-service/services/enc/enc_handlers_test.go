@@ -67,6 +67,14 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Associated data from encryption response is not the same!")
 	}
 
+	// Add access object to context
+	accessObject, err := enc.Authorizer.FetchAccessObject(ctx, uuid.FromStringOrNil(encryptResponse.ObjectId))
+	if err != nil {
+		t.Fatalf("Failed to fetch access object: %s", err)
+	}
+
+	ctx = context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+
 	decryptResponse, err := enc.Decrypt(
 		ctx,
 		&DecryptRequest{

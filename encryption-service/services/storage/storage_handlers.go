@@ -15,7 +15,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -24,7 +23,6 @@ import (
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/services/authz"
 )
 
 const AssociatedDataStoreSuffix = "_aad"
@@ -95,9 +93,10 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 // Errors if authentication, authorization, or retrieving the object fails
 func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
-	if err != nil {
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while retrieving object")
+		log.Error(ctx, err, "Retrieve: Could not typecast access object to AccessObjectInterface")
 		return nil, err
 	}
 
@@ -119,7 +118,6 @@ func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*R
 		return nil, status.Errorf(codes.Internal, "error encountered while retrieving object")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
 	log.Info(ctx, "Retrieve: Object retrieved")
 
 	return &RetrieveResponse{
@@ -133,15 +131,6 @@ func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*R
 // Errors if authentication, authorization, or deleting the object fails
 func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
 	objectIDString := request.ObjectId
-	_, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
-	if err != nil {
-		ok := errors.Is(err, authz.NotFoundAccessObjectError)
-		if ok {
-			return &DeleteResponse{}, nil
-		}
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
-		return nil, err
-	}
 
 	// Parse objectID from request
 	objectID, err := uuid.FromString(objectIDString)
@@ -171,29 +160,29 @@ func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*Delet
 // Errors if authentication, authorization, or retrieving the access object fails
 func (strg *Storage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, err := authz.AuthorizeWrapper(ctx, strg.Authorizer, objectIDString)
-	if err != nil {
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while updating object")
+		log.Error(ctx, err, "Update: Could not typecast access object to AccessObjectInterface")
 		return nil, err
 	}
 
 	ciphertext, err := strg.DataCryptor.EncryptWithKey(request.Plaintext, request.AssociatedData, accessObject.GetWOEK())
 	if err != nil {
 		log.Error(ctx, err, "Update: Failed to encrypt object")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while updating object")
 	}
 
 	if err := strg.ObjectStore.Store(ctx, objectIDString+AssociatedDataStoreSuffix, request.AssociatedData); err != nil {
 		log.Error(ctx, err, "Update: Failed to store associated data")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while updating object")
 	}
 
 	if err := strg.ObjectStore.Store(ctx, objectIDString+CiphertextStoreSuffix, ciphertext); err != nil {
 		log.Error(ctx, err, "Update: Failed to store object")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while updating object")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
 	log.Info(ctx, "Update: Object stored")
 
 	return &UpdateResponse{}, nil

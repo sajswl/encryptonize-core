@@ -28,9 +28,10 @@ import (
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	accessObject, err := AuthorizeWrapper(ctx, a.Authorizer, request.ObjectId)
-	if err != nil {
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while getting permissions")
+		log.Error(ctx, err, "GetPermissions: Could not typecast access object to AccessObjectInterface")
 		return nil, err
 	}
 
@@ -54,8 +55,7 @@ func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsReque
 		strUIDs[i] = uid.String()
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, request.ObjectId)
-	log.Info(ctx, "GetPermissions: Permission added")
+	log.Info(ctx, "GetPermissions: Permissions fetched")
 
 	return &GetPermissionsResponse{UserIds: strUIDs}, nil
 }
@@ -70,9 +70,10 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
-	accessObject, err := AuthorizeWrapper(ctx, a.Authorizer, request.ObjectId)
-	if err != nil {
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
+		log.Error(ctx, err, "AddPermission: Could not typecast access object to AccessObjectInterface")
 		return nil, err
 	}
 
@@ -119,7 +120,6 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, oid)
 	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
 	log.Info(ctx, "AddPermission: Permission added")
 
@@ -136,9 +136,10 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, err
 	}
 
-	accessObject, err := AuthorizeWrapper(ctx, a.Authorizer, request.ObjectId)
-	if err != nil {
-		// AuthorizeWrapper logs and generates user facing error, just pass it on here
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
+		log.Error(ctx, err, "RemovePermission: Could not typecast access object to AccessObjectInterface")
 		return nil, err
 	}
 
@@ -168,7 +169,6 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, oid)
 	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
 	log.Info(ctx, "RemovePermission: Permission removed")
 

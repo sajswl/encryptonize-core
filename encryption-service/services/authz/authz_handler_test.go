@@ -19,8 +19,6 @@ import (
 	"testing"
 
 	"github.com/gofrs/uuid"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
@@ -50,15 +48,6 @@ var accessObject = &authzimpl.AccessObject{
 	Version: 0,
 }
 
-// Create accessObject without userID
-var unAuthAccessObject = &authzimpl.AccessObject{
-	UserIds: [][]byte{
-		uuid.Must(uuid.NewV4()).Bytes(),
-	},
-	Woek:    Woek,
-	Version: 0,
-}
-
 var authnStorageTxMock = &authstorage.AuthStoreTxMock{
 	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 		data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
@@ -76,8 +65,7 @@ var authnStorageTxMock = &authstorage.AuthStoreTxMock{
 }
 
 func TestGetPermissions(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	expected := []string{userID.String()}
 
 	getPermissionsResponse, err := permissions.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
@@ -91,8 +79,7 @@ func TestGetPermissions(t *testing.T) {
 }
 
 func TestGetPermissionsMissingOID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 
 	_, err = permissions.GetPermissions(ctx, &GetPermissionsRequest{})
 	if err == nil {
@@ -100,31 +87,8 @@ func TestGetPermissionsMissingOID(t *testing.T) {
 	}
 }
 
-func TestGetPermissionUnauthorized(t *testing.T) {
-	authnStorageTxMock := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
-			return data, tag, err
-		},
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			return nil
-		},
-	}
-
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
-
-	_, err = permissions.GetPermissions(ctx, &GetPermissionsRequest{ObjectId: objectID.String()})
-	if err == nil {
-		t.Fatalf("User should not be authorized")
-	}
-	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
-		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
-	}
-}
-
 func TestAddPermission(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
@@ -141,7 +105,7 @@ func TestAddPermissionNoTargetUser(t *testing.T) {
 		return false, nil
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
@@ -154,31 +118,8 @@ func TestAddPermissionNoTargetUser(t *testing.T) {
 	}
 }
 
-func TestAddPermissionUnauthorized(t *testing.T) {
-	authnStorageTxMock := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
-			return data, tag, err
-		},
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			return nil
-		},
-	}
-
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
-
-	_, err = permissions.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
-	if err == nil {
-		t.Fatalf("User should not be authorized")
-	}
-	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
-		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
-	}
-}
-
 func TestAddPermissionMissingOID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.AddPermission(ctx, &AddPermissionRequest{Target: targetID.String()})
@@ -188,7 +129,7 @@ func TestAddPermissionMissingOID(t *testing.T) {
 }
 
 func TestAddPermissionMissingTarget(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String()})
@@ -198,7 +139,7 @@ func TestAddPermissionMissingTarget(t *testing.T) {
 }
 
 func TestRemovePermission(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
@@ -207,31 +148,8 @@ func TestRemovePermission(t *testing.T) {
 	}
 }
 
-func TestRemovePermissionUnauthorized(t *testing.T) {
-	authnStorageTxMock := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
-			return data, tag, err
-		},
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			return nil
-		},
-	}
-
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
-
-	_, err = permissions.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
-	if err == nil {
-		t.Fatalf("User should not be authorized")
-	}
-	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
-		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
-	}
-}
-
 func TestRemovePermissionMissingTarget(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.RemovePermission(ctx, &RemovePermissionRequest{ObjectId: objectID.String()})
@@ -241,7 +159,7 @@ func TestRemovePermissionMissingTarget(t *testing.T) {
 }
 
 func TestRemovePermissionMissingOID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.RemovePermission(ctx, &RemovePermissionRequest{Target: targetID.String()})
