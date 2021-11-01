@@ -126,7 +126,7 @@ type AccessObjectInterface interface {
 	RemoveUser(targetUserID uuid.UUID)
 
 	// GetUsers returns the list of users that may access the object
-	GetUsers() (userIDs []uuid.UUID, err error)
+	GetUsers() (userIDs map[uuid.UUID]bool)
 
 	// ContainsUser checks if the user is present in the permission list
 	ContainsUser(targetUserID uuid.UUID) (exists bool)

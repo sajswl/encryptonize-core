@@ -41,8 +41,8 @@ var objectID = uuid.Must(uuid.NewV4())
 var Woek, err = crypt.Random(32)
 
 var accessObject = &authzimpl.AccessObject{
-	UserIds: [][]byte{
-		userID.Bytes(),
+	UserIDs: map[uuid.UUID]bool{
+		userID: true,
 	},
 	Woek:    Woek,
 	Version: 0,

@@ -34,11 +34,11 @@ var authorizer = &Authorizer{
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
-	expected := append([][]byte(nil), accessObject.UserIds...)
+	expected := accessObject.UserIDs
 
 	accessObject.RemoveUser(uuid.Must(uuid.FromString("A0000000-0000-0000-0000-000000000000")))
 
-	if !reflect.DeepEqual(expected, accessObject.UserIds) {
+	if !reflect.DeepEqual(expected, accessObject.UserIDs) {
 		t.Error("Remove User Non Existing failed")
 	}
 }
@@ -201,7 +201,7 @@ func TestUpdatePermissions(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
 	accessObject := &AccessObject{
 		Version: 4,
-		UserIds: [][]byte{uuid.Must(uuid.NewV4()).Bytes()},
+		UserIDs: map[uuid.UUID]bool{uuid.Must(uuid.NewV4()): true},
 		Woek:    []byte("woek"),
 	}
 

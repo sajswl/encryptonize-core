@@ -16,6 +16,7 @@ package authz
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -43,17 +44,19 @@ func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsReque
 	}
 
 	// Grab user ids
-	uids, err := accessObject.GetUsers()
+	uids := accessObject.GetUsers()
 	if err != nil {
 		msg := fmt.Sprintf("GetPermissions: Couldn't parse access object for ID %v", oid)
 		log.Error(ctx, err, msg)
 		return nil, status.Errorf(codes.Internal, "error encountered while getting permissions")
 	}
 
-	strUIDs := make([]string, len(uids))
-	for i, uid := range uids {
-		strUIDs[i] = uid.String()
+	strUIDs := make([]string, 0, len(uids))
+	for uid := range uids {
+		strUIDs = append(strUIDs, uid.String())
 	}
+	// Make sure order of returned list is consistent
+	sort.Strings(strUIDs)
 
 	log.Info(ctx, "GetPermissions: Permissions fetched")
 

@@ -14,10 +14,7 @@
 package authz
 
 import (
-	"bytes"
-	"math/rand"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/gofrs/uuid"
@@ -28,43 +25,18 @@ import (
 var objectID = uuid.Must(uuid.FromString("F0000000-0000-0000-0000-000000000000"))
 var accessObject = &AccessObject{
 	Version: 1337,
-	UserIds: [][]byte{
-		uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000")).Bytes(),
-		uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000000")).Bytes(),
-		uuid.Must(uuid.FromString("30000000-0000-0000-0000-000000000000")).Bytes(),
-		uuid.Must(uuid.FromString("40000000-0000-0000-0000-000000000000")).Bytes(),
+	UserIDs: map[uuid.UUID]bool{
+		uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000")): true,
+		uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000000")): true,
+		uuid.Must(uuid.FromString("30000000-0000-0000-0000-000000000000")): true,
+		uuid.Must(uuid.FromString("40000000-0000-0000-0000-000000000000")): true,
 	},
 	Woek: []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 }
 
-func TestFindUser(t *testing.T) {
-	for i, userID := range accessObject.UserIds {
-		j, exists := accessObject.findUser(uuid.Must(uuid.FromBytes(userID)))
-
-		if j != i || !exists {
-			t.Error("user not found")
-		}
-	}
-
-	j, exists := accessObject.findUser(uuid.Must(uuid.FromString("00000000-0000-0000-0000-000000000000")))
-	if j != 0 || exists {
-		t.Error("user 00 wrong")
-	}
-
-	j, exists = accessObject.findUser(uuid.Must(uuid.FromString("31000000-0000-0000-0000-000000000000")))
-	if j != 3 || exists {
-		t.Error("user 31 wrong")
-	}
-
-	j, exists = accessObject.findUser(uuid.Must(uuid.FromString("50000000-0000-0000-0000-000000000000")))
-	if j != 4 || exists {
-		t.Error("user 50 wrong")
-	}
-}
-
 func TestContainsUserTrue(t *testing.T) {
-	for _, userID := range accessObject.UserIds {
-		exists := accessObject.ContainsUser(uuid.Must(uuid.FromBytes(userID)))
+	for userID := range accessObject.UserIDs {
+		exists := accessObject.ContainsUser(userID)
 
 		if !exists {
 			t.Error("UserContains returned false")
@@ -80,30 +52,28 @@ func TestContainsUserFalse(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	accessObject := &AccessObject{}
+	accessObject := &AccessObject{
+		UserIDs: map[uuid.UUID]bool{},
+	}
 
-	expected := make([][]byte, 0)
+	expected := map[uuid.UUID]bool{}
 	for i := 0; i < 256; i++ {
 		u := uuid.Must(uuid.NewV4())
-
 		accessObject.AddUser(u)
 
-		expected = append(expected, u.Bytes())
-		sort.Slice(expected, func(i, j int) bool {
-			return bytes.Compare(expected[i], expected[j]) < 0
-		})
+		expected[u] = true
 
-		if !reflect.DeepEqual(expected, accessObject.UserIds) {
+		if !reflect.DeepEqual(expected, accessObject.UserIDs) {
 			t.Error("AddUser failed")
 		}
 	}
 }
 
 func TestAddDuplicate(t *testing.T) {
-	expected := append([][]byte(nil), accessObject.UserIds...)
+	expected := accessObject.UserIDs
 	accessObject.AddUser(uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000")))
 
-	if !reflect.DeepEqual(expected, accessObject.UserIds) {
+	if !reflect.DeepEqual(expected, accessObject.UserIDs) {
 		t.Error("AddUserDuplicate failed")
 	}
 }
@@ -121,8 +91,8 @@ func TestNew(t *testing.T) {
 	}
 
 	expected := &AccessObject{
-		UserIds: [][]byte{
-			userID.Bytes(),
+		UserIDs: map[uuid.UUID]bool{
+			userID: true,
 		},
 		Woek:    woek,
 		Version: 0,
@@ -135,27 +105,10 @@ func TestNew(t *testing.T) {
 
 //nolint: gosec
 func TestRemoveUser(t *testing.T) {
-	accessObject := &AccessObject{}
-
-	expected := make([][]byte, 256)
-	for i := 0; i < len(expected); i++ {
-		expected[i] = uuid.Must(uuid.NewV4()).Bytes()
-	}
-	sort.Slice(expected, func(i, j int) bool {
-		return bytes.Compare(expected[i], expected[j]) < 0
-	})
-
-	accessObject.UserIds = expected
-
-	for i := 0; i < len(expected); i++ {
-		j := rand.Intn(len(expected))
-		u := uuid.Must(uuid.FromBytes(expected[j]))
-
-		accessObject.RemoveUser(u)
-
-		expected = append(expected[:j], expected[j+1:]...)
-
-		if !reflect.DeepEqual(expected, accessObject.UserIds) {
+	for userID := range accessObject.UserIDs {
+		accessObject.RemoveUser(userID)
+		exists := accessObject.ContainsUser(userID)
+		if exists {
 			t.Error("RemoveUser failed")
 		}
 	}
