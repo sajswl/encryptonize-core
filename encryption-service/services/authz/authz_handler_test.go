@@ -78,12 +78,10 @@ func TestGetPermissions(t *testing.T) {
 	}
 }
 
-func TestGetPermissionsMissingOID(t *testing.T) {
-	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
-
-	_, err = permissions.GetPermissions(ctx, &GetPermissionsRequest{})
+func TestGetPermissionsMissingAccessObject(t *testing.T) {
+	_, err = permissions.GetPermissions(context.Background(), &GetPermissionsRequest{})
 	if err == nil {
-		t.Fatalf("No object id given, should have failed")
+		t.Fatalf("No access object given, should have failed")
 	}
 }
 
@@ -128,6 +126,13 @@ func TestAddPermissionMissingOID(t *testing.T) {
 	}
 }
 
+func TestAddPermissionsMissingAccessObject(t *testing.T) {
+	_, err = permissions.AddPermission(context.Background(), &AddPermissionRequest{Target: targetID.String()})
+	if err == nil {
+		t.Fatalf("No access object given, should have failed")
+	}
+}
+
 func TestAddPermissionMissingTarget(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
@@ -165,5 +170,12 @@ func TestRemovePermissionMissingOID(t *testing.T) {
 	_, err = permissions.RemovePermission(ctx, &RemovePermissionRequest{Target: targetID.String()})
 	if err == nil {
 		t.Fatalf("No object id given, should have failed")
+	}
+}
+
+func TestRemovePermissionsMissingAccessObject(t *testing.T) {
+	_, err = permissions.RemovePermission(context.Background(), &RemovePermissionRequest{Target: targetID.String()})
+	if err == nil {
+		t.Fatalf("No access object given, should have failed")
 	}
 }
