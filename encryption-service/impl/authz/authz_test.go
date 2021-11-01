@@ -54,7 +54,6 @@ func TestSerializeParse(t *testing.T) {
 		t.Fatalf("parseAccessObject failed: %v", err)
 	}
 
-	// DeepEqual doesn't work here
 	if !reflect.DeepEqual(accessObject, parsedAccessObject) {
 		t.Error("TestSerializeParse failed")
 	}
