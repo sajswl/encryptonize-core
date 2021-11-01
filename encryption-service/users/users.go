@@ -23,6 +23,12 @@ const (
 	ScopeEnd
 )
 
+type ConfidentialUserData struct {
+	HashedPassword []byte
+	Salt           []byte
+	Scopes         ScopeType
+}
+
 type UserData struct {
 	UserID               uuid.UUID
 	ConfidentialUserData []byte
@@ -89,33 +95,4 @@ func MapStringToScopeType(scopes string) (ScopeType, error) {
 		}
 	}
 	return userScopes, nil
-}
-
-func MapScopetypeToScopes(scope ScopeType) ([]UserScope, error) {
-	userScope := []UserScope{}
-	// scopes is a bitmap. This checks each bit individually
-	for i := ScopeType(1); i < ScopeEnd; i <<= 1 {
-		if !scope.HasScopes(i) {
-			continue
-		}
-		switch i {
-		case ScopeRead:
-			userScope = append(userScope, UserScope_READ)
-		case ScopeCreate:
-			userScope = append(userScope, UserScope_CREATE)
-		case ScopeUpdate:
-			userScope = append(userScope, UserScope_UPDATE)
-		case ScopeDelete:
-			userScope = append(userScope, UserScope_DELETE)
-		case ScopeIndex:
-			userScope = append(userScope, UserScope_INDEX)
-		case ScopeObjectPermissions:
-			userScope = append(userScope, UserScope_OBJECTPERMISSIONS)
-		case ScopeUserManagement:
-			userScope = append(userScope, UserScope_USERMANAGEMENT)
-		default:
-			return nil, errors.New("Invalid scopes")
-		}
-	}
-	return userScope, nil
 }

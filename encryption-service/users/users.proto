@@ -25,15 +25,3 @@ enum UserScope{
   UPDATE = 5;
   DELETE = 6;
 }
-
-message AccessTokenClient{
-  bytes user_id = 1;
-  repeated users.UserScope user_scopes = 2;
-  int64 expiry_time = 3;
-}
-
-message ConfidentialUserData{
-  bytes hashed_password = 1;
-  bytes salt = 2;
-  repeated users.UserScope scopes = 3;
-}

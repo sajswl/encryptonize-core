@@ -91,7 +91,7 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
 	}
 
-	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.UserID())
+	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.GetUserID())
 
 	reqScope, ok := methodScopeMap[methodName]
 	if !ok {

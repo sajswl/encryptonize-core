@@ -15,14 +15,14 @@
 package authn
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/gob"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
-
-	"google.golang.org/protobuf/proto"
 
 	"encryption-service/interfaces"
 	"encryption-service/users"
@@ -32,11 +32,11 @@ var ErrTokenExpired = errors.New("token expired")
 
 // AccessToken is the internal representation of an access token
 type AccessToken struct {
-	userID uuid.UUID
+	UserID uuid.UUID
 	// this field is not exported to prevent other parts
 	// of the encryption service to depend on its implementation
-	userScopes users.ScopeType
-	expiryTime int64
+	UserScopes users.ScopeType
+	ExpiryTime time.Time
 }
 
 // NewAccessTokenDuration instantiates a new access token with user ID, user scopes and validity period
@@ -47,52 +47,51 @@ func NewAccessTokenDuration(userID uuid.UUID, userScopes users.ScopeType, validi
 // NewAccessToken does the same as NewAccessTokenDuration, except it takes a point in time at which the access token exires
 func NewAccessToken(userID uuid.UUID, userScopes users.ScopeType, expiryTime time.Time) *AccessToken {
 	return &AccessToken{
-		userID:     userID,
-		userScopes: userScopes,
-		expiryTime: expiryTime.Unix(),
+		UserID:     userID,
+		UserScopes: userScopes,
+		// Strip monotonic clock reading, as it has no meaning outside the current process.
+		// For more info: https://pkg.go.dev/time#hdr-Monotonic_Clocks
+		ExpiryTime: expiryTime.Round(0),
 	}
 }
 
-func (at *AccessToken) UserID() uuid.UUID {
-	return at.userID
+func (at *AccessToken) GetUserID() uuid.UUID {
+	return at.UserID
 }
 
-func (at *AccessToken) UserScopes() users.ScopeType {
-	return at.userScopes
+func (at *AccessToken) GetUserScopes() users.ScopeType {
+	return at.UserScopes
 }
 
 func (at *AccessToken) HasScopes(tar users.ScopeType) bool {
-	return at.UserScopes().HasScopes(tar)
+	return at.GetUserScopes().HasScopes(tar)
+}
+
+// IsValid returns false if the token is expired, true otherwise.
+func (at *AccessToken) IsValid() bool {
+	return time.Now().Before(at.ExpiryTime)
 }
 
 // SerializeAccessToken encrypts and serializes an access token with a CryptorInterface
-// Format (only used internally): base64_url(wrapped_key).base64_url(proto_marshal(AccessTokenClient))
+// Format (only used internally): base64_url(wrapped_key).base64_url(gob(enc(AccessToken)))
 func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface) (string, error) {
 	//TODO not sure about these checks
-	if at.UserScopes().IsValid() != nil {
+	if at.GetUserScopes().IsValid() != nil {
 		return "", errors.New("Invalid scopes")
 	}
 
-	if at.UserID().Version() != 4 || at.UserID().Variant() != uuid.VariantRFC4122 {
+	if at.GetUserID().Version() != 4 || at.GetUserID().Variant() != uuid.VariantRFC4122 {
 		return "", errors.New("Invalid userID UUID")
 	}
 
-	userScope, err := users.MapScopetypeToScopes(at.userScopes)
-	if err != nil {
-		return "", errors.New("Invalid scopes")
-	}
-
-	accessTokenClient := &users.AccessTokenClient{
-		UserId:     at.UserID().Bytes(),
-		UserScopes: userScope,
-		ExpiryTime: at.expiryTime,
-	}
-
-	data, err := proto.Marshal(accessTokenClient)
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(at)
 	if err != nil {
 		return "", err
 	}
 
+	data := buffer.Bytes()
 	wrappedKey, ciphertext, err := cryptor.Encrypt(data, nil)
 	if err != nil {
 		return "", err
@@ -124,30 +123,16 @@ func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*Acces
 		return nil, err
 	}
 
-	accessTokenClient := &users.AccessTokenClient{}
-	err = proto.Unmarshal(data, accessTokenClient)
+	accessToken := &AccessToken{}
+	dec := gob.NewDecoder(bytes.NewReader(data))
+	err = dec.Decode(accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	uuid, err := uuid.FromBytes(accessTokenClient.UserId)
-	if err != nil {
-		return nil, err
-	}
-
-	userScopes, err := users.MapScopesToScopeType(accessTokenClient.UserScopes)
-	if err != nil {
-		return nil, errors.New("Error mapping scopes in Token")
-	}
-
-	expiryTime := time.Unix(accessTokenClient.ExpiryTime, 0)
-	if time.Now().After(expiryTime) {
+	if !accessToken.IsValid() {
 		return nil, ErrTokenExpired
 	}
 
-	return &AccessToken{
-		userID:     uuid,
-		userScopes: userScopes,
-		expiryTime: accessTokenClient.ExpiryTime,
-	}, nil
+	return accessToken, nil
 }
