@@ -225,6 +225,27 @@ func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 	return data, key, err
 }
 
+// InsertGroup inserts a group into the auth store
+func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, group users.GroupData) error {
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO groups (id, data, key) VALUES ($1, $2, $3)"), group.GroupID, group.ConfidentialGroupData, group.WrappedKey)
+	return err
+}
+
+// GetGroupData fetches a group's confidential data
+func (storeTx *AuthStoreTx) GetGroupData(ctx context.Context, groupID uuid.UUID) ([]byte, []byte, error) {
+	var data, key []byte
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
+	err := row.Scan(&data, &key)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, interfaces.ErrNotFound
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return data, key, err
+}
+
 // GetAccessObject fetches data, tag of an Access Object with given Object ID
 func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
 	var data, tag []byte

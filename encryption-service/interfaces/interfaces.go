@@ -45,14 +45,20 @@ type AuthStoreTxInterface interface {
 	// Check if a user exists in the auth store
 	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
 
-	// Get user's confidential data
-	GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error)
-
 	// Insert a user
 	InsertUser(ctx context.Context, userData users.UserData) (err error)
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
+
+	// Get user's confidential data
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error)
+
+	// Insert a group
+	InsertGroup(ctx context.Context, groupData users.GroupData) (err error)
+
+	// Get group's confidential data
+	GetGroupData(ctx context.Context, groupID uuid.UUID) (groupData []byte, key []byte, err error)
 
 	//  Retrieve an existing access object
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
