@@ -66,7 +66,8 @@ func (a *AuthorizerMock) DeleteAccessObject(_ context.Context, _ uuid.UUID) erro
 }
 
 type UserAuthenticatorMock struct {
-	userData *users.ConfidentialUserData
+	userData  *users.ConfidentialUserData
+	groupData *users.ConfidentialGroupData
 }
 
 func (u *UserAuthenticatorMock) NewUser(_ context.Context, _ users.ScopeType) (*uuid.UUID, string, error) {
@@ -75,14 +76,6 @@ func (u *UserAuthenticatorMock) NewUser(_ context.Context, _ users.ScopeType) (*
 
 func (u *UserAuthenticatorMock) NewCLIUser(_ string, _ interfaces.AuthStoreInterface) error {
 	return nil
-}
-
-func (u *UserAuthenticatorMock) ParseAccessToken(_ string) (interfaces.AccessTokenInterface, error) {
-	return nil, nil
-}
-
-func (u *UserAuthenticatorMock) LoginUser(_ context.Context, _ uuid.UUID, _ string) (string, error) {
-	return "", nil
 }
 
 func (u *UserAuthenticatorMock) RemoveUser(_ context.Context, _ uuid.UUID) error {
@@ -96,43 +89,79 @@ func (u *UserAuthenticatorMock) GetUserData(ctx context.Context, userID uuid.UUI
 	return u.userData, nil
 }
 
-func SetupMocks(methodName string, userID, objectID uuid.UUID, accessObject *authzimpl.AccessObject, userData *users.ConfidentialUserData) (context.Context, *Authz) {
+func (u *UserAuthenticatorMock) LoginUser(_ context.Context, _ uuid.UUID, _ string) (string, error) {
+	return "", nil
+}
+
+func (u *UserAuthenticatorMock) ParseAccessToken(_ string) (interfaces.AccessTokenInterface, error) {
+	return nil, nil
+}
+
+func (u *UserAuthenticatorMock) NewGroup(_ context.Context, _ users.ScopeType) (*uuid.UUID, error) {
+	return nil, nil
+}
+
+func (u *UserAuthenticatorMock) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.ConfidentialGroupData, error) {
+	if u.groupData == nil {
+		return nil, errors.New("No data")
+	}
+	return u.groupData, nil
+}
+
+type MockData struct {
+	methodName   string
+	userID       uuid.UUID
+	objectID     uuid.UUID
+	accessObject *authzimpl.AccessObject
+	userData     *users.ConfidentialUserData
+	groupData    *users.ConfidentialGroupData
+}
+
+func SetupMocks(mockData MockData) (context.Context, *Authz) {
 	ctx := context.Background()
 
-	if userID != uuid.Nil {
-		ctx = context.WithValue(ctx, contextkeys.UserIDCtxKey, userID)
+	if mockData.userID != uuid.Nil {
+		ctx = context.WithValue(ctx, contextkeys.UserIDCtxKey, mockData.userID)
 	}
-	if objectID != uuid.Nil {
-		ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
+	if mockData.objectID != uuid.Nil {
+		ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, mockData.objectID)
 	}
-	if methodName != "" {
-		ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, methodName)
+	if mockData.methodName != "" {
+		ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, mockData.methodName)
 	}
 
 	authz := &Authz{
-		Authorizer:        &AuthorizerMock{accessObject: accessObject},
-		UserAuthenticator: &UserAuthenticatorMock{userData: userData},
+		Authorizer: &AuthorizerMock{accessObject: mockData.accessObject},
+		UserAuthenticator: &UserAuthenticatorMock{
+			userData:  mockData.userData,
+			groupData: mockData.groupData,
+		},
 	}
 
 	return ctx, authz
 }
 
-func TestAuthzMiddleware(t *testing.T) {
-	methodName := "fake method"
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &authzimpl.AccessObject{
+var mockData = MockData{
+	methodName: "/storage.Encryptonize/Retrieve",
+	userID:     uuid.Must(uuid.NewV4()),
+	objectID:   uuid.Must(uuid.NewV4()),
+	accessObject: &authzimpl.AccessObject{
 		GroupIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
-	}
-	userData := &users.ConfidentialUserData{
+	},
+	userData: &users.ConfidentialUserData{
 		GroupIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
-	}
+	},
+	groupData: &users.ConfidentialGroupData{
+		Scopes: users.ScopeRead,
+	},
+}
 
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, userData)
+func TestAuthzMiddleware(t *testing.T) {
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		accessObjectFetched, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
@@ -140,7 +169,7 @@ func TestAuthzMiddleware(t *testing.T) {
 			t.Fatal("Access object not added to context")
 		}
 
-		if !reflect.DeepEqual(accessObject, accessObjectFetched) {
+		if !reflect.DeepEqual(mockData.accessObject, accessObjectFetched) {
 			t.Fatal("Access object in context not equal to original")
 		}
 
@@ -152,22 +181,31 @@ func TestAuthzMiddleware(t *testing.T) {
 }
 
 func TestAuthzMiddlewareUnauthorized(t *testing.T) {
-	methodName := "fake method"
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &authzimpl.AccessObject{
-		GroupIDs: map[uuid.UUID]bool{
-			userID: true,
-		},
-	}
-	userData := &users.ConfidentialUserData{
+	mockData.userData = &users.ConfidentialUserData{
 		GroupIDs: map[uuid.UUID]bool{
 			uuid.Must(uuid.NewV4()): true,
 		},
 	}
+	ctx, authz := SetupMocks(mockData)
 
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, userData)
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
+	}
+}
+
+func TestAuthzMiddlewareWrongScope(t *testing.T) {
+	mockData.groupData = &users.ConfidentialGroupData{
+		Scopes: users.ScopeDelete,
+	}
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -183,17 +221,8 @@ func TestAuthzMiddlewareUnauthorized(t *testing.T) {
 }
 
 func TestAuthzNoAccessObject(t *testing.T) {
-	methodName := "fake method"
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	userData := &users.ConfidentialUserData{
-		GroupIDs: map[uuid.UUID]bool{
-			uuid.Must(uuid.NewV4()): true,
-		},
-	}
-
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, nil, userData)
+	mockData.accessObject = nil
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -209,17 +238,25 @@ func TestAuthzNoAccessObject(t *testing.T) {
 }
 
 func TestAuthzNoUserData(t *testing.T) {
-	methodName := "fake method"
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &authzimpl.AccessObject{
-		GroupIDs: map[uuid.UUID]bool{
-			userID: true,
-		},
+	mockData.userData = nil
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
 	}
 
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, nil)
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.NotFound != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.NotFound, errStatus)
+	}
+}
+
+func TestAuthzNoGroupData(t *testing.T) {
+	mockData.groupData = nil
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -235,22 +272,8 @@ func TestAuthzNoUserData(t *testing.T) {
 }
 
 func TestAuthzNoMethod(t *testing.T) {
-	methodName := ""
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &authzimpl.AccessObject{
-		GroupIDs: map[uuid.UUID]bool{
-			userID: true,
-		},
-	}
-	userData := &users.ConfidentialUserData{
-		GroupIDs: map[uuid.UUID]bool{
-			uuid.Must(uuid.NewV4()): true,
-		},
-	}
-
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, userData)
+	mockData.methodName = ""
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -266,22 +289,8 @@ func TestAuthzNoMethod(t *testing.T) {
 }
 
 func TestAuthzNoUserID(t *testing.T) {
-	methodName := "fake method"
-	userID := uuid.Nil
-	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &authzimpl.AccessObject{
-		GroupIDs: map[uuid.UUID]bool{
-			userID: true,
-		},
-	}
-	userData := &users.ConfidentialUserData{
-		GroupIDs: map[uuid.UUID]bool{
-			uuid.Must(uuid.NewV4()): true,
-		},
-	}
-
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, userData)
+	mockData.userID = uuid.Nil
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -297,22 +306,8 @@ func TestAuthzNoUserID(t *testing.T) {
 }
 
 func TestAuthzNoObjectID(t *testing.T) {
-	methodName := "fake method"
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Nil
-	accessObject := &authzimpl.AccessObject{
-		GroupIDs: map[uuid.UUID]bool{
-			userID: true,
-		},
-	}
-	userData := &users.ConfidentialUserData{
-		GroupIDs: map[uuid.UUID]bool{
-			uuid.Must(uuid.NewV4()): true,
-		},
-	}
-
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, userData)
+	mockData.objectID = uuid.Nil
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -328,22 +323,8 @@ func TestAuthzNoObjectID(t *testing.T) {
 }
 
 func TestAuthzSkippedMethod(t *testing.T) {
-	methodName := "/app.Encryptonize/Version"
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Nil
-	accessObject := &authzimpl.AccessObject{
-		GroupIDs: map[uuid.UUID]bool{
-			userID: true,
-		},
-	}
-	userData := &users.ConfidentialUserData{
-		GroupIDs: map[uuid.UUID]bool{
-			uuid.Must(uuid.NewV4()): true,
-		},
-	}
-
-	// Test
-	ctx, authz := SetupMocks(methodName, userID, objectID, accessObject, userData)
+	mockData.methodName = "/app.Encryptonize/Version"
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		_, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)

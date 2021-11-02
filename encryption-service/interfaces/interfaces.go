@@ -109,22 +109,28 @@ type KeyWrapperInterface interface {
 // Interface for authenticating and creating users
 type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
-	NewUser(ctx context.Context, userscopes users.ScopeType) (userID *uuid.UUID, password string, err error)
+	NewUser(ctx context.Context, scopes users.ScopeType) (userID *uuid.UUID, password string, err error)
 
 	// Create a new user with the requested scopes
 	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
-
-	// Parses a token string into the internal data type
-	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
-
-	// Logs a user in with userID and password pair
-	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	// GetUserData fetches the user's confidential data
 	GetUserData(ctx context.Context, userID uuid.UUID) (userData *users.ConfidentialUserData, err error)
+
+	// Logs a user in with userID and password pair
+	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
+
+	// Parses a token string into the internal data type
+	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
+
+	// Create a new group with the requested scopes
+	NewGroup(ctx context.Context, scopes users.ScopeType) (groupID *uuid.UUID, err error)
+
+	// GetGroupData fetches the group's confidential data
+	GetGroupData(ctx context.Context, groupID uuid.UUID) (groupData *users.ConfidentialGroupData, err error)
 }
 
 type AccessObjectInterface interface {

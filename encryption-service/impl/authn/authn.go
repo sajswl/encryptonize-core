@@ -40,19 +40,13 @@ type UserAuthenticator struct {
 	UserCryptor  interfaces.CryptorInterface
 }
 
-// NewUser creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
-	if !ok {
-		return nil, "", ErrAuthStoreTxCastFailed
-	}
+func (ua *UserAuthenticator) newUserData() (*users.UserData, string, error) {
 	userID, err := uuid.NewV4()
 	if err != nil {
 		return nil, "", err
 	}
 
 	// user password creation
-
 	pwd, salt, err := crypt.GenerateUserPassword()
 	if err != nil {
 		return nil, "", err
@@ -61,7 +55,6 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	confidential := &users.ConfidentialUserData{
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
-		Scopes:         userscopes,
 		// A user is a member of their own group
 		GroupIDs: map[uuid.UUID]bool{userID: true},
 	}
@@ -79,16 +72,40 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		return nil, "", err
 	}
 
-	userData := users.UserData{
+	userData := &users.UserData{
 		UserID:               userID,
 		ConfidentialUserData: ciphertext,
 		WrappedKey:           wrappedKey,
 	}
 
-	// insert user for compatibility with the check in permissions_handler
-	// we only need to know if a user exists there, thus it is only important
-	// that a row exists
-	err = authStorageTx.InsertUser(ctx, userData)
+	return userData, pwd, nil
+}
+
+// NewUser creates an user of specified kind with random credentials in the authStorage
+func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes users.ScopeType) (*uuid.UUID, string, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return nil, "", ErrAuthStoreTxCastFailed
+	}
+
+	// Create the user iteself
+	userData, pwd, err := ua.newUserData()
+	if err != nil {
+		return nil, "", err
+	}
+
+	err = authStorageTx.InsertUser(ctx, *userData)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Create the user's group
+	groupData, err := ua.newGroupData(userData.UserID, scopes)
+	if err != nil {
+		return nil, "", err
+	}
+
+	err = authStorageTx.InsertGroup(ctx, *groupData)
 	if err != nil {
 		return nil, "", err
 	}
@@ -98,7 +115,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		return nil, "", err
 	}
 
-	return &userID, pwd, nil
+	return &userData.UserID, pwd, nil
 }
 
 // GetUserData fetches the user's confidential data
@@ -130,17 +147,23 @@ func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) 
 
 // LoginUser logs in a user
 func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
-	confidential, err := ua.GetUserData(ctx, userID)
+	// Fetch user data and check the provided credentials
+	userData, err := ua.GetUserData(ctx, userID)
 	if err != nil {
 		return "", err
 	}
 
-	if !crypt.CompareHashAndPassword(providedPassword, confidential.HashedPassword, confidential.Salt) {
+	if !crypt.CompareHashAndPassword(providedPassword, userData.HashedPassword, userData.Salt) {
 		return "", errors.New("Incorrect password")
 	}
 
-	accessToken := NewAccessTokenDuration(userID, confidential.Scopes, tokenExpiryTime)
+	// Fetch the user's group and extract scopes
+	groupData, err := ua.GetGroupData(ctx, userID)
+	if err != nil {
+		return "", err
+	}
 
+	accessToken := NewAccessTokenDuration(userID, groupData.Scopes, tokenExpiryTime)
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {
 		return "", err
@@ -226,4 +249,89 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 // TODO: this is name is bad
 func (ua *UserAuthenticator) ParseAccessToken(token string) (interfaces.AccessTokenInterface, error) {
 	return ParseAccessToken(ua.TokenCryptor, token)
+}
+
+// newGroup creates a group with the specified group ID and scopes
+func (ua *UserAuthenticator) newGroupData(groupID uuid.UUID, scopes users.ScopeType) (*users.GroupData, error) {
+	confidential := &users.ConfidentialGroupData{
+		Scopes: scopes,
+	}
+
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(confidential)
+	if err != nil {
+		return nil, err
+	}
+
+	data := buffer.Bytes()
+	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(data, groupID.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	groupData := &users.GroupData{
+		GroupID:               groupID,
+		ConfidentialGroupData: ciphertext,
+		WrappedKey:            wrappedKey,
+	}
+
+	return groupData, nil
+}
+
+// NewGroup creates a group with the specified scopes in the authStorage
+func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes users.ScopeType) (*uuid.UUID, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return nil, ErrAuthStoreTxCastFailed
+	}
+
+	groupID, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	groupData, err := ua.newGroupData(groupID, scopes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = authStorageTx.InsertGroup(ctx, *groupData)
+	if err != nil {
+		return nil, err
+	}
+
+	err = authStorageTx.Commit(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &groupID, nil
+}
+
+// GetGroupData fetches the user's confidential data
+func (ua *UserAuthenticator) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.ConfidentialGroupData, error) {
+	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return nil, ErrAuthStoreTxCastFailed
+	}
+
+	group, key, err := authStorageTx.GetGroupData(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	groupData, err := ua.UserCryptor.Decrypt(key, group, groupID.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	confidential := &users.ConfidentialGroupData{}
+	dec := gob.NewDecoder(bytes.NewReader(groupData))
+	err = dec.Decode(confidential)
+	if err != nil {
+		return nil, err
+	}
+
+	return confidential, nil
 }

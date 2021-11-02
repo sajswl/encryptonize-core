@@ -60,7 +60,6 @@ var MethodScopeMap = map[string]ScopeType{
 type ConfidentialUserData struct {
 	HashedPassword []byte
 	Salt           []byte
-	Scopes         ScopeType
 	GroupIDs       map[uuid.UUID]bool
 }
 
