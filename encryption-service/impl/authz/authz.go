@@ -25,6 +25,8 @@ import (
 	"encryption-service/interfaces"
 )
 
+var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
 	AccessObjectMAC interfaces.MessageAuthenticatorInterface
@@ -78,7 +80,7 @@ func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*A
 func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, groupID uuid.UUID, woek []byte) error {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
 	accessObject := NewAccessObject(groupID, woek)
@@ -100,7 +102,7 @@ func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, groupID u
 func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (interfaces.AccessObjectInterface, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return nil, errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return nil, ErrAuthStoreTxCastFailed
 	}
 
 	// TODO: add single row special case?
@@ -122,7 +124,7 @@ func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) 
 func (a *Authorizer) UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject interfaces.AccessObjectInterface) error {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
 	ao, ok := accessObject.(*AccessObject)
@@ -148,7 +150,7 @@ func (a *Authorizer) UpsertAccessObject(ctx context.Context, objectID uuid.UUID,
 func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
 	err = authStorageTx.DeleteAccessObject(ctx, objectID)

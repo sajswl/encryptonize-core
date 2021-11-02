@@ -27,6 +27,7 @@ type ConfidentialUserData struct {
 	HashedPassword []byte
 	Salt           []byte
 	Scopes         ScopeType
+	GroupIDs       map[uuid.UUID]bool
 }
 
 type UserData struct {

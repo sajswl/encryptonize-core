@@ -116,6 +116,9 @@ type UserAuthenticatorInterface interface {
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
+
+	// GetUserData fetches the user's confidential data
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData *users.ConfidentialUserData, err error)
 }
 
 type AccessObjectInterface interface {

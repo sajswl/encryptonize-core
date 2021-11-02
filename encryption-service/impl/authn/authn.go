@@ -31,6 +31,8 @@ import (
 	"encryption-service/users"
 )
 
+var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+
 const tokenExpiryTime = time.Hour
 
 type UserAuthenticator struct {
@@ -42,7 +44,7 @@ type UserAuthenticator struct {
 func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return nil, "", ErrAuthStoreTxCastFailed
 	}
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -60,6 +62,8 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
 		Scopes:         userscopes,
+		// A user is a member of their own group
+		GroupIDs: map[uuid.UUID]bool{userID: true},
 	}
 
 	var buffer bytes.Buffer
@@ -97,26 +101,36 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 	return &userID, pwd, nil
 }
 
-// LoginUser logs in a user
-func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
+// GetUserData fetches the user's confidential data
+func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) (*users.ConfidentialUserData, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return nil, ErrAuthStoreTxCastFailed
 	}
 
 	user, key, err := authStorageTx.GetUserData(ctx, userID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	userData, err := ua.UserCryptor.Decrypt(key, user, userID.Bytes())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	confidential := &users.ConfidentialUserData{}
 	dec := gob.NewDecoder(bytes.NewReader(userData))
 	err = dec.Decode(confidential)
+	if err != nil {
+		return nil, err
+	}
+
+	return confidential, nil
+}
+
+// LoginUser logs in a user
+func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
+	confidential, err := ua.GetUserData(ctx, userID)
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +152,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) error {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
 	err := authStorageTx.RemoveUser(ctx, userID)

@@ -112,7 +112,8 @@ func main() {
 	}
 
 	authzService := &authz.Authz{
-		Authorizer: authorizer,
+		Authorizer:        authorizer,
+		UserAuthenticator: userAuthenticator,
 	}
 
 	app := &app.App{

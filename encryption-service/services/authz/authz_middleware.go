@@ -80,13 +80,21 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		authorized := accessObject.ContainsGroup(userID)
-		if !authorized {
-			log.Warn(ctx, "Couldn't authorize user")
-			return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
+		userData, err := authz.UserAuthenticator.GetUserData(ctx, userID)
+		if err != nil {
+			log.Error(ctx, err, "Couldn't fetch userData")
+			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		newCtx := context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
-		return handler(newCtx, req)
+		for gid := range userData.GroupIDs {
+			// User authorized, call next handler
+			if accessObject.ContainsGroup(gid) {
+				newCtx := context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+				return handler(newCtx, req)
+			}
+		}
+
+		log.Warn(ctx, "Couldn't authorize user")
+		return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
 	}
 }
