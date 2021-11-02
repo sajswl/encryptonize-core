@@ -252,7 +252,7 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 		},
 	}
 
-	for endpoint, rscope := range methodScopeMap {
+	for endpoint, rscope := range users.MethodScopeMap {
 		if rscope == users.ScopeNone {
 			// endpoints that only require logged in users are already covered
 			// by tests that check if authentication works

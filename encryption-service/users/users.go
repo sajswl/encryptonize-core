@@ -1,3 +1,16 @@
+// Copyright 2021 CYBERCRYPT
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package users
 
 import (
@@ -22,6 +35,27 @@ const (
 	ScopeUserManagement
 	ScopeEnd
 )
+
+const baseAppPath string = "/app.Encryptonize/"
+const baseStoragePath string = "/storage.Encryptonize/"
+const baseAuthPath string = "/authn.Encryptonize/"
+const baseAuthzPath string = "/authz.Encryptonize/"
+const baseEncPath string = "/enc.Encryptonize/"
+
+var MethodScopeMap = map[string]ScopeType{
+	baseAuthPath + "CreateUser":        ScopeUserManagement,
+	baseAuthPath + "RemoveUser":        ScopeUserManagement,
+	baseAuthzPath + "GetPermissions":   ScopeIndex,
+	baseAuthzPath + "AddPermission":    ScopeObjectPermissions,
+	baseAuthzPath + "RemovePermission": ScopeObjectPermissions,
+	baseStoragePath + "Store":          ScopeCreate,
+	baseStoragePath + "Update":         ScopeUpdate,
+	baseStoragePath + "Retrieve":       ScopeRead,
+	baseStoragePath + "Delete":         ScopeDelete,
+	baseEncPath + "Encrypt":            ScopeCreate,
+	baseEncPath + "Decrypt":            ScopeRead,
+	baseAppPath + "Version":            ScopeNone,
+}
 
 type ConfidentialUserData struct {
 	HashedPassword []byte

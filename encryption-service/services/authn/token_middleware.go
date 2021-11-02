@@ -28,26 +28,7 @@ import (
 	users "encryption-service/users"
 )
 
-const baseAppPath string = "/app.Encryptonize/"
-const baseStoragePath string = "/storage.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
-const baseAuthzPath string = "/authz.Encryptonize/"
-const baseEncPath string = "/enc.Encryptonize/"
-
-var methodScopeMap = map[string]users.ScopeType{
-	baseAuthPath + "CreateUser":        users.ScopeUserManagement,
-	baseAuthPath + "RemoveUser":        users.ScopeUserManagement,
-	baseAuthzPath + "GetPermissions":   users.ScopeIndex,
-	baseAuthzPath + "AddPermission":    users.ScopeObjectPermissions,
-	baseAuthzPath + "RemovePermission": users.ScopeObjectPermissions,
-	baseStoragePath + "Store":          users.ScopeCreate,
-	baseStoragePath + "Update":         users.ScopeUpdate,
-	baseStoragePath + "Retrieve":       users.ScopeRead,
-	baseStoragePath + "Delete":         users.ScopeDelete,
-	baseEncPath + "Encrypt":            users.ScopeCreate,
-	baseEncPath + "Decrypt":            users.ScopeRead,
-	baseAppPath + "Version":            users.ScopeNone,
-}
 
 var skippedTokenMethods = map[string]bool{
 	health.HealthEndpointCheck: true,
@@ -93,7 +74,7 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 
 	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.GetUserID())
 
-	reqScope, ok := methodScopeMap[methodName]
+	reqScope, ok := users.MethodScopeMap[methodName]
 	if !ok {
 		err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
 		log.Error(newCtx, err, "AuthenticateUser: Invalid Endpoint")
