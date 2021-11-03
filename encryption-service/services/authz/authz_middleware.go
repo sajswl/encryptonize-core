@@ -24,6 +24,7 @@ import (
 	"encryption-service/contextkeys"
 	log "encryption-service/logger"
 	"encryption-service/services/health"
+	"encryption-service/users"
 )
 
 const baseAppPath string = "/app.Encryptonize/"
@@ -86,9 +87,36 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		for gid := range userData.GroupIDs {
+		reqScope, ok := users.MethodScopeMap[methodName]
+		if !ok {
+			err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
+			log.Error(ctx, err, "AuthzMiddleware: Invalid Endpoint")
+			return nil, err
+		}
+
+		// Find the intersection of the user's groups and the object's groups
+		a := userData.GroupIDs
+		b := accessObject.GetGroups()
+		if len(a) > len(b) {
+			a, b = b, a
+		}
+
+		groupIDs := make([]uuid.UUID, 0, len(a))
+		for groupID := range a {
+			if _, ok := b[groupID]; ok {
+				groupIDs = append(groupIDs, groupID)
+			}
+		}
+
+		groupDataBatch, err := authz.UserAuthenticator.GetGroupDataBatch(ctx, groupIDs)
+		if err != nil {
+			log.Error(ctx, err, "Couldn't fetch groupData")
+			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
+		}
+
+		for _, groupData := range groupDataBatch {
 			// User authorized, call next handler
-			if accessObject.ContainsGroup(gid) {
+			if groupData.Scopes.HasScopes(reqScope) {
 				newCtx := context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
 				return handler(newCtx, req)
 			}
