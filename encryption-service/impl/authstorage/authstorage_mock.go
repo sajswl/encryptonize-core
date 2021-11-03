@@ -34,11 +34,11 @@ type AuthStoreTxMock struct {
 
 	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
 	InsertUserFunc  func(ctx context.Context, user users.UserData) error
-	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) ([]byte, []byte, error)
+	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) (*users.UserData, error)
 	RemoveUserFunc  func(ctx context.Context, userID uuid.UUID) error
 
 	InsertGroupFunc  func(ctx context.Context, group users.GroupData) error
-	GetGroupDataFunc func(ctx context.Context, groupID uuid.UUID) ([]byte, []byte, error)
+	GetGroupDataFunc func(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
 	InsertAcccessObjectFunc func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
@@ -64,7 +64,7 @@ func (db *AuthStoreTxMock) RemoveUser(ctx context.Context, userID uuid.UUID) err
 	return db.RemoveUserFunc(ctx, userID)
 }
 
-func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
+func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (*users.UserData, error) {
 	return db.GetUserDataFunc(ctx, userID)
 }
 
@@ -72,7 +72,7 @@ func (db *AuthStoreTxMock) InsertGroup(ctx context.Context, groupData users.Grou
 	return db.InsertGroupFunc(ctx, groupData)
 }
 
-func (db *AuthStoreTxMock) GetGroupData(ctx context.Context, groupID uuid.UUID) ([]byte, []byte, error) {
+func (db *AuthStoreTxMock) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error) {
 	return db.GetGroupDataFunc(ctx, groupID)
 }
 
@@ -138,22 +138,22 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 	return true, nil
 }
 
-func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
+func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*users.UserData, error) {
 	user, ok := m.Data.Load(userID)
 	if !ok {
-		return nil, nil, interfaces.ErrNotFound
+		return nil, interfaces.ErrNotFound
 	}
 
 	data, ok := user.(users.UserData)
 	if !ok {
-		return nil, nil, errors.New("unable to cast to UserData")
+		return nil, errors.New("unable to cast to UserData")
 	}
 
 	if data.DeletedAt != nil {
-		return nil, nil, interfaces.ErrNotFound
+		return nil, interfaces.ErrNotFound
 	}
 
-	return data.ConfidentialUserData, data.WrappedKey, nil
+	return &data, nil
 }
 
 func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
@@ -190,22 +190,22 @@ func (m *MemoryAuthStoreTx) InsertGroup(ctx context.Context, group users.GroupDa
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) GetGroupData(ctx context.Context, groupID uuid.UUID) ([]byte, []byte, error) {
+func (m *MemoryAuthStoreTx) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error) {
 	group, ok := m.Data.Load(groupID)
 	if !ok {
-		return nil, nil, interfaces.ErrNotFound
+		return nil, interfaces.ErrNotFound
 	}
 
 	data, ok := group.(users.GroupData)
 	if !ok {
-		return nil, nil, errors.New("unable to cast to UserData")
+		return nil, errors.New("unable to cast to UserData")
 	}
 
 	if data.DeletedAt != nil {
-		return nil, nil, interfaces.ErrNotFound
+		return nil, interfaces.ErrNotFound
 	}
 
-	return data.ConfidentialGroupData, data.WrappedKey, nil
+	return &data, nil
 }
 
 func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {

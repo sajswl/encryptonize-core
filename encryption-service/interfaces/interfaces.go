@@ -52,13 +52,13 @@ type AuthStoreTxInterface interface {
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	// Get user's confidential data
-	GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error)
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData *users.UserData, err error)
 
 	// Insert a group
 	InsertGroup(ctx context.Context, groupData users.GroupData) (err error)
 
 	// Get group's confidential data
-	GetGroupData(ctx context.Context, groupID uuid.UUID) (groupData []byte, key []byte, err error)
+	GetGroupData(ctx context.Context, groupID uuid.UUID) (groupData *users.GroupData, err error)
 
 	//  Retrieve an existing access object
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)

@@ -125,18 +125,18 @@ func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) 
 		return nil, ErrAuthStoreTxCastFailed
 	}
 
-	user, key, err := authStorageTx.GetUserData(ctx, userID)
+	userData, err := authStorageTx.GetUserData(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	userData, err := ua.UserCryptor.Decrypt(key, user, userID.Bytes())
+	decrypted, err := ua.UserCryptor.Decrypt(userData.WrappedKey, userData.ConfidentialUserData, userID.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
 	confidential := &users.ConfidentialUserData{}
-	dec := gob.NewDecoder(bytes.NewReader(userData))
+	dec := gob.NewDecoder(bytes.NewReader(decrypted))
 	err = dec.Decode(confidential)
 	if err != nil {
 		return nil, err
@@ -316,18 +316,18 @@ func (ua *UserAuthenticator) GetGroupData(ctx context.Context, groupID uuid.UUID
 		return nil, ErrAuthStoreTxCastFailed
 	}
 
-	group, key, err := authStorageTx.GetGroupData(ctx, groupID)
+	groupData, err := authStorageTx.GetGroupData(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
 
-	groupData, err := ua.UserCryptor.Decrypt(key, group, groupID.Bytes())
+	decrypted, err := ua.UserCryptor.Decrypt(groupData.WrappedKey, groupData.ConfidentialGroupData, groupID.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
 	confidential := &users.ConfidentialGroupData{}
-	dec := gob.NewDecoder(bytes.NewReader(groupData))
+	dec := gob.NewDecoder(bytes.NewReader(decrypted))
 	err = dec.Decode(confidential)
 	if err != nil {
 		return nil, err
