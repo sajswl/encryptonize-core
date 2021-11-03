@@ -57,8 +57,8 @@ type AuthStoreTxInterface interface {
 	// Insert a group
 	InsertGroup(ctx context.Context, groupData users.GroupData) (err error)
 
-	// Get group's confidential data
-	GetGroupData(ctx context.Context, groupID uuid.UUID) (groupData *users.GroupData, err error)
+	// Get one or more groups' confidential data
+	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []users.GroupData, err error)
 
 	//  Retrieve an existing access object
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
@@ -129,8 +129,8 @@ type UserAuthenticatorInterface interface {
 	// Create a new group with the requested scopes
 	NewGroup(ctx context.Context, scopes users.ScopeType) (groupID *uuid.UUID, err error)
 
-	// GetGroupData fetches the group's confidential data
-	GetGroupData(ctx context.Context, groupID uuid.UUID) (groupData *users.ConfidentialGroupData, err error)
+	// GetGroupDataBatch fetches one or more groups' confidential data
+	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []users.ConfidentialGroupData, err error)
 }
 
 type AccessObjectInterface interface {

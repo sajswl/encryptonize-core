@@ -158,12 +158,12 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 	}
 
 	// Fetch the user's group and extract scopes
-	groupData, err := ua.GetGroupData(ctx, userID)
+	groupData, err := ua.GetGroupDataBatch(ctx, []uuid.UUID{userID})
 	if err != nil {
 		return "", err
 	}
 
-	accessToken := NewAccessTokenDuration(userID, groupData.Scopes, tokenExpiryTime)
+	accessToken := NewAccessTokenDuration(userID, groupData[0].Scopes, tokenExpiryTime)
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {
 		return "", err
@@ -309,29 +309,35 @@ func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes users.ScopeTyp
 	return &groupID, nil
 }
 
-// GetGroupData fetches the user's confidential data
-func (ua *UserAuthenticator) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.ConfidentialGroupData, error) {
+// GetGroupDataBatch fetches one or more groups' confidential data
+func (ua *UserAuthenticator) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.ConfidentialGroupData, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, ErrAuthStoreTxCastFailed
 	}
 
-	groupData, err := authStorageTx.GetGroupData(ctx, groupID)
+	groupDataBatch, err := authStorageTx.GetGroupDataBatch(ctx, groupIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	decrypted, err := ua.UserCryptor.Decrypt(groupData.WrappedKey, groupData.ConfidentialGroupData, groupID.Bytes())
-	if err != nil {
-		return nil, err
+	confidentialBatch := make([]users.ConfidentialGroupData, 0, len(groupDataBatch))
+
+	for _, groupData := range groupDataBatch {
+		decrypted, err := ua.UserCryptor.Decrypt(groupData.WrappedKey, groupData.ConfidentialGroupData, groupData.GroupID.Bytes())
+		if err != nil {
+			return nil, err
+		}
+
+		confidential := &users.ConfidentialGroupData{}
+		dec := gob.NewDecoder(bytes.NewReader(decrypted))
+		err = dec.Decode(confidential)
+		if err != nil {
+			return nil, err
+		}
+
+		confidentialBatch = append(confidentialBatch, *confidential)
 	}
 
-	confidential := &users.ConfidentialGroupData{}
-	dec := gob.NewDecoder(bytes.NewReader(decrypted))
-	err = dec.Decode(confidential)
-	if err != nil {
-		return nil, err
-	}
-
-	return confidential, nil
+	return confidentialBatch, nil
 }

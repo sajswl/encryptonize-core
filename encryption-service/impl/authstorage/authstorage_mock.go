@@ -37,8 +37,8 @@ type AuthStoreTxMock struct {
 	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) (*users.UserData, error)
 	RemoveUserFunc  func(ctx context.Context, userID uuid.UUID) error
 
-	InsertGroupFunc  func(ctx context.Context, group users.GroupData) error
-	GetGroupDataFunc func(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error)
+	InsertGroupFunc       func(ctx context.Context, group users.GroupData) error
+	GetGroupDataBatchFunc func(ctx context.Context, groupIDs []uuid.UUID) ([]users.GroupData, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error)
 	InsertAcccessObjectFunc func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error
@@ -72,8 +72,8 @@ func (db *AuthStoreTxMock) InsertGroup(ctx context.Context, groupData users.Grou
 	return db.InsertGroupFunc(ctx, groupData)
 }
 
-func (db *AuthStoreTxMock) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error) {
-	return db.GetGroupDataFunc(ctx, groupID)
+func (db *AuthStoreTxMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.GroupData, error) {
+	return db.GetGroupDataBatchFunc(ctx, groupIDs)
 }
 
 func (db *AuthStoreTxMock) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
@@ -190,22 +190,28 @@ func (m *MemoryAuthStoreTx) InsertGroup(ctx context.Context, group users.GroupDa
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error) {
-	group, ok := m.Data.Load(groupID)
-	if !ok {
-		return nil, interfaces.ErrNotFound
+func (m *MemoryAuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.GroupData, error) {
+	groupDataBatch := make([]users.GroupData, 0, len(groupIDs))
+
+	for _, groupID := range groupIDs {
+		group, ok := m.Data.Load(groupID)
+		if !ok {
+			return nil, interfaces.ErrNotFound
+		}
+
+		data, ok := group.(users.GroupData)
+		if !ok {
+			return nil, errors.New("unable to cast to UserData")
+		}
+
+		if data.DeletedAt != nil {
+			return nil, interfaces.ErrNotFound
+		}
+
+		groupDataBatch = append(groupDataBatch, data)
 	}
 
-	data, ok := group.(users.GroupData)
-	if !ok {
-		return nil, errors.New("unable to cast to UserData")
-	}
-
-	if data.DeletedAt != nil {
-		return nil, interfaces.ErrNotFound
-	}
-
-	return &data, nil
+	return groupDataBatch, nil
 }
 
 func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {

@@ -67,7 +67,7 @@ func (a *AuthorizerMock) DeleteAccessObject(_ context.Context, _ uuid.UUID) erro
 
 type UserAuthenticatorMock struct {
 	userData  *users.ConfidentialUserData
-	groupData *users.ConfidentialGroupData
+	groupData map[uuid.UUID]users.ConfidentialGroupData
 }
 
 func (u *UserAuthenticatorMock) NewUser(_ context.Context, _ users.ScopeType) (*uuid.UUID, string, error) {
@@ -101,11 +101,16 @@ func (u *UserAuthenticatorMock) NewGroup(_ context.Context, _ users.ScopeType) (
 	return nil, nil
 }
 
-func (u *UserAuthenticatorMock) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.ConfidentialGroupData, error) {
-	if u.groupData == nil {
-		return nil, errors.New("No data")
+func (u *UserAuthenticatorMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.ConfidentialGroupData, error) {
+	groupDataBatch := make([]users.ConfidentialGroupData, 0, len(groupIDs))
+	for _, groupID := range groupIDs {
+		groupData, ok := u.groupData[groupID]
+		if !ok {
+			return nil, errors.New("No data")
+		}
+		groupDataBatch = append(groupDataBatch, groupData)
 	}
-	return u.groupData, nil
+	return groupDataBatch, nil
 }
 
 type MockData struct {
@@ -114,7 +119,7 @@ type MockData struct {
 	objectID     uuid.UUID
 	accessObject *authzimpl.AccessObject
 	userData     *users.ConfidentialUserData
-	groupData    *users.ConfidentialGroupData
+	groupData    map[uuid.UUID]users.ConfidentialGroupData
 }
 
 func SetupMocks(mockData MockData) (context.Context, *Authz) {
@@ -155,8 +160,8 @@ var mockData = MockData{
 			userID: true,
 		},
 	},
-	groupData: &users.ConfidentialGroupData{
-		Scopes: users.ScopeRead,
+	groupData: map[uuid.UUID]users.ConfidentialGroupData{
+		userID: {Scopes: users.ScopeRead},
 	},
 }
 
@@ -202,8 +207,8 @@ func TestAuthzMiddlewareUnauthorized(t *testing.T) {
 }
 
 func TestAuthzMiddlewareWrongScope(t *testing.T) {
-	mockData.groupData = &users.ConfidentialGroupData{
-		Scopes: users.ScopeDelete,
+	mockData.groupData = map[uuid.UUID]users.ConfidentialGroupData{
+		userID: {Scopes: users.ScopeDelete},
 	}
 	ctx, authz := SetupMocks(mockData)
 

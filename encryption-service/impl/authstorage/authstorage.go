@@ -224,7 +224,6 @@ func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 
 	return userData, nil
 }
-}
 
 // InsertGroup inserts a group into the auth store
 func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, group users.GroupData) error {
@@ -232,19 +231,32 @@ func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, group users.GroupDa
 	return err
 }
 
-// GetGroupData fetches a group's confidential data
-func (storeTx *AuthStoreTx) GetGroupData(ctx context.Context, groupID uuid.UUID) (*users.GroupData, error) {
-	groupData := &users.GroupData{GroupID: groupID}
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
-	err := row.Scan(&groupData.ConfidentialGroupData, &groupData.WrappedKey)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, interfaces.ErrNotFound
-	}
-	if err != nil {
-		return nil, err
+// Get one or more groups' confidential data
+func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.GroupData, error) {
+	batch := &pgx.Batch{}
+	for _, groupID := range groupIDs {
+		batch.Queue(storeTx.NewQuery("SELECT data, key, id FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
 	}
 
-	return groupData, nil
+	batchResults := storeTx.Tx.SendBatch(ctx, batch)
+	defer batchResults.Close()
+
+	groupDataBatch := make([]users.GroupData, 0, batch.Len())
+	for i := 0; i < batch.Len(); i++ {
+		groupData := users.GroupData{}
+
+		err := batchResults.QueryRow().Scan(&groupData.ConfidentialGroupData, &groupData.WrappedKey, &groupData.GroupID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, interfaces.ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		groupDataBatch = append(groupDataBatch, groupData)
+	}
+
+	return groupDataBatch, nil
 }
 
 // GetAccessObject fetches data, tag of an Access Object with given Object ID
