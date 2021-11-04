@@ -23,14 +23,13 @@ import (
 	"google.golang.org/grpc/status"
 
 	"encryption-service/common"
-	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
+	accessObject, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while getting permissions")
 		log.Error(ctx, err, "GetPermissions: Could not typecast access object to AccessObject")
@@ -54,14 +53,14 @@ func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsReque
 // Grant a user access to an object.
 // The requesting user has to be authorized to access the object.
 func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest) (*AddPermissionResponse, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
 		log.Error(ctx, err, "AddPermission: Could not typecast authstorage to AuthStoreTxInterface")
 		return nil, err
 	}
 
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
+	accessObject, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
 		log.Error(ctx, err, "AddPermission: Could not typecast access object to AccessObject")
@@ -111,7 +110,7 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
+	ctx = context.WithValue(ctx, common.TargetIDCtxKey, target)
 	log.Info(ctx, "AddPermission: Permission added")
 
 	return &AddPermissionResponse{}, nil
@@ -120,14 +119,14 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 // Remove a users access to an object.
 // The requesting user has to be authorized to access the object.
 func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionRequest) (*RemovePermissionResponse, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
 		log.Error(ctx, err, "RemovePermission: Could not typecast authstorage to AuthStoreTxInterface")
 		return nil, err
 	}
 
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
+	accessObject, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
 		log.Error(ctx, err, "RemovePermission: Could not typecast access object to AccessObject")
@@ -160,7 +159,7 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.TargetIDCtxKey, target)
+	ctx = context.WithValue(ctx, common.TargetIDCtxKey, target)
 	log.Info(ctx, "RemovePermission: Permission removed")
 
 	return &RemovePermissionResponse{}, nil

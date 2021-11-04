@@ -22,7 +22,6 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/common"
-	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
@@ -73,8 +72,8 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -96,7 +95,7 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Failed to fetch access object: %s", err)
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+	ctx = context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
 
 	retrieveResponse, err := strg.Retrieve(
 		ctx,
@@ -138,8 +137,8 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	retrieveResponse, err := strg.Retrieve(
 		ctx,
@@ -184,8 +183,8 @@ func TestStoreFail(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := strg.Store(
 		ctx,
@@ -228,8 +227,8 @@ func TestStoreFailAuth(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := strg.Store(
 		ctx,

@@ -23,7 +23,6 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/common"
-	"encryption-service/contextkeys"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
@@ -38,7 +37,7 @@ type UserAuthenticator struct {
 
 // NewUser creates an user of specified kind with random credentials in the authStorage
 func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes common.ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
@@ -89,7 +88,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes common.Scop
 
 // LoginUser logs in a user
 func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
@@ -120,7 +119,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 }
 
 func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) error {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
@@ -154,7 +153,7 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 	if err != nil {
 		log.Fatal(ctx, err, "Could not generate uuid")
 	}
-	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+	ctx = context.WithValue(ctx, common.RequestIDCtxKey, requestID)
 
 	authStoreTxCreate, err := authStore.NewTransaction(ctx)
 	if err != nil {
@@ -167,7 +166,7 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 		}
 	}()
 
-	ctxCreate := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTxCreate)
+	ctxCreate := context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTxCreate)
 	userID, password, err := ua.NewUser(ctxCreate, userScopes)
 	if err != nil {
 		log.Fatal(ctxCreate, err, "Create user failed")

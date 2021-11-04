@@ -20,7 +20,6 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/common"
-	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 )
 
@@ -31,7 +30,7 @@ type Authorizer struct {
 
 // CreateObject creates a new object with given parameters and inserts it into the Auth Store.
 func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) error {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
@@ -58,7 +57,7 @@ func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uu
 
 // FetchAccessObject fetches an AccessObject by its ID and decrypts it
 func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
@@ -79,7 +78,7 @@ func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) 
 
 // updatePermissions increments the Access Object's version and updates in the Auth Storage
 func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, accessObject common.AccessObject) error {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
@@ -106,7 +105,7 @@ func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID,
 }
 
 func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}

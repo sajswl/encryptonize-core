@@ -29,7 +29,6 @@ import (
 
 	"encryption-service/common"
 	"encryption-service/config"
-	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
@@ -115,7 +114,7 @@ func (store *AuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStor
 		return nil, err
 	}
 
-	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	requestID, ok := ctx.Value(common.RequestIDCtxKey).(uuid.UUID)
 	if !ok {
 		return nil, errors.New("Could not typecast requestID to uuid.UUID")
 	}

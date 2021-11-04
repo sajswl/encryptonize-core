@@ -25,7 +25,6 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/common"
-	"encryption-service/contextkeys"
 	"encryption-service/impl/crypt"
 )
 
@@ -84,13 +83,13 @@ func TestAuthorizeWrapper(t *testing.T) {
 		Authorizer: authorizerMock,
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
-	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "fake method")
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authnStorageTxMock)
+	ctx = context.WithValue(ctx, common.ObjectIDCtxKey, objectID)
+	ctx = context.WithValue(ctx, common.MethodNameCtxKey, "fake method")
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		accessObjectFetched, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
+		accessObjectFetched, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 		if !ok {
 			t.Fatal("Access object not added to context")
 		}
@@ -140,10 +139,10 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 		Authorizer: authorizerMock,
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
-	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "fake method")
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authnStorageTxMock)
+	ctx = context.WithValue(ctx, common.ObjectIDCtxKey, objectID)
+	ctx = context.WithValue(ctx, common.MethodNameCtxKey, "fake method")
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")

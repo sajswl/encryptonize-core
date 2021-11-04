@@ -21,7 +21,7 @@ import (
 	"errors"
 	"net/http"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -76,7 +76,7 @@ func NewObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (
 
 // Store an object under a given object ID
 func (o *ObjectStore) Store(ctx context.Context, objectID string, object []byte) error {
-	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	requestID, ok := ctx.Value(common.RequestIDCtxKey).(uuid.UUID)
 	if !ok {
 		return errors.New("Could not typecast requestID to uuid.UUID")
 	}
@@ -91,7 +91,7 @@ func (o *ObjectStore) Store(ctx context.Context, objectID string, object []byte)
 
 // Retrieve an object with a given object ID
 func (o *ObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
-	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	requestID, ok := ctx.Value(common.RequestIDCtxKey).(uuid.UUID)
 	if !ok {
 		return nil, errors.New("Could not typecast requestID to uuid.UUID")
 	}
@@ -113,7 +113,7 @@ func (o *ObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, er
 }
 
 func (o *ObjectStore) Delete(ctx context.Context, objectID string) error {
-	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	requestID, ok := ctx.Value(common.RequestIDCtxKey).(uuid.UUID)
 	if !ok {
 		return errors.New("Could not typecast requestID to uuid.UUID")
 	}

@@ -22,7 +22,6 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/common"
-	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/crypt"
 )
@@ -68,7 +67,7 @@ func TestCreateObject(t *testing.T) {
 			return nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	err := authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
@@ -82,7 +81,7 @@ func TestCreateObjectFail(t *testing.T) {
 			return errors.New("mock error")
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	err := authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err == nil || err.Error() != "mock error" {
@@ -106,7 +105,7 @@ func TestFetchAccessObject(t *testing.T) {
 			return &protected, nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	_, err = authorizer.FetchAccessObject(ctx, objectID)
 	if err != nil {
@@ -120,7 +119,7 @@ func TestAuthorizeStoreFailed(t *testing.T) {
 			return nil, errors.New("mock error")
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	_, err := authorizer.FetchAccessObject(ctx, objectID)
 	if err == nil {
@@ -144,7 +143,7 @@ func TestAuthorizeDecryptFailed(t *testing.T) {
 			return &protected, nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	_, err = authorizer.FetchAccessObject(ctx, objectID)
 	if err == nil {
@@ -177,7 +176,7 @@ func TestUpdate(t *testing.T) {
 			return nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	err := authorizer.UpdateAccessObject(ctx, objectID, *newAccessObject)
 	if err != nil {
@@ -191,7 +190,7 @@ func TestUpdateStoreFailed(t *testing.T) {
 			return errors.New("mock error")
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	err := authorizer.UpdateAccessObject(ctx, objectID, *accessObject)
 	if err == nil {
