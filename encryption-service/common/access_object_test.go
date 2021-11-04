@@ -20,7 +20,6 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-var objectID = uuid.Must(uuid.FromString("F0000000-0000-0000-0000-000000000000"))
 var accessObject = &AccessObject{
 	Version: 1337,
 	UserIDs: map[uuid.UUID]bool{

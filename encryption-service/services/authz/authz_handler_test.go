@@ -20,15 +20,16 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 )
 
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var cryptor, _ = crypt.NewAESCryptor([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 var authorizer = &authzimpl.Authorizer{
-	AccessObjectMAC: ma,
+	AccessObjectCryptor: cryptor,
 }
 
 var permissions = Authz{
@@ -40,7 +41,7 @@ var userID = uuid.Must(uuid.NewV4())
 var objectID = uuid.Must(uuid.NewV4())
 var Woek, err = crypt.Random(32)
 
-var accessObject = &authzimpl.AccessObject{
+var accessObject = &common.AccessObject{
 	UserIDs: map[uuid.UUID]bool{
 		userID: true,
 	},
@@ -49,11 +50,19 @@ var accessObject = &authzimpl.AccessObject{
 }
 
 var authnStorageTxMock = &authstorage.AuthStoreTxMock{
-	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-		data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
-		return data, tag, err
+	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
+		wrappedKey, ciphertext, err := cryptor.EncodeAndEncrypt(accessObject, objectID.Bytes())
+		if err != nil {
+			return nil, err
+		}
+
+		return &common.ProtectedAccessObject{
+			ObjectID:     objectID,
+			AccessObject: ciphertext,
+			WrappedKey:   wrappedKey,
+		}, nil
 	},
-	UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+	UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 		return nil
 	},
 	CommitFunc: func(ctx context.Context) error {

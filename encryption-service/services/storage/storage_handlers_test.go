@@ -21,6 +21,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
@@ -46,12 +47,10 @@ func (o *ObjectStoreMock) Delete(ctx context.Context, objectID string) error {
 	return o.DeleteFunc(ctx, objectID)
 }
 
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var cryptor, _ = crypt.NewAESCryptor([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 var authorizer = &authzimpl.Authorizer{
-	AccessObjectMAC: ma,
+	AccessObjectCryptor: cryptor,
 }
-
-var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
@@ -162,7 +161,7 @@ func TestStoreFail(t *testing.T) {
 		StoreFunc: func(ctx context.Context, objectID string, object []byte) error { return fmt.Errorf("") },
 	}
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 			return nil
 		},
 	}
@@ -206,7 +205,7 @@ func TestStoreFail(t *testing.T) {
 // Test the case where the authn store fails to store
 func TestStoreFailAuth(t *testing.T) {
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 			return fmt.Errorf("")
 		},
 	}

@@ -14,9 +14,9 @@ import (
 	"encryption-service/interfaces"
 )
 
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var cryptor, _ = crypt.NewAESCryptor([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 var authorizer = &authzimpl.Authorizer{
-	AccessObjectMAC: ma,
+	AccessObjectCryptor: cryptor,
 }
 
 func initMockEnc(t *testing.T) (Enc, interfaces.AuthStoreTxInterface) {

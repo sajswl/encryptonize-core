@@ -25,11 +25,11 @@ import (
 	"google.golang.org/grpc/metadata"
 	status "google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authn"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
-	users "encryption-service/users"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -44,7 +44,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
-func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes users.ScopeType) (string, error) {
+func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes common.ScopeType) (string, error) {
 	accessToken := authn.NewAccessTokenDuration(userID, scopes, time.Minute*10)
 
 	token, err := accessToken.SerializeAccessToken(c)
@@ -60,15 +60,15 @@ func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes 
 // It ONLY tests the middleware and assumes that the LoginUser works as intended
 func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
+	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
-	failOnError("NewMessageAuthenticator errored", err, t)
+	failOnError("NewAESCryptor errored", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
-	failOnError("NewMessageAuthenticator errored", err, t)
+	failOnError("NewAESCryptor errored", err, t)
 
 	token, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken errored", err, t)
@@ -89,15 +89,15 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 
 func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
+	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
-	failOnError("NewMessageAuthenticator errored %v", err, t)
+	failOnError("NewAESCryptor errored %v", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
-	failOnError("NewMessageAuthenticator errored", err, t)
+	failOnError("NewAESCryptor errored", err, t)
 
 	goodToken, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
@@ -136,15 +136,15 @@ func TestCheckAccessTokenNonBase64(t *testing.T) {
 func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userIDFirst := uuid.Must(uuid.NewV4())
 	userIDSecond := uuid.Must(uuid.NewV4())
-	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
+	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
-	failOnError("NewMessageAuthenticator errored %v", err, t)
+	failOnError("NewAESCryptor errored %v", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
-	failOnError("NewMessageAuthenticator errored", err, t)
+	failOnError("NewAESCryptor errored", err, t)
 
 	tokenFirst, err := CreateUserForTests(c, userIDFirst, userScope)
 	failOnError("SerializeAccessToken failed", err, t)
@@ -186,15 +186,15 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 // Tests that accesstoken of wrong type gets rejected
 func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
-	userScope := users.ScopeRead | users.ScopeCreate | users.ScopeIndex | users.ScopeObjectPermissions
+	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
 	ASK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
 	c, err := crypt.NewAESCryptor(ASK)
-	failOnError("NewMessageAuthenticator errored", err, t)
+	failOnError("NewAESCryptor errored", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
-	failOnError("NewMessageAuthenticator errored", err, t)
+	failOnError("NewAESCryptor errored", err, t)
 
 	token, err := CreateUserForTests(c, userID, userScope)
 	failOnError("SerializeAccessToken errored", err, t)
@@ -253,12 +253,12 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 	}
 
 	for endpoint, rscope := range methodScopeMap {
-		if rscope == users.ScopeNone {
+		if rscope == common.ScopeNone {
 			// endpoints that only require logged in users are already covered
 			// by tests that check if authentication works
 			continue
 		}
-		tscopes := (users.ScopeEnd - 1) &^ rscope
+		tscopes := (common.ScopeEnd - 1) &^ rscope
 		tuid := uuid.Must(uuid.NewV4())
 		token, err := CreateUserForTests(c, tuid, tscopes)
 		failOnError("Error Creating User", err, t)

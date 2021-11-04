@@ -24,11 +24,9 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
-	"encryption-service/impl/authstorage"
-	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
-	"encryption-service/interfaces"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -43,13 +41,33 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	}
 }
 
+type AuthorizerMock struct {
+	FetchAccessObjectFunc func(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error)
+}
+
+func (a *AuthorizerMock) CreateAccessObject(_ context.Context, _, _ uuid.UUID, _ []byte) error {
+	return nil
+}
+
+func (a *AuthorizerMock) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
+	return a.FetchAccessObjectFunc(ctx, objectID)
+}
+
+func (a *AuthorizerMock) UpdateAccessObject(_ context.Context, _ uuid.UUID, _ common.AccessObject) error {
+	return nil
+}
+
+func (a *AuthorizerMock) DeleteAccessObject(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
 func TestAuthorizeWrapper(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	objectID := uuid.Must(uuid.NewV4())
 	Woek, err := crypt.Random(32)
 	failOnError("Couldn't generate WOEK!", err, t)
 
-	accessObject := &authzimpl.AccessObject{
+	accessObject := &common.AccessObject{
 		UserIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
@@ -57,31 +75,22 @@ func TestAuthorizeWrapper(t *testing.T) {
 		Version: 0,
 	}
 
-	authnStorageTxMock := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-			data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
-			return data, tag, err
-		},
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			return nil
+	authorizerMock := &AuthorizerMock{
+		FetchAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
+			return accessObject, nil
 		},
 	}
-
-	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
-	failOnError("NewMessageAuthenticator errored", err, t)
-	aoAuth := &authzimpl.Authorizer{AccessObjectMAC: messageAuthenticator}
+	authz := Authz{
+		Authorizer: authorizerMock,
+	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
 	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "fake method")
 
-	authz := Authz{
-		Authorizer: aoAuth,
-	}
-
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		accessObjectFetched, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+		accessObjectFetched, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 		if !ok {
 			t.Fatal("Access object not added to context")
 		}
@@ -114,7 +123,7 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	Woek, err := crypt.Random(32)
 	failOnError("Couldn't generate WOEK!", err, t)
 
-	unAuthAccessObject := &authzimpl.AccessObject{
+	unAuthAccessObject := &common.AccessObject{
 		UserIDs: map[uuid.UUID]bool{
 			uuid.Must(uuid.NewV4()): true,
 		},
@@ -122,28 +131,19 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 		Version: 0,
 	}
 
-	authnStorageTxMock := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-			data, tag, err := authorizer.SerializeAccessObject(objectID, unAuthAccessObject)
-			return data, tag, err
-		},
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			return nil
+	authorizerMock := &AuthorizerMock{
+		FetchAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
+			return unAuthAccessObject, nil
 		},
 	}
-
-	messageAuthenticator, err := crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
-	failOnError("NewMessageAuthenticator errored", err, t)
-	aoAuth := &authzimpl.Authorizer{AccessObjectMAC: messageAuthenticator}
+	authz := Authz{
+		Authorizer: authorizerMock,
+	}
 
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authnStorageTxMock)
 	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
 	ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, "fake method")
-
-	authz := Authz{
-		Authorizer: aoAuth,
-	}
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
