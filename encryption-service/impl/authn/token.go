@@ -15,17 +15,15 @@
 package authn
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/gob"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofrs/uuid"
 
+	"encryption-service/common"
 	"encryption-service/interfaces"
-	"encryption-service/users"
 )
 
 var ErrTokenExpired = errors.New("token expired")
@@ -35,17 +33,17 @@ type AccessToken struct {
 	UserID uuid.UUID
 	// this field is not exported to prevent other parts
 	// of the encryption service to depend on its implementation
-	UserScopes users.ScopeType
+	UserScopes common.ScopeType
 	ExpiryTime time.Time
 }
 
 // NewAccessTokenDuration instantiates a new access token with user ID, user scopes and validity period
-func NewAccessTokenDuration(userID uuid.UUID, userScopes users.ScopeType, validityPeriod time.Duration) *AccessToken {
+func NewAccessTokenDuration(userID uuid.UUID, userScopes common.ScopeType, validityPeriod time.Duration) *AccessToken {
 	return NewAccessToken(userID, userScopes, time.Now().Add(validityPeriod))
 }
 
 // NewAccessToken does the same as NewAccessTokenDuration, except it takes a point in time at which the access token exires
-func NewAccessToken(userID uuid.UUID, userScopes users.ScopeType, expiryTime time.Time) *AccessToken {
+func NewAccessToken(userID uuid.UUID, userScopes common.ScopeType, expiryTime time.Time) *AccessToken {
 	return &AccessToken{
 		UserID:     userID,
 		UserScopes: userScopes,
@@ -59,11 +57,11 @@ func (at *AccessToken) GetUserID() uuid.UUID {
 	return at.UserID
 }
 
-func (at *AccessToken) GetUserScopes() users.ScopeType {
+func (at *AccessToken) GetUserScopes() common.ScopeType {
 	return at.UserScopes
 }
 
-func (at *AccessToken) HasScopes(tar users.ScopeType) bool {
+func (at *AccessToken) HasScopes(tar common.ScopeType) bool {
 	return at.GetUserScopes().HasScopes(tar)
 }
 
@@ -84,15 +82,7 @@ func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface)
 		return "", errors.New("Invalid userID UUID")
 	}
 
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(at)
-	if err != nil {
-		return "", err
-	}
-
-	data := buffer.Bytes()
-	wrappedKey, ciphertext, err := cryptor.Encrypt(data, nil)
+	wrappedKey, ciphertext, err := cryptor.EncodeAndEncrypt(at, nil)
 	if err != nil {
 		return "", err
 	}
@@ -118,14 +108,8 @@ func ParseAccessToken(cryptor interfaces.CryptorInterface, token string) (*Acces
 		return nil, errors.New("invalid ciphertext portion of token")
 	}
 
-	data, err := cryptor.Decrypt(wrappedKey, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	accessToken := &AccessToken{}
-	dec := gob.NewDecoder(bytes.NewReader(data))
-	err = dec.Decode(accessToken)
+	err = cryptor.DecodeAndDecrypt(accessToken, wrappedKey, ciphertext, nil)
 	if err != nil {
 		return nil, err
 	}

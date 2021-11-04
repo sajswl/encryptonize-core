@@ -14,9 +14,7 @@
 package authn
 
 import (
-	"bytes"
 	context "context"
-	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,11 +22,11 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/users"
 )
 
 const tokenExpiryTime = time.Hour
@@ -39,7 +37,7 @@ type UserAuthenticator struct {
 }
 
 // NewUser creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.ScopeType) (*uuid.UUID, string, error) {
+func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes common.ScopeType) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
@@ -56,35 +54,27 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes users.Scope
 		return nil, "", err
 	}
 
-	confidential := &users.ConfidentialUserData{
+	userData := &common.UserData{
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
 		Scopes:         userscopes,
 	}
 
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err = enc.Encode(confidential)
+	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(userData, userID.Bytes())
 	if err != nil {
 		return nil, "", err
 	}
 
-	data := buffer.Bytes()
-	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(data, userID.Bytes())
-	if err != nil {
-		return nil, "", err
-	}
-
-	userData := users.UserData{
-		UserID:               userID,
-		ConfidentialUserData: ciphertext,
-		WrappedKey:           wrappedKey,
+	protected := common.ProtectedUserData{
+		UserID:     userID,
+		UserData:   ciphertext,
+		WrappedKey: wrappedKey,
 	}
 
 	// insert user for compatibility with the check in permissions_handler
 	// we only need to know if a user exists there, thus it is only important
 	// that a row exists
-	err = authStorageTx.InsertUser(ctx, userData)
+	err = authStorageTx.InsertUser(ctx, protected)
 	if err != nil {
 		return nil, "", err
 	}
@@ -104,28 +94,22 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	user, key, err := authStorageTx.GetUserData(ctx, userID)
+	protected, err := authStorageTx.GetUserData(ctx, userID)
 	if err != nil {
 		return "", err
 	}
 
-	userData, err := ua.UserCryptor.Decrypt(key, user, userID.Bytes())
+	userData := &common.UserData{}
+	err = ua.UserCryptor.DecodeAndDecrypt(userData, protected.WrappedKey, protected.UserData, userID.Bytes())
 	if err != nil {
 		return "", err
 	}
 
-	confidential := &users.ConfidentialUserData{}
-	dec := gob.NewDecoder(bytes.NewReader(userData))
-	err = dec.Decode(confidential)
-	if err != nil {
-		return "", err
-	}
-
-	if !crypt.CompareHashAndPassword(providedPassword, confidential.HashedPassword, confidential.Salt) {
+	if !crypt.CompareHashAndPassword(providedPassword, userData.HashedPassword, userData.Salt) {
 		return "", errors.New("Incorrect password")
 	}
 
-	accessToken := NewAccessTokenDuration(userID, confidential.Scopes, tokenExpiryTime)
+	accessToken := NewAccessTokenDuration(userID, userData.Scopes, tokenExpiryTime)
 
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {
@@ -160,7 +144,7 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 	ctx := context.Background()
 
 	// Parse user supplied scopes
-	userScopes, err := users.MapStringToScopeType(scopes)
+	userScopes, err := common.MapStringToScopeType(scopes)
 	if err != nil {
 		return err
 	}

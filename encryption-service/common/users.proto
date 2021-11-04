@@ -13,8 +13,8 @@
 // limitations under the License.
 syntax = "proto3";
 
-package users;
-option go_package = "encryption-service/users";
+package common;
+option go_package = "encryption-service/common";
 
 enum UserScope{
   READ = 0;

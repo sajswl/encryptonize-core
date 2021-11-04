@@ -20,7 +20,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/users"
+	"encryption-service/common"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -46,22 +46,22 @@ type AuthStoreTxInterface interface {
 	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
 
 	// Get user's confidential data
-	GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error)
+	GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error)
 
 	// Insert a user
-	InsertUser(ctx context.Context, userData users.UserData) (err error)
+	InsertUser(ctx context.Context, protected common.ProtectedUserData) (err error)
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	//  Retrieve an existing access object
-	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
+	GetAccessObject(ctx context.Context, objectID uuid.UUID) (protected *common.ProtectedAccessObject, err error)
 
 	// Insert a new access object
-	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+	InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
 
 	// Update an existing access object
-	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+	UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
 
 	// Delete an existing access object
 	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
@@ -87,8 +87,14 @@ type CryptorInterface interface {
 	// EncryptWithKey encrypts data + aad with a wrapped key and returns the ciphertext
 	EncryptWithKey(data, aad, key []byte) (ciphertext []byte, err error)
 
+	// EncodeAndEncrypt serializes the data, but otherwise behaves like `Encrypt`
+	EncodeAndEncrypt(data interface{}, aad []byte) (wrappedKey, ciphertext []byte, err error)
+
 	// Decrypt decrypts a ciphertext + aad with a wrapped key
 	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
+
+	// DecodeAndDecrypt behaves like `Decrypt` by deserializes the result into `data`
+	DecodeAndDecrypt(data interface{}, wrappedKey, ciphertext, aad []byte) (err error)
 }
 
 // KeyWrapperInterface offers an API to wrap / unwrap key material
@@ -103,7 +109,7 @@ type KeyWrapperInterface interface {
 // Interface for authenticating and creating users
 type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
-	NewUser(ctx context.Context, userscopes users.ScopeType) (userID *uuid.UUID, password string, err error)
+	NewUser(ctx context.Context, userscopes common.ScopeType) (userID *uuid.UUID, password string, err error)
 
 	// Create a new user with the requested scopes
 	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
@@ -118,33 +124,16 @@ type UserAuthenticatorInterface interface {
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 }
 
-type AccessObjectInterface interface {
-	// AddUser adds a user to the permission list
-	AddUser(targetUserID uuid.UUID)
-
-	// RemoveUser Removes a user from the permission list
-	RemoveUser(targetUserID uuid.UUID)
-
-	// GetUsers returns the list of users that may access the object
-	GetUsers() (userIDs map[uuid.UUID]bool)
-
-	// ContainsUser checks if the user is present in the permission list
-	ContainsUser(targetUserID uuid.UUID) (exists bool)
-
-	// getWOEK retrieves the wrapped object encryption key
-	GetWOEK() (woek []byte)
-}
-
 // Interface for authenticating and creating Access Objects
 type AccessObjectAuthenticatorInterface interface {
 	// Creates a new Access Object and inserts it into the Authstorage
 	CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) (err error)
 
 	// Fetches an existing Access Object
-	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject AccessObjectInterface, err error)
+	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject *common.AccessObject, err error)
 
-	// Updates or inserts the AccessObject into backend storage
-	UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject AccessObjectInterface) (err error)
+	// Updates the AccessObject into the Authstorage
+	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, accessObject common.AccessObject) (err error)
 
 	// Deletes an existing Access Object
 	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
@@ -165,10 +154,10 @@ type AccessTokenInterface interface {
 	GetUserID() (userID uuid.UUID)
 
 	// Get the scopes contained in the token
-	GetUserScopes() (scopes users.ScopeType)
+	GetUserScopes() (scopes common.ScopeType)
 
 	// Check if the token contains specific scopes
-	HasScopes(tar users.ScopeType) (res bool)
+	HasScopes(tar common.ScopeType) (res bool)
 }
 
 // Interface that represents a general request regarding an object

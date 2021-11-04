@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
@@ -29,10 +30,10 @@ import (
 
 // Retrieve a list of users who have access to the object specified in the request.
 func (a *Authz) GetPermissions(ctx context.Context, request *GetPermissionsRequest) (*GetPermissionsResponse, error) {
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while getting permissions")
-		log.Error(ctx, err, "GetPermissions: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "GetPermissions: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 
@@ -60,10 +61,10 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, err
 	}
 
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while adding permissions")
-		log.Error(ctx, err, "AddPermission: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "AddPermission: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 
@@ -97,7 +98,7 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 
 	// Add the permission to the access object
 	accessObject.AddUser(target)
-	err = a.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
+	err = a.Authorizer.UpdateAccessObject(ctx, oid, *accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
 		log.Error(ctx, err, msg)
@@ -126,10 +127,10 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 		return nil, err
 	}
 
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while removing permissions")
-		log.Error(ctx, err, "RemovePermission: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "RemovePermission: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 
@@ -147,7 +148,7 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 
 	// Add the permission to the access object
 	accessObject.RemoveUser(target)
-	err = a.Authorizer.UpsertAccessObject(ctx, oid, accessObject)
+	err = a.Authorizer.UpdateAccessObject(ctx, oid, *accessObject)
 	if err != nil {
 		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)
 		log.Error(ctx, err, msg)

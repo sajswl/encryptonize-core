@@ -1,4 +1,4 @@
-package users
+package common
 
 import (
 	"errors"
@@ -23,17 +23,17 @@ const (
 	ScopeEnd
 )
 
-type ConfidentialUserData struct {
+type UserData struct {
 	HashedPassword []byte
 	Salt           []byte
 	Scopes         ScopeType
 }
 
-type UserData struct {
-	UserID               uuid.UUID
-	ConfidentialUserData []byte
-	WrappedKey           []byte
-	DeletedAt            *time.Time
+type ProtectedUserData struct {
+	UserID     uuid.UUID
+	UserData   []byte
+	WrappedKey []byte
+	DeletedAt  *time.Time
 }
 
 func (us ScopeType) IsValid() error {

@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
@@ -67,10 +68,10 @@ func (enc *Enc) Encrypt(ctx context.Context, request *EncryptRequest) (*EncryptR
 // API exposed function, decrypts provided ciphertext
 // and returns the plaintext in the response
 func (enc *Enc) Decrypt(ctx context.Context, request *DecryptRequest) (*DecryptResponse, error) {
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while decrypting object")
-		log.Error(ctx, err, "Decrypt: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "Decrypt: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 

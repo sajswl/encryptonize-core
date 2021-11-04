@@ -21,11 +21,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/impl/authn"
 	log "encryption-service/logger"
 	"encryption-service/services/health"
-	users "encryption-service/users"
 )
 
 const baseAppPath string = "/app.Encryptonize/"
@@ -34,19 +34,19 @@ const baseAuthPath string = "/authn.Encryptonize/"
 const baseAuthzPath string = "/authz.Encryptonize/"
 const baseEncPath string = "/enc.Encryptonize/"
 
-var methodScopeMap = map[string]users.ScopeType{
-	baseAuthPath + "CreateUser":        users.ScopeUserManagement,
-	baseAuthPath + "RemoveUser":        users.ScopeUserManagement,
-	baseAuthzPath + "GetPermissions":   users.ScopeIndex,
-	baseAuthzPath + "AddPermission":    users.ScopeObjectPermissions,
-	baseAuthzPath + "RemovePermission": users.ScopeObjectPermissions,
-	baseStoragePath + "Store":          users.ScopeCreate,
-	baseStoragePath + "Update":         users.ScopeUpdate,
-	baseStoragePath + "Retrieve":       users.ScopeRead,
-	baseStoragePath + "Delete":         users.ScopeDelete,
-	baseEncPath + "Encrypt":            users.ScopeCreate,
-	baseEncPath + "Decrypt":            users.ScopeRead,
-	baseAppPath + "Version":            users.ScopeNone,
+var methodScopeMap = map[string]common.ScopeType{
+	baseAuthPath + "CreateUser":        common.ScopeUserManagement,
+	baseAuthPath + "RemoveUser":        common.ScopeUserManagement,
+	baseAuthzPath + "GetPermissions":   common.ScopeIndex,
+	baseAuthzPath + "AddPermission":    common.ScopeObjectPermissions,
+	baseAuthzPath + "RemovePermission": common.ScopeObjectPermissions,
+	baseStoragePath + "Store":          common.ScopeCreate,
+	baseStoragePath + "Update":         common.ScopeUpdate,
+	baseStoragePath + "Retrieve":       common.ScopeRead,
+	baseStoragePath + "Delete":         common.ScopeDelete,
+	baseEncPath + "Encrypt":            common.ScopeCreate,
+	baseEncPath + "Decrypt":            common.ScopeRead,
+	baseAppPath + "Version":            common.ScopeNone,
 }
 
 var skippedTokenMethods = map[string]bool{

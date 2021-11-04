@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
@@ -93,10 +94,10 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 // Errors if authentication, authorization, or retrieving the object fails
 func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while retrieving object")
-		log.Error(ctx, err, "Retrieve: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "Retrieve: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 
@@ -160,10 +161,10 @@ func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*Delet
 // Errors if authentication, authorization, or retrieving the access object fails
 func (strg *Storage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while updating object")
-		log.Error(ctx, err, "Update: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "Update: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 
