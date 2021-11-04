@@ -21,11 +21,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/impl/authn"
 	log "encryption-service/logger"
 	"encryption-service/services/health"
-	users "encryption-service/users"
 )
 
 const baseAuthPath string = "/authn.Encryptonize/"
@@ -43,7 +42,7 @@ var skippedTokenMethods = map[string]bool{
 // this token has to be integrity protected (e.g. by an HMAC)
 func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) {
 	// Grab method name
-	methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+	methodName, ok := ctx.Value(common.MethodNameCtxKey).(string)
 	if !ok {
 		err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
 		log.Error(ctx, err, "Could not typecast methodName to string")
@@ -72,9 +71,9 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 		return nil, status.Errorf(codes.InvalidArgument, "invalid access token")
 	}
 
-	newCtx := context.WithValue(ctx, contextkeys.UserIDCtxKey, accessToken.GetUserID())
+	newCtx := context.WithValue(ctx, common.UserIDCtxKey, accessToken.GetUserID())
 
-	reqScope, ok := users.MethodScopeMap[methodName]
+	reqScope, ok := common.MethodScopeMap[methodName]
 	if !ok {
 		err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
 		log.Error(newCtx, err, "AuthenticateUser: Invalid Endpoint")

@@ -11,17 +11,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-syntax = "proto3";
+package common
 
-package users;
-option go_package = "encryption-service/users";
+import (
+	"time"
 
-enum UserScope{
-  READ = 0;
-  CREATE = 1;
-  INDEX = 2;
-  OBJECTPERMISSIONS = 3;
-  USERMANAGEMENT = 4;
-  UPDATE = 5;
-  DELETE = 6;
+	"github.com/gofrs/uuid"
+)
+
+type GroupData struct {
+	Scopes ScopeType
+}
+
+type ProtectedGroupData struct {
+	GroupID    uuid.UUID
+	GroupData  []byte
+	WrappedKey []byte
+	DeletedAt  *time.Time
 }

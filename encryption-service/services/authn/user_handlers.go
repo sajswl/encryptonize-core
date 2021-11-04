@@ -21,15 +21,15 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"encryption-service/common"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/users"
 )
 
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
-	usertype, err := users.MapScopesToScopeType(request.UserScopes)
+	usertype, err := common.MapScopesToScopeType(request.UserScopes)
 	if err != nil {
 		log.Error(ctx, errors.New("CreateUser: Invalid scope"), err.Error())
 		return nil, status.Errorf(codes.InvalidArgument, "invalid scope")

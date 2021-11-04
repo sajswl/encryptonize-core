@@ -14,9 +14,7 @@
 package authn
 
 import (
-	"bytes"
 	context "context"
-	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,11 +22,10 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/users"
 )
 
 var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
@@ -40,7 +37,7 @@ type UserAuthenticator struct {
 	UserCryptor  interfaces.CryptorInterface
 }
 
-func (ua *UserAuthenticator) newUserData() (*users.UserData, string, error) {
+func (ua *UserAuthenticator) newUserData() (*common.ProtectedUserData, string, error) {
 	userID, err := uuid.NewV4()
 	if err != nil {
 		return nil, "", err
@@ -52,38 +49,30 @@ func (ua *UserAuthenticator) newUserData() (*users.UserData, string, error) {
 		return nil, "", err
 	}
 
-	confidential := &users.ConfidentialUserData{
+	userData := &common.UserData{
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
 		// A user is a member of their own group
 		GroupIDs: map[uuid.UUID]bool{userID: true},
 	}
 
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err = enc.Encode(confidential)
+	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(userData, userID.Bytes())
 	if err != nil {
 		return nil, "", err
 	}
 
-	data := buffer.Bytes()
-	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(data, userID.Bytes())
-	if err != nil {
-		return nil, "", err
+	protected := &common.ProtectedUserData{
+		UserID:     userID,
+		UserData:   ciphertext,
+		WrappedKey: wrappedKey,
 	}
 
-	userData := &users.UserData{
-		UserID:               userID,
-		ConfidentialUserData: ciphertext,
-		WrappedKey:           wrappedKey,
-	}
-
-	return userData, pwd, nil
+	return protected, pwd, nil
 }
 
 // NewUser creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes users.ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, string, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", ErrAuthStoreTxCastFailed
 	}
@@ -119,30 +108,24 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes users.ScopeType
 }
 
 // GetUserData fetches the user's confidential data
-func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) (*users.ConfidentialUserData, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return nil, ErrAuthStoreTxCastFailed
+		return nil, errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	userData, err := authStorageTx.GetUserData(ctx, userID)
+	protected, err := authStorageTx.GetUserData(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	decrypted, err := ua.UserCryptor.Decrypt(userData.WrappedKey, userData.ConfidentialUserData, userID.Bytes())
+	userData := &common.UserData{}
+	err = ua.UserCryptor.DecodeAndDecrypt(userData, protected.WrappedKey, protected.UserData, userID.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	confidential := &users.ConfidentialUserData{}
-	dec := gob.NewDecoder(bytes.NewReader(decrypted))
-	err = dec.Decode(confidential)
-	if err != nil {
-		return nil, err
-	}
-
-	return confidential, nil
+	return userData, nil
 }
 
 // LoginUser logs in a user
@@ -173,7 +156,7 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 }
 
 func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) error {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return ErrAuthStoreTxCastFailed
 	}
@@ -197,7 +180,7 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 	ctx := context.Background()
 
 	// Parse user supplied scopes
-	userScopes, err := users.MapStringToScopeType(scopes)
+	userScopes, err := common.MapStringToScopeType(scopes)
 	if err != nil {
 		return err
 	}
@@ -207,7 +190,7 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 	if err != nil {
 		log.Fatal(ctx, err, "Could not generate uuid")
 	}
-	ctx = context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+	ctx = context.WithValue(ctx, common.RequestIDCtxKey, requestID)
 
 	authStoreTxCreate, err := authStore.NewTransaction(ctx)
 	if err != nil {
@@ -220,7 +203,7 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 		}
 	}()
 
-	ctxCreate := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTxCreate)
+	ctxCreate := context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTxCreate)
 	userID, password, err := ua.NewUser(ctxCreate, userScopes)
 	if err != nil {
 		log.Fatal(ctxCreate, err, "Create user failed")
@@ -252,36 +235,27 @@ func (ua *UserAuthenticator) ParseAccessToken(token string) (interfaces.AccessTo
 }
 
 // newGroup creates a group with the specified group ID and scopes
-func (ua *UserAuthenticator) newGroupData(groupID uuid.UUID, scopes users.ScopeType) (*users.GroupData, error) {
-	confidential := &users.ConfidentialGroupData{
+func (ua *UserAuthenticator) newGroupData(groupID uuid.UUID, scopes common.ScopeType) (*common.ProtectedGroupData, error) {
+	groupData := &common.GroupData{
 		Scopes: scopes,
 	}
-
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(confidential)
+	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(groupData, groupID.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	data := buffer.Bytes()
-	wrappedKey, ciphertext, err := ua.UserCryptor.Encrypt(data, groupID.Bytes())
-	if err != nil {
-		return nil, err
+	protected := &common.ProtectedGroupData{
+		GroupID:    groupID,
+		GroupData:  ciphertext,
+		WrappedKey: wrappedKey,
 	}
 
-	groupData := &users.GroupData{
-		GroupID:               groupID,
-		ConfidentialGroupData: ciphertext,
-		WrappedKey:            wrappedKey,
-	}
-
-	return groupData, nil
+	return protected, nil
 }
 
 // NewGroup creates a group with the specified scopes in the authStorage
-func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes users.ScopeType) (*uuid.UUID, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, ErrAuthStoreTxCastFailed
 	}
@@ -310,34 +284,28 @@ func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes users.ScopeTyp
 }
 
 // GetGroupDataBatch fetches one or more groups' confidential data
-func (ua *UserAuthenticator) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.ConfidentialGroupData, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+func (ua *UserAuthenticator) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, ErrAuthStoreTxCastFailed
 	}
 
-	groupDataBatch, err := authStorageTx.GetGroupDataBatch(ctx, groupIDs)
+	protectedBatch, err := authStorageTx.GetGroupDataBatch(ctx, groupIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	confidentialBatch := make([]users.ConfidentialGroupData, 0, len(groupDataBatch))
+	groupDataBatch := make([]common.GroupData, 0, len(protectedBatch))
 
-	for _, groupData := range groupDataBatch {
-		decrypted, err := ua.UserCryptor.Decrypt(groupData.WrappedKey, groupData.ConfidentialGroupData, groupData.GroupID.Bytes())
+	for _, protected := range protectedBatch {
+		groupData := &common.GroupData{}
+		err := ua.UserCryptor.DecodeAndDecrypt(groupData, protected.WrappedKey, protected.GroupData, protected.GroupID.Bytes())
 		if err != nil {
 			return nil, err
 		}
 
-		confidential := &users.ConfidentialGroupData{}
-		dec := gob.NewDecoder(bytes.NewReader(decrypted))
-		err = dec.Decode(confidential)
-		if err != nil {
-			return nil, err
-		}
-
-		confidentialBatch = append(confidentialBatch, *confidential)
+		groupDataBatch = append(groupDataBatch, *groupData)
 	}
 
-	return confidentialBatch, nil
+	return groupDataBatch, nil
 }

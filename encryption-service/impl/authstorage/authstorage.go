@@ -27,11 +27,10 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sony/gobreaker"
 
+	"encryption-service/common"
 	"encryption-service/config"
-	"encryption-service/contextkeys"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
-	"encryption-service/users"
 )
 
 // TODO: Tune circuit breaker
@@ -115,7 +114,7 @@ func (store *AuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStor
 		return nil, err
 	}
 
-	requestID, ok := ctx.Value(contextkeys.RequestIDCtxKey).(uuid.UUID)
+	requestID, ok := ctx.Value(common.RequestIDCtxKey).(uuid.UUID)
 	if !ok {
 		return nil, errors.New("Could not typecast requestID to uuid.UUID")
 	}
@@ -192,8 +191,8 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 }
 
 // InsertUser inserts a user into the auth store
-func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
-	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), user.UserID, user.ConfidentialUserData, user.WrappedKey)
+func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), protected.UserID, protected.UserData, protected.WrappedKey)
 	return err
 }
 
@@ -211,10 +210,10 @@ func (storeTx *AuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 }
 
 // Gets user's confidential data
-func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*users.UserData, error) {
-	userData := &users.UserData{UserID: userID}
+func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error) {
+	protected := &common.ProtectedUserData{UserID: userID}
 	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM users WHERE id = $1 AND deleted_at IS NULL"), userID)
-	err := row.Scan(&userData.ConfidentialUserData, &userData.WrappedKey)
+	err := row.Scan(&protected.UserData, &protected.WrappedKey)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, interfaces.ErrNotFound
 	}
@@ -222,17 +221,17 @@ func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 		return nil, err
 	}
 
-	return userData, nil
+	return protected, nil
 }
 
 // InsertGroup inserts a group into the auth store
-func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, group users.GroupData) error {
-	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO groups (id, data, key) VALUES ($1, $2, $3)"), group.GroupID, group.ConfidentialGroupData, group.WrappedKey)
+func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected common.ProtectedGroupData) error {
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO groups (id, data, key) VALUES ($1, $2, $3)"), protected.GroupID, protected.GroupData, protected.WrappedKey)
 	return err
 }
 
 // Get one or more groups' confidential data
-func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.GroupData, error) {
+func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
 	batch := &pgx.Batch{}
 	for _, groupID := range groupIDs {
 		batch.Queue(storeTx.NewQuery("SELECT data, key, id FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
@@ -241,11 +240,11 @@ func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uu
 	batchResults := storeTx.Tx.SendBatch(ctx, batch)
 	defer batchResults.Close()
 
-	groupDataBatch := make([]users.GroupData, 0, batch.Len())
+	protectedBatch := make([]common.ProtectedGroupData, 0, batch.Len())
 	for i := 0; i < batch.Len(); i++ {
-		groupData := users.GroupData{}
+		protected := common.ProtectedGroupData{}
 
-		err := batchResults.QueryRow().Scan(&groupData.ConfidentialGroupData, &groupData.WrappedKey, &groupData.GroupID)
+		err := batchResults.QueryRow().Scan(&protected.GroupData, &protected.WrappedKey, &protected.GroupID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, interfaces.ErrNotFound
 		}
@@ -253,37 +252,37 @@ func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uu
 			return nil, err
 		}
 
-		groupDataBatch = append(groupDataBatch, groupData)
+		protectedBatch = append(protectedBatch, protected)
 	}
 
-	return groupDataBatch, nil
+	return protectedBatch, nil
 }
 
 // GetAccessObject fetches data, tag of an Access Object with given Object ID
-func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-	var data, tag []byte
+func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
+	protected := &common.ProtectedAccessObject{ObjectID: objectID}
 
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, tag FROM access_objects WHERE id = $1"), objectID)
-	err := row.Scan(&data, &tag)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT data, key FROM access_objects WHERE id = $1"), objectID)
+	err := row.Scan(&protected.AccessObject, &protected.WrappedKey)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil, interfaces.ErrNotFound
+		return nil, interfaces.ErrNotFound
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return data, tag, err
+	return protected, nil
 }
 
 // InsertAcccessObject inserts an Access Object (Object ID, data, tag)
-func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO access_objects (id, data, tag) VALUES ($1, $2, $3)"), objectID, data, tag)
+func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO access_objects (id, data, key) VALUES ($1, $2, $3)"), protected.ObjectID, protected.AccessObject, protected.WrappedKey)
 	return err
 }
 
 // UpdateAccessObject updates an Access Object with Object ID and sets data, tag
-func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, tag = $2 WHERE id = $3"), data, tag, objectID)
+func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, key = $2 WHERE id = $3"), protected.AccessObject, protected.WrappedKey, protected.ObjectID)
 	return err
 }
 

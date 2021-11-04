@@ -17,5 +17,5 @@ CREATE TABLE IF NOT EXISTS groups  (
 CREATE TABLE IF NOT EXISTS access_objects  (
     id UUID PRIMARY KEY,
     data BYTEA NOT NULL,
-    tag BYTEA NOT NULL
+    key BYTEA NOT NULL
 );

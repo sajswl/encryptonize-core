@@ -46,9 +46,9 @@ func main() {
 	}
 	defer authStore.Close()
 
-	accessObjectMAC, err := crypt.NewMessageAuthenticator(config.Keys.ASK, crypt.AccessObjectsDomain)
+	accessObjectCryptor, err := crypt.NewAESCryptor(config.Keys.ASK)
 	if err != nil {
-		log.Fatal(ctx, err, "NewMessageAuthenticator failed")
+		log.Fatal(ctx, err, "NewAESCryptor (access object) failed")
 	}
 
 	tokenCryptor, err := crypt.NewAESCryptor(config.Keys.TEK)
@@ -71,7 +71,7 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (data) failed")
 	}
 
-	authorizer := &authzimpl.Authorizer{AccessObjectMAC: accessObjectMAC}
+	authorizer := &authzimpl.Authorizer{AccessObjectCryptor: accessObjectCryptor}
 
 	var storageService storage.EncryptonizeServer
 	var encService enc.EncryptonizeServer

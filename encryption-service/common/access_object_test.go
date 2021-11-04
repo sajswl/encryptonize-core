@@ -11,18 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package authz
+package common
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/gofrs/uuid"
-
-	"encryption-service/impl/crypt"
 )
 
-var objectID = uuid.Must(uuid.FromString("F0000000-0000-0000-0000-000000000000"))
 var accessObject = &AccessObject{
 	Version: 1337,
 	GroupIDs: map[uuid.UUID]bool{
@@ -80,15 +77,9 @@ func TestAddDuplicate(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	groupID := uuid.Must(uuid.NewV4())
-	woek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Random errored: %v", err)
-	}
+	woek := []byte{1, 2, 3, 4}
 
 	accessObject := NewAccessObject(groupID, woek)
-	if err != nil {
-		t.Fatalf("NewAccessObject errored: %v", err)
-	}
 
 	expected := &AccessObject{
 		GroupIDs: map[uuid.UUID]bool{

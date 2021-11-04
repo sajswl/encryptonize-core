@@ -24,10 +24,8 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
-	authzimpl "encryption-service/impl/authz"
+	"encryption-service/common"
 	"encryption-service/interfaces"
-	"encryption-service/users"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -43,21 +41,21 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 type AuthorizerMock struct {
-	accessObject *authzimpl.AccessObject
+	accessObject *common.AccessObject
 }
 
 func (a *AuthorizerMock) CreateAccessObject(_ context.Context, _, _ uuid.UUID, _ []byte) error {
 	return nil
 }
 
-func (a *AuthorizerMock) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (interfaces.AccessObjectInterface, error) {
+func (a *AuthorizerMock) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
 	if a.accessObject == nil {
 		return nil, errors.New("No object")
 	}
 	return a.accessObject, nil
 }
 
-func (a *AuthorizerMock) UpsertAccessObject(_ context.Context, _ uuid.UUID, _ interfaces.AccessObjectInterface) error {
+func (a *AuthorizerMock) UpdateAccessObject(_ context.Context, _ uuid.UUID, _ common.AccessObject) error {
 	return nil
 }
 
@@ -66,11 +64,11 @@ func (a *AuthorizerMock) DeleteAccessObject(_ context.Context, _ uuid.UUID) erro
 }
 
 type UserAuthenticatorMock struct {
-	userData  *users.ConfidentialUserData
-	groupData map[uuid.UUID]users.ConfidentialGroupData
+	userData  *common.UserData
+	groupData map[uuid.UUID]common.GroupData
 }
 
-func (u *UserAuthenticatorMock) NewUser(_ context.Context, _ users.ScopeType) (*uuid.UUID, string, error) {
+func (u *UserAuthenticatorMock) NewUser(_ context.Context, _ common.ScopeType) (*uuid.UUID, string, error) {
 	return &uuid.Nil, "", nil
 }
 
@@ -82,7 +80,7 @@ func (u *UserAuthenticatorMock) RemoveUser(_ context.Context, _ uuid.UUID) error
 	return nil
 }
 
-func (u *UserAuthenticatorMock) GetUserData(ctx context.Context, userID uuid.UUID) (*users.ConfidentialUserData, error) {
+func (u *UserAuthenticatorMock) GetUserData(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
 	if u.userData == nil {
 		return nil, errors.New("No data")
 	}
@@ -97,12 +95,12 @@ func (u *UserAuthenticatorMock) ParseAccessToken(_ string) (interfaces.AccessTok
 	return nil, nil
 }
 
-func (u *UserAuthenticatorMock) NewGroup(_ context.Context, _ users.ScopeType) (*uuid.UUID, error) {
+func (u *UserAuthenticatorMock) NewGroup(_ context.Context, _ common.ScopeType) (*uuid.UUID, error) {
 	return nil, nil
 }
 
-func (u *UserAuthenticatorMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]users.ConfidentialGroupData, error) {
-	groupDataBatch := make([]users.ConfidentialGroupData, 0, len(groupIDs))
+func (u *UserAuthenticatorMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error) {
+	groupDataBatch := make([]common.GroupData, 0, len(groupIDs))
 	for _, groupID := range groupIDs {
 		groupData, ok := u.groupData[groupID]
 		if !ok {
@@ -117,22 +115,22 @@ type MockData struct {
 	methodName   string
 	userID       uuid.UUID
 	objectID     uuid.UUID
-	accessObject *authzimpl.AccessObject
-	userData     *users.ConfidentialUserData
-	groupData    map[uuid.UUID]users.ConfidentialGroupData
+	accessObject *common.AccessObject
+	userData     *common.UserData
+	groupData    map[uuid.UUID]common.GroupData
 }
 
 func SetupMocks(mockData MockData) (context.Context, *Authz) {
 	ctx := context.Background()
 
 	if mockData.userID != uuid.Nil {
-		ctx = context.WithValue(ctx, contextkeys.UserIDCtxKey, mockData.userID)
+		ctx = context.WithValue(ctx, common.UserIDCtxKey, mockData.userID)
 	}
 	if mockData.objectID != uuid.Nil {
-		ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, mockData.objectID)
+		ctx = context.WithValue(ctx, common.ObjectIDCtxKey, mockData.objectID)
 	}
 	if mockData.methodName != "" {
-		ctx = context.WithValue(ctx, contextkeys.MethodNameCtxKey, mockData.methodName)
+		ctx = context.WithValue(ctx, common.MethodNameCtxKey, mockData.methodName)
 	}
 
 	authz := &Authz{
@@ -150,18 +148,18 @@ var mockData = MockData{
 	methodName: "/storage.Encryptonize/Retrieve",
 	userID:     uuid.Must(uuid.NewV4()),
 	objectID:   uuid.Must(uuid.NewV4()),
-	accessObject: &authzimpl.AccessObject{
+	accessObject: &common.AccessObject{
 		GroupIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
 	},
-	userData: &users.ConfidentialUserData{
+	userData: &common.UserData{
 		GroupIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
 	},
-	groupData: map[uuid.UUID]users.ConfidentialGroupData{
-		userID: {Scopes: users.ScopeRead},
+	groupData: map[uuid.UUID]common.GroupData{
+		userID: {Scopes: common.ScopeRead},
 	},
 }
 
@@ -169,7 +167,7 @@ func TestAuthzMiddleware(t *testing.T) {
 	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		accessObjectFetched, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+		accessObjectFetched, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 		if !ok {
 			t.Fatal("Access object not added to context")
 		}
@@ -186,7 +184,7 @@ func TestAuthzMiddleware(t *testing.T) {
 }
 
 func TestAuthzMiddlewareUnauthorized(t *testing.T) {
-	mockData.userData = &users.ConfidentialUserData{
+	mockData.userData = &common.UserData{
 		GroupIDs: map[uuid.UUID]bool{
 			uuid.Must(uuid.NewV4()): true,
 		},
@@ -207,8 +205,8 @@ func TestAuthzMiddlewareUnauthorized(t *testing.T) {
 }
 
 func TestAuthzMiddlewareWrongScope(t *testing.T) {
-	mockData.groupData = map[uuid.UUID]users.ConfidentialGroupData{
-		userID: {Scopes: users.ScopeDelete},
+	mockData.groupData = map[uuid.UUID]common.GroupData{
+		userID: {Scopes: common.ScopeDelete},
 	}
 	ctx, authz := SetupMocks(mockData)
 
@@ -332,7 +330,7 @@ func TestAuthzSkippedMethod(t *testing.T) {
 	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		_, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+		_, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 		if ok {
 			t.Fatal("Found unexpected access object in context")
 		}

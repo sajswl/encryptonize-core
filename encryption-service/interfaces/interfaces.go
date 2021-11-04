@@ -20,7 +20,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/users"
+	"encryption-service/common"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -46,28 +46,28 @@ type AuthStoreTxInterface interface {
 	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
 
 	// Insert a user
-	InsertUser(ctx context.Context, userData users.UserData) (err error)
+	InsertUser(ctx context.Context, protected common.ProtectedUserData) (err error)
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	// Get user's confidential data
-	GetUserData(ctx context.Context, userID uuid.UUID) (userData *users.UserData, err error)
+	GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error)
 
 	// Insert a group
-	InsertGroup(ctx context.Context, groupData users.GroupData) (err error)
+	InsertGroup(ctx context.Context, groupData common.ProtectedGroupData) (err error)
 
 	// Get one or more groups' confidential data
-	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []users.GroupData, err error)
+	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.ProtectedGroupData, err error)
 
 	//  Retrieve an existing access object
-	GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error)
+	GetAccessObject(ctx context.Context, objectID uuid.UUID) (protected *common.ProtectedAccessObject, err error)
 
 	// Insert a new access object
-	InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+	InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
 
 	// Update an existing access object
-	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) (err error)
+	UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
 
 	// Delete an existing access object
 	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
@@ -93,8 +93,14 @@ type CryptorInterface interface {
 	// EncryptWithKey encrypts data + aad with a wrapped key and returns the ciphertext
 	EncryptWithKey(data, aad, key []byte) (ciphertext []byte, err error)
 
+	// EncodeAndEncrypt serializes the data, but otherwise behaves like `Encrypt`
+	EncodeAndEncrypt(data interface{}, aad []byte) (wrappedKey, ciphertext []byte, err error)
+
 	// Decrypt decrypts a ciphertext + aad with a wrapped key
 	Decrypt(wrappedKey, ciphertext, aad []byte) (plaintext []byte, err error)
+
+	// DecodeAndDecrypt behaves like `Decrypt` by deserializes the result into `data`
+	DecodeAndDecrypt(data interface{}, wrappedKey, ciphertext, aad []byte) (err error)
 }
 
 // KeyWrapperInterface offers an API to wrap / unwrap key material
@@ -109,7 +115,7 @@ type KeyWrapperInterface interface {
 // Interface for authenticating and creating users
 type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
-	NewUser(ctx context.Context, scopes users.ScopeType) (userID *uuid.UUID, password string, err error)
+	NewUser(ctx context.Context, scopes common.ScopeType) (userID *uuid.UUID, password string, err error)
 
 	// Create a new user with the requested scopes
 	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
@@ -118,7 +124,7 @@ type UserAuthenticatorInterface interface {
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	// GetUserData fetches the user's confidential data
-	GetUserData(ctx context.Context, userID uuid.UUID) (userData *users.ConfidentialUserData, err error)
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData *common.UserData, err error)
 
 	// Logs a user in with userID and password pair
 	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
@@ -127,27 +133,10 @@ type UserAuthenticatorInterface interface {
 	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
 
 	// Create a new group with the requested scopes
-	NewGroup(ctx context.Context, scopes users.ScopeType) (groupID *uuid.UUID, err error)
+	NewGroup(ctx context.Context, scopes common.ScopeType) (groupID *uuid.UUID, err error)
 
 	// GetGroupDataBatch fetches one or more groups' confidential data
-	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []users.ConfidentialGroupData, err error)
-}
-
-type AccessObjectInterface interface {
-	// AddGroup adds a group to the permission list
-	AddGroup(targetGroupID uuid.UUID)
-
-	// RemoveGroup Removes a group from the permission list
-	RemoveGroup(targetGroupID uuid.UUID)
-
-	// GetGroups returns the list of groups that may access the object
-	GetGroups() (groupIDs map[uuid.UUID]bool)
-
-	// ContainsGroup checks if the group is present in the permission list
-	ContainsGroup(targetGroupID uuid.UUID) (exists bool)
-
-	// getWOEK retrieves the wrapped object encryption key
-	GetWOEK() (woek []byte)
+	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.GroupData, err error)
 }
 
 // Interface for authenticating and creating Access Objects
@@ -156,10 +145,10 @@ type AccessObjectAuthenticatorInterface interface {
 	CreateAccessObject(ctx context.Context, objectID, groupID uuid.UUID, woek []byte) (err error)
 
 	// Fetches an existing Access Object
-	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject AccessObjectInterface, err error)
+	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject *common.AccessObject, err error)
 
-	// Updates or inserts the AccessObject into backend storage
-	UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject AccessObjectInterface) (err error)
+	// Updates the AccessObject into the Authstorage
+	UpdateAccessObject(ctx context.Context, objectID uuid.UUID, accessObject common.AccessObject) (err error)
 
 	// Deletes an existing Access Object
 	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
@@ -180,10 +169,10 @@ type AccessTokenInterface interface {
 	GetUserID() (userID uuid.UUID)
 
 	// Get the scopes contained in the token
-	GetUserScopes() (scopes users.ScopeType)
+	GetUserScopes() (scopes common.ScopeType)
 
 	// Check if the token contains specific scopes
-	HasScopes(tar users.ScopeType) (res bool)
+	HasScopes(tar common.ScopeType) (res bool)
 }
 
 // Interface that represents a general request regarding an object

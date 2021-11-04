@@ -21,10 +21,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	log "encryption-service/logger"
 	"encryption-service/services/health"
-	"encryption-service/users"
 )
 
 const baseAppPath string = "/app.Encryptonize/"
@@ -49,7 +48,7 @@ var skippedAuthorizeMethods = map[string]bool{
 func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
-		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+		methodName, ok := ctx.Value(common.MethodNameCtxKey).(string)
 		if !ok {
 			err := status.Errorf(codes.Internal, "AuthenticateUser: Internal error during authentication")
 			log.Error(ctx, err, "Could not typecast methodName to string")
@@ -61,14 +60,14 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 			return handler(ctx, req)
 		}
 
-		userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+		userID, ok := ctx.Value(common.UserIDCtxKey).(uuid.UUID)
 		if !ok {
 			err := status.Errorf(codes.Internal, "Internal error during authorization")
 			log.Error(ctx, err, "Could not typecast userID to uuid.UUID")
 			return nil, err
 		}
 
-		objectID, ok := ctx.Value(contextkeys.ObjectIDCtxKey).(uuid.UUID)
+		objectID, ok := ctx.Value(common.ObjectIDCtxKey).(uuid.UUID)
 		if !ok {
 			err := status.Errorf(codes.Internal, "Internal error during authorization")
 			log.Error(ctx, err, "Could not typecast objectID to uuid.UUID")
@@ -87,7 +86,7 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		reqScope, ok := users.MethodScopeMap[methodName]
+		reqScope, ok := common.MethodScopeMap[methodName]
 		if !ok {
 			err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
 			log.Error(ctx, err, "AuthzMiddleware: Invalid Endpoint")
@@ -117,7 +116,7 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 		for _, groupData := range groupDataBatch {
 			// User authorized, call next handler
 			if groupData.Scopes.HasScopes(reqScope) {
-				newCtx := context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+				newCtx := context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
 				return handler(newCtx, req)
 			}
 		}

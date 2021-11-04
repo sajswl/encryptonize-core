@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package users
+package common
 
 import (
 	"errors"
@@ -57,17 +57,17 @@ var MethodScopeMap = map[string]ScopeType{
 	baseAppPath + "Version":            ScopeNone,
 }
 
-type ConfidentialUserData struct {
+type UserData struct {
 	HashedPassword []byte
 	Salt           []byte
 	GroupIDs       map[uuid.UUID]bool
 }
 
-type UserData struct {
-	UserID               uuid.UUID
-	ConfidentialUserData []byte
-	WrappedKey           []byte
-	DeletedAt            *time.Time
+type ProtectedUserData struct {
+	UserID     uuid.UUID
+	UserData   []byte
+	WrappedKey []byte
+	DeletedAt  *time.Time
 }
 
 func (us ScopeType) IsValid() error {
