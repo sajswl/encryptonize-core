@@ -232,27 +232,30 @@ func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected *common.P
 
 // Get one or more groups' confidential data
 func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
-	batch := &pgx.Batch{}
-	for _, groupID := range groupIDs {
-		batch.Queue(storeTx.NewQuery("SELECT data, key, id FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
+	rows, err := storeTx.Tx.Query(ctx, storeTx.NewQuery("SELECT data, key, id FROM groups WHERE id = any($1) AND deleted_at IS NULL"), groupIDs)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
 
-	batchResults := storeTx.Tx.SendBatch(ctx, batch)
-	defer batchResults.Close()
-
-	protectedBatch := make([]common.ProtectedGroupData, 0, batch.Len())
-	for i := 0; i < batch.Len(); i++ {
+	protectedBatch := make([]common.ProtectedGroupData, 0, len(groupIDs))
+	for rows.Next() {
 		protected := common.ProtectedGroupData{}
-
-		err := batchResults.QueryRow().Scan(&protected.GroupData, &protected.WrappedKey, &protected.GroupID)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, interfaces.ErrNotFound
-		}
+		err := rows.Scan(&protected.GroupData, &protected.WrappedKey, &protected.GroupID)
 		if err != nil {
 			return nil, err
 		}
 
 		protectedBatch = append(protectedBatch, protected)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Some IDs were missing
+	if len(protectedBatch) != len(groupIDs) {
+		return nil, interfaces.ErrNotFound
 	}
 
 	return protectedBatch, nil
