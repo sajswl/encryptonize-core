@@ -14,81 +14,40 @@
 package authz
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
 	"errors"
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/interfaces"
 )
 
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
-	AccessObjectMAC interfaces.MessageAuthenticatorInterface
+	AccessObjectCryptor interfaces.CryptorInterface
 }
-
-// serializeAccessObject serializes and signs an Object ID + Access Object into data + tag
-func (a *Authorizer) SerializeAccessObject(objectID uuid.UUID, accessObject *AccessObject) ([]byte, []byte, error) {
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	err := enc.Encode(accessObject)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	data := buffer.Bytes()
-	msg := append(objectID.Bytes(), data...)
-	tag, err := a.AccessObjectMAC.Tag(msg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return data, tag, nil
-}
-
-// parseAccessObject verifies and parses an Object ID + data + tag into an Access Object
-func (a *Authorizer) ParseAccessObject(objectID uuid.UUID, data, tag []byte) (*AccessObject, error) {
-	msg := append(objectID.Bytes(), data...)
-	valid, err := a.AccessObjectMAC.Verify(msg, tag)
-	if err != nil {
-		return nil, err
-	}
-
-	if !valid {
-		return nil, errors.New("invalid tag")
-	}
-
-	accessObject := &AccessObject{}
-	dec := gob.NewDecoder(bytes.NewReader(data))
-
-	err = dec.Decode(accessObject)
-	if err != nil {
-		return nil, err
-	}
-
-	return accessObject, nil
-}
-
-// Use cases for authorizer:
 
 // CreateObject creates a new object with given parameters and inserts it into the Auth Store.
 func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) error {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	accessObject := NewAccessObject(userID, woek)
-
-	data, tag, err := a.SerializeAccessObject(objectID, accessObject)
+	accessObject := common.NewAccessObject(userID, woek)
+	wrappedKey, ciphertext, err := a.AccessObjectCryptor.EncodeAndEncrypt(accessObject, objectID.Bytes())
 	if err != nil {
 		return err
 	}
 
-	err = authStorageTx.InsertAcccessObject(ctx, objectID, data, tag)
+	protected := common.ProtectedAccessObject{
+		ObjectID:     objectID,
+		AccessObject: ciphertext,
+		WrappedKey:   wrappedKey,
+	}
+
+	err = authStorageTx.InsertAcccessObject(ctx, protected)
 	if err != nil {
 		return err
 	}
@@ -96,21 +55,20 @@ func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uu
 	return nil
 }
 
-// FetchAccessObject fetches an AccessObject by its ID, deserializes it and verifies its tag
-func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (interfaces.AccessObjectInterface, error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+// FetchAccessObject fetches an AccessObject by its ID and decrypts it
+func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	// TODO: add single row special case?
-	data, tag, err := authStorageTx.GetAccessObject(ctx, objectID)
+	protected, err := authStorageTx.GetAccessObject(ctx, objectID)
 	if err != nil {
 		return nil, err
 	}
 
-	// will fail if the tag does not match
-	accessObject, err := a.ParseAccessObject(objectID, data, tag)
+	accessObject := &common.AccessObject{}
+	err = a.AccessObjectCryptor.DecodeAndDecrypt(accessObject, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -119,25 +77,26 @@ func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) 
 }
 
 // updatePermissions increments the Access Object's version and updates in the Auth Storage
-func (a *Authorizer) UpsertAccessObject(ctx context.Context, objectID uuid.UUID, accessObject interfaces.AccessObjectInterface) error {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, accessObject common.AccessObject) error {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
-	ao, ok := accessObject.(*AccessObject)
-	if !ok {
-		return errors.New("accessObject of unexpected dynamic type")
-	}
+	accessObject.Version++
 
-	ao.Version++
-
-	data, tag, err := a.SerializeAccessObject(objectID, ao)
+	wrappedKey, ciphertext, err := a.AccessObjectCryptor.EncodeAndEncrypt(accessObject, objectID.Bytes())
 	if err != nil {
 		return err
 	}
 
-	err = authStorageTx.UpdateAccessObject(ctx, objectID, data, tag)
+	protected := common.ProtectedAccessObject{
+		ObjectID:     objectID,
+		AccessObject: ciphertext,
+		WrappedKey:   wrappedKey,
+	}
+
+	err = authStorageTx.UpdateAccessObject(ctx, protected)
 	if err != nil {
 		return err
 	}
@@ -146,7 +105,7 @@ func (a *Authorizer) UpsertAccessObject(ctx context.Context, objectID uuid.UUID,
 }
 
 func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error) {
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}

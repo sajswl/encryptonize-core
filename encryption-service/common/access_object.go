@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package authz
+package common
 
 import (
 	"github.com/gofrs/uuid"
@@ -23,12 +23,19 @@ type AccessObject struct {
 	Version uint64
 }
 
-// NewAccessObject instantiates a new Access Object with given userID and WOEK.
+type ProtectedAccessObject struct {
+	ObjectID     uuid.UUID
+	AccessObject []byte
+	WrappedKey   []byte
+}
+
+// AccessObject instantiates a new Access Object with given userID and WOEK.
 // A new object starts with Version: 0
 func NewAccessObject(userID uuid.UUID, woek []byte) *AccessObject {
 	return &AccessObject{
 		UserIDs: map[uuid.UUID]bool{userID: true},
 		Woek:    woek,
+		Version: 0,
 	}
 }
 

@@ -21,16 +21,25 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/impl/authstorage"
 	"encryption-service/impl/crypt"
 )
 
-// TODO: accessObject comes from access_object_test.go this is not nice
+var objectID = uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000000"))
+var userID = uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000"))
+var woek = []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+var accessObject = &common.AccessObject{
+	Version: 0,
+	UserIDs: map[uuid.UUID]bool{
+		userID: true,
+	},
+	Woek: woek,
+}
 
-var messageAuthenticator, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.TokenDomain)
+var cryptor, _ = crypt.NewAESCryptor([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 var authorizer = &Authorizer{
-	AccessObjectMAC: messageAuthenticator,
+	AccessObjectCryptor: cryptor,
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
@@ -43,120 +52,60 @@ func TestRemoveUserNonExisting(t *testing.T) {
 	}
 }
 
-func TestSerializeParse(t *testing.T) {
-	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
-	if err != nil {
-		t.Fatalf("serializeAccessObject failed: %v", err)
-	}
-
-	parsedAccessObject, err := authorizer.ParseAccessObject(objectID, data, tag)
-	if err != nil {
-		t.Fatalf("parseAccessObject failed: %v", err)
-	}
-
-	if !reflect.DeepEqual(accessObject, parsedAccessObject) {
-		t.Error("TestSerializeParse failed")
-	}
-}
-
-func TestParseBadObjectID(t *testing.T) {
-	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
-	if err != nil {
-		t.Fatalf("serializeAccessObject failed: %v", err)
-	}
-
-	parsedAccessObject, err := authorizer.ParseAccessObject(uuid.Must(uuid.NewV4()), data, tag)
-	if parsedAccessObject != nil || err == nil || err.Error() != "invalid tag" {
-		t.Error("TestParseBadObjectID failed")
-	}
-}
-
-func TestParseBadSignedData(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	data := []byte("parsers hate this string")
-	tag, err := authorizer.AccessObjectMAC.Tag(append(userID.Bytes(), data...))
-	if err != nil {
-		t.Fatalf("tag failed: %v", err)
-	}
-
-	parsedAccessObject, err := authorizer.ParseAccessObject(userID, data, tag)
-	if parsedAccessObject != nil || err == nil {
-		t.Error("TestParseBadSignedData failed")
-	}
-}
-
-func TestParseBadTag(t *testing.T) {
-	parsedAccessObject, err := authorizer.ParseAccessObject(uuid.Must(uuid.NewV4()), []byte("data"), []byte("tag"))
-	if parsedAccessObject != nil || err == nil {
-		t.Error("TestParseBadTagfailed")
-	}
-}
-
 func TestCreateObject(t *testing.T) {
-	objectID := uuid.Must(uuid.NewV4())
-	userID := uuid.Must(uuid.NewV4())
-	woek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Random errored: %v", err)
-	}
-
-	insertCalledCorrectly := false
-
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, oid uuid.UUID, data, tag []byte) error {
-			accessObject, err := authorizer.ParseAccessObject(oid, data, tag)
+		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+			ao := &common.AccessObject{}
+			err := cryptor.DecodeAndDecrypt(ao, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
 			if err != nil {
-				t.Errorf("parseAccessObject errored: %v", err)
+				t.Fatalf("Failed to decrypt access object: %s", err)
 			}
-			insertCalledCorrectly = (oid == objectID) && accessObject.ContainsUser(userID)
+			if !reflect.DeepEqual(accessObject, ao) {
+				t.Fatalf("Decrypted access object is different from original")
+			}
+
 			return nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	err = authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err := authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err != nil {
-		t.Error("CreateObject errored")
-	}
-
-	if !insertCalledCorrectly {
-		t.Error("insert not called correctly")
+		t.Fatalf("CreateAccessObject errored: %s", err)
 	}
 }
 
 func TestCreateObjectFail(t *testing.T) {
-	objectID := uuid.Must(uuid.NewV4())
-	userID := uuid.Must(uuid.NewV4())
-	woek, err := crypt.Random(32)
-	if err != nil {
-		t.Fatalf("Random errored: %v", err)
-	}
-
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, oid uuid.UUID, data, tag []byte) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 			return errors.New("mock error")
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	err = authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err := authorizer.CreateAccessObject(ctx, objectID, userID, woek)
 	if err == nil || err.Error() != "mock error" {
 		t.Error("CreateObject should have errored")
 	}
 }
 
 func TestFetchAccessObject(t *testing.T) {
-	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
+	wrappedKey, ciphertext, err := cryptor.EncodeAndEncrypt(accessObject, objectID.Bytes())
 	if err != nil {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
+	protected := common.ProtectedAccessObject{
+		ObjectID:     objectID,
+		AccessObject: ciphertext,
+		WrappedKey:   wrappedKey,
+	}
 
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
-			return data, tag, nil
+		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) (*common.ProtectedAccessObject, error) {
+			return &protected, nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	_, err = authorizer.FetchAccessObject(ctx, objectID)
 	if err != nil {
@@ -166,11 +115,11 @@ func TestFetchAccessObject(t *testing.T) {
 
 func TestAuthorizeStoreFailed(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
-			return nil, nil, errors.New("mock error")
+		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) (*common.ProtectedAccessObject, error) {
+			return nil, errors.New("mock error")
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	_, err := authorizer.FetchAccessObject(ctx, objectID)
 	if err == nil {
@@ -178,18 +127,23 @@ func TestAuthorizeStoreFailed(t *testing.T) {
 	}
 }
 
-func TestAuthorizeParseFailed(t *testing.T) {
-	data, tag, err := authorizer.SerializeAccessObject(objectID, accessObject)
+func TestAuthorizeDecryptFailed(t *testing.T) {
+	wrappedKey, ciphertext, err := cryptor.EncodeAndEncrypt(accessObject, objectID.Bytes())
 	if err != nil {
 		t.Fatalf("serializeAccessObject errored: %v", err)
 	}
+	protected := common.ProtectedAccessObject{
+		ObjectID:     objectID,
+		AccessObject: ciphertext[1:], // Mangled ciphertext
+		WrappedKey:   wrappedKey,
+	}
 
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) ([]byte, []byte, error) {
-			return data, append(tag, []byte("bad")...), nil
+		GetAccessObjectFunc: func(ctx context.Context, oid uuid.UUID) (*common.ProtectedAccessObject, error) {
+			return &protected, nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	_, err = authorizer.FetchAccessObject(ctx, objectID)
 	if err == nil {
@@ -197,49 +151,48 @@ func TestAuthorizeParseFailed(t *testing.T) {
 	}
 }
 
-func TestUpdatePermissions(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
-	accessObject := &AccessObject{
-		Version: 4,
-		UserIDs: map[uuid.UUID]bool{uuid.Must(uuid.NewV4()): true},
-		Woek:    []byte("woek"),
+	newAccessObject := &common.AccessObject{
+		Version: 42,
+		UserIDs: map[uuid.UUID]bool{
+			uuid.Must(uuid.FromString("30000000-0000-0000-0000-000000000000")): true,
+		},
+		Woek: []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
 	}
 
-	var gotData, gotTag []byte
-
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-			gotData = data
-			gotTag = tag
+		UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+			ao := &common.AccessObject{}
+			err := cryptor.DecodeAndDecrypt(ao, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
+			if err != nil {
+				t.Fatalf("Failed to decrypt access object: %s", err)
+			}
+			newAccessObject.Version++
+			if !reflect.DeepEqual(newAccessObject, ao) {
+				t.Fatalf("Decrypted access object is different from original")
+			}
+
 			return nil
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	err := authorizer.UpsertAccessObject(ctx, objectID, accessObject)
+	err := authorizer.UpdateAccessObject(ctx, objectID, *newAccessObject)
 	if err != nil {
 		t.Fatalf("updatePermissions errored: %v", err)
 	}
-
-	gotAccessObject, err := authorizer.ParseAccessObject(objectID, gotData, gotTag)
-	if err != nil {
-		t.Fatalf("parseAccessObject errored: %v", err)
-	}
-
-	if !reflect.DeepEqual(accessObject, gotAccessObject) || gotAccessObject.Version != 5 {
-		t.Error("access objects didn't match")
-	}
 }
 
-func TestUpdatePermissionsStoreFailed(t *testing.T) {
+func TestUpdateStoreFailed(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+		UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 			return errors.New("mock error")
 		},
 	}
-	ctx := context.WithValue(context.Background(), contextkeys.AuthStorageTxCtxKey, authStoreTx)
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	err := authorizer.UpsertAccessObject(ctx, objectID, accessObject)
+	err := authorizer.UpdateAccessObject(ctx, objectID, *accessObject)
 	if err == nil {
 		t.Fatalf("updatePermissions should have errored")
 	}

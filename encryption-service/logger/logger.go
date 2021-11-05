@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/interfaces"
 )
 
@@ -43,32 +43,32 @@ func init() {
 func fieldsFromCtx(ctx context.Context) log.Fields {
 	fields := make(log.Fields)
 
-	userID := ctx.Value(contextkeys.UserIDCtxKey)
+	userID := ctx.Value(common.UserIDCtxKey)
 	if userID != nil {
 		fields["userId"] = userID
 	}
 
-	method := ctx.Value(contextkeys.MethodNameCtxKey)
+	method := ctx.Value(common.MethodNameCtxKey)
 	if method != nil {
 		fields["method"] = method
 	}
 
-	requestID := ctx.Value(contextkeys.RequestIDCtxKey)
+	requestID := ctx.Value(common.RequestIDCtxKey)
 	if requestID != nil {
 		fields["requestId"] = requestID
 	}
 
-	status := ctx.Value(contextkeys.StatusCtxKey)
+	status := ctx.Value(common.StatusCtxKey)
 	if status != nil {
 		fields["status"] = status
 	}
 
-	objectID := ctx.Value(contextkeys.ObjectIDCtxKey)
+	objectID := ctx.Value(common.ObjectIDCtxKey)
 	if objectID != nil {
 		fields["objectId"] = objectID
 	}
 
-	targetID := ctx.Value(contextkeys.TargetIDCtxKey)
+	targetID := ctx.Value(common.TargetIDCtxKey)
 	if targetID != nil {
 		fields["targetId"] = targetID
 	}
@@ -135,7 +135,7 @@ func Debugf(ctx context.Context, format string, args ...interface{}) {
 // Inject full method name into unary call
 func UnaryMethodNameInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		newctx := context.WithValue(ctx, contextkeys.MethodNameCtxKey, info.FullMethod)
+		newctx := context.WithValue(ctx, common.MethodNameCtxKey, info.FullMethod)
 		return handler(newctx, req)
 	}
 }
@@ -154,7 +154,7 @@ func UnaryObjectIDInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid object ID")
 		}
 
-		newctx := context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectID)
+		newctx := context.WithValue(ctx, common.ObjectIDCtxKey, objectID)
 		return handler(newctx, req)
 	}
 }
@@ -169,7 +169,7 @@ func UnaryRequestIDInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Errorf(codes.Internal, "error encountered while creating request ID")
 		}
 
-		newCtx := context.WithValue(ctx, contextkeys.RequestIDCtxKey, requestID)
+		newCtx := context.WithValue(ctx, common.RequestIDCtxKey, requestID)
 
 		return handler(newCtx, req)
 	}
@@ -179,7 +179,7 @@ func UnaryRequestIDInterceptor() grpc.UnaryServerInterceptor {
 func UnaryLogInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		status := "started"
-		ctx = context.WithValue(ctx, contextkeys.StatusCtxKey, status)
+		ctx = context.WithValue(ctx, common.StatusCtxKey, status)
 		Info(ctx, "Request start")
 
 		res, err := handler(ctx, req)
@@ -188,7 +188,7 @@ func UnaryLogInterceptor() grpc.UnaryServerInterceptor {
 		if err != nil {
 			status = "failure"
 		}
-		ctx = context.WithValue(ctx, contextkeys.StatusCtxKey, status)
+		ctx = context.WithValue(ctx, common.StatusCtxKey, status)
 
 		Info(ctx, "Request completed")
 		return res, err

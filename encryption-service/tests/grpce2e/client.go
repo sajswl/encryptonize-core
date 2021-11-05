@@ -24,12 +24,12 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 
+	"encryption-service/common"
 	"encryption-service/services/app"
 	"encryption-service/services/authn"
 	"encryption-service/services/authz"
 	"encryption-service/services/enc"
 	"encryption-service/services/storage"
-	"encryption-service/users"
 )
 
 // Client for making test gRPC calls to the encryption service
@@ -216,7 +216,7 @@ func (c *Client) RemovePermission(oid, target string) (*authz.RemovePermissionRe
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(userscopes []users.UserScope) (*authn.CreateUserResponse, error) {
+func (c *Client) CreateUser(userscopes []common.UserScope) (*authn.CreateUserResponse, error) {
 	createUserRequest := &authn.CreateUserRequest{
 		UserScopes: userscopes,
 	}
