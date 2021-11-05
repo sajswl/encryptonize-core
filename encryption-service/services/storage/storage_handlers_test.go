@@ -160,7 +160,7 @@ func TestStoreFail(t *testing.T) {
 		StoreFunc: func(ctx context.Context, objectID string, object []byte) error { return fmt.Errorf("") },
 	}
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return nil
 		},
 	}
@@ -204,7 +204,7 @@ func TestStoreFail(t *testing.T) {
 // Test the case where the authn store fails to store
 func TestStoreFailAuth(t *testing.T) {
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return fmt.Errorf("")
 		},
 	}

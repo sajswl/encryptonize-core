@@ -54,7 +54,7 @@ func TestRemoveUserNonExisting(t *testing.T) {
 
 func TestCreateObject(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			ao := &common.AccessObject{}
 			err := cryptor.DecodeAndDecrypt(ao, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
 			if err != nil {
@@ -77,7 +77,7 @@ func TestCreateObject(t *testing.T) {
 
 func TestCreateObjectFail(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return errors.New("mock error")
 		},
 	}
@@ -162,7 +162,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		UpdateAccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			ao := &common.AccessObject{}
 			err := cryptor.DecodeAndDecrypt(ao, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
 			if err != nil {
@@ -186,7 +186,7 @@ func TestUpdate(t *testing.T) {
 
 func TestUpdateStoreFailed(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		UpdateAccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return errors.New("mock error")
 		},
 	}

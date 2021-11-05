@@ -43,7 +43,7 @@ func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, groupID u
 		return err
 	}
 
-	protected := common.ProtectedAccessObject{
+	protected := &common.ProtectedAccessObject{
 		ObjectID:     objectID,
 		AccessObject: ciphertext,
 		WrappedKey:   wrappedKey,
@@ -92,7 +92,7 @@ func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID,
 		return err
 	}
 
-	protected := common.ProtectedAccessObject{
+	protected := &common.ProtectedAccessObject{
 		ObjectID:     objectID,
 		AccessObject: ciphertext,
 		WrappedKey:   wrappedKey,

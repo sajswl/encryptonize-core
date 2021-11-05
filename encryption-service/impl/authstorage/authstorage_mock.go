@@ -33,16 +33,16 @@ type AuthStoreTxMock struct {
 	RollbackFunc func(ctx context.Context) error
 
 	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
-	InsertUserFunc  func(ctx context.Context, protected common.ProtectedUserData) error
+	InsertUserFunc  func(ctx context.Context, protected *common.ProtectedUserData) error
 	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error)
 	RemoveUserFunc  func(ctx context.Context, userID uuid.UUID) error
 
-	InsertGroupFunc       func(ctx context.Context, group common.ProtectedGroupData) error
+	InsertGroupFunc       func(ctx context.Context, group *common.ProtectedGroupData) error
 	GetGroupDataBatchFunc func(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error)
-	InsertAcccessObjectFunc func(ctx context.Context, protected common.ProtectedAccessObject) error
-	UpdateAccessObjectFunc  func(ctx context.Context, protected common.ProtectedAccessObject) error
+	InsertAcccessObjectFunc func(ctx context.Context, protected *common.ProtectedAccessObject) error
+	UpdateAccessObjectFunc  func(ctx context.Context, protected *common.ProtectedAccessObject) error
 	DeleteAccessObjectFunc  func(ctx context.Context, objectID uuid.UUID) error
 }
 
@@ -56,7 +56,7 @@ func (db *AuthStoreTxMock) Rollback(ctx context.Context) error {
 func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	return db.UserExistsFunc(ctx, userID)
 }
-func (db *AuthStoreTxMock) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
+func (db *AuthStoreTxMock) InsertUser(ctx context.Context, protected *common.ProtectedUserData) error {
 	return db.InsertUserFunc(ctx, protected)
 }
 
@@ -68,7 +68,7 @@ func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (*
 	return db.GetUserDataFunc(ctx, userID)
 }
 
-func (db *AuthStoreTxMock) InsertGroup(ctx context.Context, protected common.ProtectedGroupData) error {
+func (db *AuthStoreTxMock) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	return db.InsertGroupFunc(ctx, protected)
 }
 
@@ -80,11 +80,11 @@ func (db *AuthStoreTxMock) GetAccessObject(ctx context.Context, objectID uuid.UU
 	return db.GetAccessObjectFunc(ctx, objectID)
 }
 
-func (db *AuthStoreTxMock) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+func (db *AuthStoreTxMock) InsertAcccessObject(ctx context.Context, protected *common.ProtectedAccessObject) error {
 	return db.InsertAcccessObjectFunc(ctx, protected)
 }
 
-func (db *AuthStoreTxMock) UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+func (db *AuthStoreTxMock) UpdateAccessObject(ctx context.Context, protected *common.ProtectedAccessObject) error {
 	return db.UpdateAccessObjectFunc(ctx, protected)
 }
 
@@ -156,7 +156,7 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 	return &data, nil
 }
 
-func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user common.ProtectedUserData) error {
+func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user *common.ProtectedUserData) error {
 	// TODO: check if already contained
 	m.Data.Store(user.UserID, user)
 	return nil
@@ -184,7 +184,7 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) InsertGroup(ctx context.Context, protected common.ProtectedGroupData) error {
+func (m *MemoryAuthStoreTx) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	// TODO: check if already contained
 	m.Data.Store(protected.GroupID, protected)
 	return nil
@@ -220,20 +220,20 @@ func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 		return nil, interfaces.ErrNotFound
 	}
 
-	data, ok := accessObject.(common.ProtectedAccessObject)
+	data, ok := accessObject.(*common.ProtectedAccessObject)
 	if !ok {
 		return nil, errors.New("unable to cast to ProtectedAccessObject")
 	}
 
-	return &data, nil
+	return data, nil
 }
 
-func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, accessObject common.ProtectedAccessObject) error {
+func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, accessObject *common.ProtectedAccessObject) error {
 	m.Data.Store(accessObject.ObjectID, accessObject)
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, accessObject common.ProtectedAccessObject) error {
+func (m *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, accessObject *common.ProtectedAccessObject) error {
 	return m.InsertAcccessObject(ctx, accessObject)
 }
 

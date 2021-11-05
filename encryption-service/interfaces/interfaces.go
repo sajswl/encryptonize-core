@@ -46,7 +46,7 @@ type AuthStoreTxInterface interface {
 	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
 
 	// Insert a user
-	InsertUser(ctx context.Context, protected common.ProtectedUserData) (err error)
+	InsertUser(ctx context.Context, protected *common.ProtectedUserData) (err error)
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
@@ -55,7 +55,7 @@ type AuthStoreTxInterface interface {
 	GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error)
 
 	// Insert a group
-	InsertGroup(ctx context.Context, groupData common.ProtectedGroupData) (err error)
+	InsertGroup(ctx context.Context, groupData *common.ProtectedGroupData) (err error)
 
 	// Get one or more groups' confidential data
 	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.ProtectedGroupData, err error)
@@ -64,10 +64,10 @@ type AuthStoreTxInterface interface {
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (protected *common.ProtectedAccessObject, err error)
 
 	// Insert a new access object
-	InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
+	InsertAcccessObject(ctx context.Context, protected *common.ProtectedAccessObject) (err error)
 
 	// Update an existing access object
-	UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
+	UpdateAccessObject(ctx context.Context, protected *common.ProtectedAccessObject) (err error)
 
 	// Delete an existing access object
 	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)

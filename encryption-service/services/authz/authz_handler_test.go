@@ -61,7 +61,7 @@ var authnStorageTxMock = &authstorage.AuthStoreTxMock{
 			WrappedKey:   wrappedKey,
 		}, nil
 	},
-	UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+	UpdateAccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 		return nil
 	},
 	CommitFunc: func(ctx context.Context) error {

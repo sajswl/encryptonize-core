@@ -191,7 +191,7 @@ func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (b
 }
 
 // InsertUser inserts a user into the auth store
-func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
+func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, protected *common.ProtectedUserData) error {
 	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), protected.UserID, protected.UserData, protected.WrappedKey)
 	return err
 }
@@ -225,7 +225,7 @@ func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 }
 
 // InsertGroup inserts a group into the auth store
-func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected common.ProtectedGroupData) error {
+func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO groups (id, data, key) VALUES ($1, $2, $3)"), protected.GroupID, protected.GroupData, protected.WrappedKey)
 	return err
 }
@@ -275,13 +275,13 @@ func (storeTx *AuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 }
 
 // InsertAcccessObject inserts an Access Object (Object ID, data, tag)
-func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, protected *common.ProtectedAccessObject) error {
 	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO access_objects (id, data, key) VALUES ($1, $2, $3)"), protected.ObjectID, protected.AccessObject, protected.WrappedKey)
 	return err
 }
 
 // UpdateAccessObject updates an Access Object with Object ID and sets data, tag
-func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, protected *common.ProtectedAccessObject) error {
 	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, key = $2 WHERE id = $3"), protected.AccessObject, protected.WrappedKey, protected.ObjectID)
 	return err
 }

@@ -83,7 +83,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes common.ScopeTyp
 		return nil, "", err
 	}
 
-	err = authStorageTx.InsertUser(ctx, *userData)
+	err = authStorageTx.InsertUser(ctx, userData)
 	if err != nil {
 		return nil, "", err
 	}
@@ -94,7 +94,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes common.ScopeTyp
 		return nil, "", err
 	}
 
-	err = authStorageTx.InsertGroup(ctx, *groupData)
+	err = authStorageTx.InsertGroup(ctx, groupData)
 	if err != nil {
 		return nil, "", err
 	}
@@ -270,7 +270,7 @@ func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes common.ScopeTy
 		return nil, err
 	}
 
-	err = authStorageTx.InsertGroup(ctx, *groupData)
+	err = authStorageTx.InsertGroup(ctx, groupData)
 	if err != nil {
 		return nil, err
 	}
