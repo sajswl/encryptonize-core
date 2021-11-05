@@ -216,9 +216,9 @@ func (c *Client) RemovePermission(oid, target string) (*authz.RemovePermissionRe
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(userscopes []common.UserScope) (*authn.CreateUserResponse, error) {
+func (c *Client) CreateUser(userscopes []common.Scope) (*authn.CreateUserResponse, error) {
 	createUserRequest := &authn.CreateUserRequest{
-		UserScopes: userscopes,
+		Scopes: userscopes,
 	}
 
 	createUserResponse, err := c.authClient.CreateUser(c.ctx, createUserRequest)

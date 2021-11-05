@@ -16,7 +16,7 @@ syntax = "proto3";
 package common;
 option go_package = "encryption-service/common";
 
-enum UserScope{
+enum Scope{
   READ = 0;
   CREATE = 1;
   INDEX = 2;
