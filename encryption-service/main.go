@@ -61,9 +61,15 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (user) failed")
 	}
 
+	groupCryptor, err := crypt.NewAESCryptor(config.Keys.GEK)
+	if err != nil {
+		log.Fatal(ctx, err, "NewAESCryptor (user) failed")
+	}
+
 	userAuthenticator := &authnimpl.UserAuthenticator{
 		TokenCryptor: tokenCryptor,
 		UserCryptor:  userCryptor,
+		GroupCryptor: groupCryptor,
 	}
 
 	dataCryptor, err := crypt.NewAESCryptor(config.Keys.KEK)

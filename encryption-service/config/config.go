@@ -51,6 +51,9 @@ type Keys struct {
 
 	// Used for confidential user data encryption
 	UEK []byte `koanf:"uek"`
+
+	// Used for confidential group data encryption
+	GEK []byte `koanf:"gek"`
 }
 
 type AuthStorage struct {
@@ -195,6 +198,14 @@ func (k *Keys) ParseConfig() error {
 		return errors.New("UEK must be 32 bytes (64 hex digits) long")
 	}
 
+	k.GEK, err = hex.DecodeString(string(k.GEK))
+	if err != nil {
+		return errors.New("GEK couldn't be parsed (decode hex)")
+	}
+	if len(k.GEK) != 32 {
+		return errors.New("GEK must be 32 bytes (64 hex digits) long")
+	}
+
 	return nil
 }
 
@@ -244,6 +255,9 @@ func (k *Keys) CheckInsecure() {
 		}
 		if hex.EncodeToString(k.UEK) == "0000000000000000000000000000000000000000000000000000000000000003" {
 			log.Fatal(ctx, errors.New(""), "Test UEK used outside of INSECURE testing mode")
+		}
+		if hex.EncodeToString(k.GEK) == "0000000000000000000000000000000000000000000000000000000000000004" {
+			log.Fatal(ctx, errors.New(""), "Test GEK used outside of INSECURE testing mode")
 		}
 	}
 }

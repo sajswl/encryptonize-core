@@ -35,6 +35,7 @@ const tokenExpiryTime = time.Hour
 type UserAuthenticator struct {
 	TokenCryptor interfaces.CryptorInterface
 	UserCryptor  interfaces.CryptorInterface
+	GroupCryptor interfaces.CryptorInterface
 }
 
 func (ua *UserAuthenticator) newUserData() (*common.ProtectedUserData, string, error) {
@@ -264,7 +265,7 @@ func (ua *UserAuthenticator) newGroupData(groupID uuid.UUID, scopes common.Scope
 	groupData := &common.GroupData{
 		Scopes: scopes,
 	}
-	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(groupData, groupID.Bytes())
+	wrappedKey, ciphertext, err := ua.GroupCryptor.EncodeAndEncrypt(groupData, groupID.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +325,7 @@ func (ua *UserAuthenticator) GetGroupDataBatch(ctx context.Context, groupIDs []u
 
 	for _, protected := range protectedBatch {
 		groupData := &common.GroupData{}
-		err := ua.UserCryptor.DecodeAndDecrypt(groupData, protected.WrappedKey, protected.GroupData, protected.GroupID.Bytes())
+		err := ua.GroupCryptor.DecodeAndDecrypt(groupData, protected.WrappedKey, protected.GroupData, protected.GroupID.Bytes())
 		if err != nil {
 			return nil, err
 		}
