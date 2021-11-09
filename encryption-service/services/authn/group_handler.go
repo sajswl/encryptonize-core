@@ -101,3 +101,46 @@ func (a *Authn) AddUserToGroup(ctx context.Context, request *AddUserToGroupReque
 
 	return &AddUserToGroupResponse{}, nil
 }
+
+// RemoveUserFromGroup removes a user from a group.
+func (a *Authn) RemoveUserFromGroup(ctx context.Context, request *RemoveUserFromGroupRequest) (*RemoveUserFromGroupResponse, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while adding user to group")
+		log.Error(ctx, err, "RemoveUserFromGroup: Could not typecast authstorage to AuthStoreTxInterface")
+		return nil, err
+	}
+
+	userID, err := uuid.FromString(request.UserId)
+	if err != nil {
+		log.Errorf(ctx, err, "RemoveUserFromGroup: Failed to parse user ID %s as UUID", request.UserId)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	groupID, err := uuid.FromString(request.GroupId)
+	if err != nil {
+		log.Errorf(ctx, err, "RemoveUserFromGroup: Failed to parse group ID %s as UUID", request.GroupId)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid group ID")
+	}
+
+	// Remove group from user
+	userData, err := a.UserAuthenticator.GetUserData(ctx, userID)
+	if err != nil {
+		log.Errorf(ctx, err, "RemoveUserFromGroup: Failed to retrieve target user %v", userID)
+		return nil, status.Errorf(codes.InvalidArgument, "Failed to retrieve target user")
+	}
+	delete(userData.GroupIDs, groupID)
+	err = a.UserAuthenticator.UpdateUser(ctx, userID, userData)
+	if err != nil {
+		log.Errorf(ctx, err, "RemoveUserFromGroup: Failed to update target user %v", userID)
+		return nil, status.Errorf(codes.Internal, "Failed to update target user")
+	}
+
+	// All done, commit auth changes
+	if err := authStorageTx.Commit(ctx); err != nil {
+		log.Error(ctx, err, "Store: Failed to commit auth storage transaction")
+		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+	}
+
+	return &RemoveUserFromGroupResponse{}, nil
+}

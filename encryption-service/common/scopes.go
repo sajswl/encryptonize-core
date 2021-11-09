@@ -40,20 +40,21 @@ const baseAuthzPath string = "/authz.Encryptonize/"
 const baseEncPath string = "/enc.Encryptonize/"
 
 var MethodScopeMap = map[string]ScopeType{
-	baseAuthPath + "CreateUser":        ScopeUserManagement,
-	baseAuthPath + "RemoveUser":        ScopeUserManagement,
-	baseAuthPath + "CreateGroup":       ScopeUserManagement,
-	baseAuthPath + "AddUserToGroup":    ScopeUserManagement,
-	baseAuthzPath + "GetPermissions":   ScopeIndex,
-	baseAuthzPath + "AddPermission":    ScopeObjectPermissions,
-	baseAuthzPath + "RemovePermission": ScopeObjectPermissions,
-	baseStoragePath + "Store":          ScopeCreate,
-	baseStoragePath + "Update":         ScopeUpdate,
-	baseStoragePath + "Retrieve":       ScopeRead,
-	baseStoragePath + "Delete":         ScopeDelete,
-	baseEncPath + "Encrypt":            ScopeCreate,
-	baseEncPath + "Decrypt":            ScopeRead,
-	baseAppPath + "Version":            ScopeNone,
+	baseAuthPath + "CreateUser":          ScopeUserManagement,
+	baseAuthPath + "RemoveUser":          ScopeUserManagement,
+	baseAuthPath + "CreateGroup":         ScopeUserManagement,
+	baseAuthPath + "AddUserToGroup":      ScopeUserManagement,
+	baseAuthPath + "RemoveUserFromGroup": ScopeUserManagement,
+	baseAuthzPath + "GetPermissions":     ScopeIndex,
+	baseAuthzPath + "AddPermission":      ScopeObjectPermissions,
+	baseAuthzPath + "RemovePermission":   ScopeObjectPermissions,
+	baseStoragePath + "Store":            ScopeCreate,
+	baseStoragePath + "Update":           ScopeUpdate,
+	baseStoragePath + "Retrieve":         ScopeRead,
+	baseStoragePath + "Delete":           ScopeDelete,
+	baseEncPath + "Encrypt":              ScopeCreate,
+	baseEncPath + "Decrypt":              ScopeRead,
+	baseAppPath + "Version":              ScopeNone,
 }
 
 // IsValid checks if the given scope is one of the defined scopes

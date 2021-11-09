@@ -32,17 +32,18 @@ const baseAuthPath string = "/authn.Encryptonize/"
 const baseEncPath string = "/enc.Encryptonize/"
 
 var skippedAuthorizeMethods = map[string]bool{
-	health.HealthEndpointCheck:      true,
-	health.HealthEndpointWatch:      true,
-	health.ReflectionEndpoint:       true,
-	baseAppPath + "Version":         true,
-	baseStoragePath + "Store":       true,
-	baseEncPath + "Encrypt":         true,
-	baseAuthPath + "LoginUser":      true,
-	baseAuthPath + "CreateUser":     true,
-	baseAuthPath + "RemoveUser":     true,
-	baseAuthPath + "CreateGroup":    true,
-	baseAuthPath + "AddUserToGroup": true,
+	health.HealthEndpointCheck:           true,
+	health.HealthEndpointWatch:           true,
+	health.ReflectionEndpoint:            true,
+	baseAppPath + "Version":              true,
+	baseStoragePath + "Store":            true,
+	baseEncPath + "Encrypt":              true,
+	baseAuthPath + "LoginUser":           true,
+	baseAuthPath + "CreateUser":          true,
+	baseAuthPath + "RemoveUser":          true,
+	baseAuthPath + "CreateGroup":         true,
+	baseAuthPath + "AddUserToGroup":      true,
+	baseAuthPath + "RemoveUserFromGroup": true,
 }
 
 // AuthorizationUnaryServerInterceptor acts as authorization middleware. It expects a UID and OID to

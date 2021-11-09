@@ -283,6 +283,19 @@ func (c *Client) AddUserToGroup(userID, groupID string) (*authn.AddUserToGroupRe
 	return addUserToGroupResponse, nil
 }
 
+func (c *Client) RemoveUserFromGroup(userID, groupID string) (*authn.RemoveUserFromGroupResponse, error) {
+	removeUserFromGroupRequest := &authn.RemoveUserFromGroupRequest{
+		UserId:  userID,
+		GroupId: groupID,
+	}
+
+	removeUserFromGroupResponse, err := c.authClient.RemoveUserFromGroup(c.ctx, removeUserFromGroupRequest)
+	if err != nil {
+		return nil, fmt.Errorf("RemoveUserFromGroup failed: %v", err)
+	}
+	return removeUserFromGroupResponse, nil
+}
+
 // Perform a `Version` request.
 func (c *Client) GetVersion() (*app.VersionResponse, error) {
 	versionResponse, err := c.appClient.Version(c.ctx, &app.VersionRequest{})

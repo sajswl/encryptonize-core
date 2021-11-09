@@ -33,6 +33,9 @@ service Encryptonize{
 
   // Adds a user to a group
   rpc AddUserToGroup (AddUserToGroupRequest) returns (AddUserToGroupResponse){}
+
+  // Removes a user from a group
+  rpc RemoveUserFromGroup (RemoveUserFromGroupRequest) returns (RemoveUserFromGroupResponse){}
 }
 
 message CreateUserRequest{
@@ -73,4 +76,12 @@ message AddUserToGroupRequest{
 }
 
 message AddUserToGroupResponse{
+}
+
+message RemoveUserFromGroupRequest{
+  string user_id = 1;
+  string group_id = 2;
+}
+
+message RemoveUserFromGroupResponse{
 }

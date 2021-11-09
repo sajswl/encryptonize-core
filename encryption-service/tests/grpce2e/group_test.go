@@ -158,3 +158,97 @@ func TestAddUserToGroupInvalidUser(t *testing.T) {
 	_, err = client.AddUserToGroup(uuid.Must(uuid.NewV4()).String(), gid)
 	failOnSuccess("Expected adding user to group to fail", err, t)
 }
+
+// Test that we can remove a user from a group, stopping them from accessing an object
+func TestRemoveUserFromGroup(t *testing.T) {
+	client, err := NewClient(endpoint, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	// Store an object
+	plaintext := []byte("foo")
+	associatedData := []byte("bar")
+
+	storeResponse, err := client.Store(plaintext, associatedData)
+	failOnError("Store operation failed", err, t)
+	oid := storeResponse.ObjectId
+
+	// Create a group
+	createGroupResponse, err := client.CreateGroup(protoUserScopes)
+	failOnError("Group creation failed", err, t)
+	gid := createGroupResponse.GroupId
+
+	// Create another user, add them to the group
+	createUserResponse, err := client.CreateUser(protoUserScopes)
+	failOnError("User creation failed", err, t)
+	uid2 := createUserResponse.UserId
+	pwd2 := createUserResponse.Password
+
+	_, err = client.AddUserToGroup(uid2, gid)
+	failOnError("Adding user to group failed", err, t)
+
+	// Add the group to the access object
+	_, err = client.AddPermission(oid, gid)
+	failOnError("Add permission request failed", err, t)
+
+	// Try to retrieve the object as the other user
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not log in user", err, t)
+
+	_, err = client.Retrieve(oid)
+	failOnError("Retrieving object failed", err, t)
+
+	// Remove the user from the group and check that they no longer have access
+	_, err = client.RemoveUserFromGroup(uid2, gid)
+	failOnError("Removing user from group failed", err, t)
+
+	_, err = client.Retrieve(oid)
+	failOnSuccess("Expected retrieving object failed", err, t)
+}
+
+// Test removing an invalid user from a group
+func TestRemoveUserFromGroupInvalidUser(t *testing.T) {
+	client, err := NewClient(endpoint, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	// Create a group
+	createGroupResponse, err := client.CreateGroup(protoUserScopes)
+	failOnError("Group creation failed", err, t)
+	gid := createGroupResponse.GroupId
+
+	// Try to remove an invalid user from the group
+	_, err = client.RemoveUserFromGroup(uuid.Must(uuid.NewV4()).String(), gid)
+	failOnSuccess("Expected removing user from group to fail", err, t)
+}
+
+// Test that removing a user from a group twice does not fail
+func TestRemoveUserFromGroupTwice(t *testing.T) {
+	client, err := NewClient(endpoint, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	// Create a group, add user to it
+	createGroupResponse, err := client.CreateGroup(protoUserScopes)
+	failOnError("Group creation failed", err, t)
+	gid := createGroupResponse.GroupId
+
+	_, err = client.AddUserToGroup(uid, gid)
+	failOnError("Adding user to group failed", err, t)
+
+	// Try to remove the user from the group twice
+	_, err = client.RemoveUserFromGroup(uid, gid)
+	failOnError("Removing user from group failed", err, t)
+
+	_, err = client.RemoveUserFromGroup(uid, gid)
+	failOnError("Removing user from group failed", err, t)
+}

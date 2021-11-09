@@ -318,3 +318,169 @@ func TestAddUserToGroupNoUser(t *testing.T) {
 		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.InvalidArgument, errStatus)
 	}
 }
+
+func TestRemoveUserFromGroup(t *testing.T) {
+	inputUserID := uuid.Must(uuid.NewV4())
+	inputGroupID := uuid.Must(uuid.NewV4())
+	outputUserData := &common.UserData{
+		HashedPassword: []byte("HashedPassword"),
+		Salt:           []byte("Salt"),
+		GroupIDs: map[uuid.UUID]bool{
+			inputGroupID: true,
+		},
+	}
+	expectedUserData := &common.UserData{
+		HashedPassword: outputUserData.HashedPassword,
+		Salt:           outputUserData.Salt,
+		GroupIDs:       map[uuid.UUID]bool{},
+	}
+
+	authStoreTxMock := &authstorage.AuthStoreTxMock{
+		CommitFunc: func(ctx context.Context) error { return nil },
+	}
+
+	userAuthenticator := &authnimpl.UserAuthenticatorMock{
+		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+			if inputUserID != userID {
+				t.Fatalf("Expected user ID %s but got %s", inputGroupID, userID)
+			}
+			return outputUserData, nil
+		},
+		UpdateUserFunc: func(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
+			if inputUserID != userID {
+				t.Fatalf("Expected user ID %s but got %s", inputGroupID, userID)
+			}
+			if !reflect.DeepEqual(userData, expectedUserData) {
+				t.Fatalf("Updated user data not equal to expected: %+v != %+v", expectedUserData, userData)
+			}
+			return nil
+		},
+	}
+
+	authn := Authn{
+		UserAuthenticator: userAuthenticator,
+	}
+
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTxMock)
+
+	request := RemoveUserFromGroupRequest{
+		UserId:  inputUserID.String(),
+		GroupId: inputGroupID.String(),
+	}
+
+	_, err := authn.RemoveUserFromGroup(ctx, &request)
+	if err != nil {
+		t.Fatalf("RemoveUserFromGroup failed: %s", err)
+	}
+}
+
+func TestRemoveUserFromGroupNoTx(t *testing.T) {
+	inputUserID := uuid.Must(uuid.NewV4())
+	inputGroupID := uuid.Must(uuid.NewV4())
+	outputUserData := &common.UserData{
+		HashedPassword: []byte("HashedPassword"),
+		Salt:           []byte("Salt"),
+		GroupIDs: map[uuid.UUID]bool{
+			uuid.FromStringOrNil("10000000-0000-0000-0000-000000000000"): true,
+		},
+	}
+
+	userAuthenticator := &authnimpl.UserAuthenticatorMock{
+		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+			return outputUserData, nil
+		},
+		UpdateUserFunc: func(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
+			return nil
+		},
+	}
+
+	authn := Authn{
+		UserAuthenticator: userAuthenticator,
+	}
+
+	request := RemoveUserFromGroupRequest{
+		UserId:  inputUserID.String(),
+		GroupId: inputGroupID.String(),
+	}
+
+	_, err := authn.RemoveUserFromGroup(context.Background(), &request)
+	if err == nil {
+		t.Fatalf("Expected RemoveUserFromGroup to fail")
+	}
+	if errStatus, _ := status.FromError(err); codes.Internal != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.Internal, errStatus)
+	}
+}
+
+func TestRemoveUserFromGroupWrongArgs(t *testing.T) {
+	inputUserID := uuid.Must(uuid.NewV4())
+	inputGroupID := uuid.Must(uuid.NewV4())
+	outputUserData := &common.UserData{
+		HashedPassword: []byte("HashedPassword"),
+		Salt:           []byte("Salt"),
+		GroupIDs: map[uuid.UUID]bool{
+			inputGroupID: true,
+		},
+	}
+
+	authStoreTxMock := &authstorage.AuthStoreTxMock{
+		CommitFunc: func(ctx context.Context) error { return nil },
+	}
+
+	userAuthenticator := &authnimpl.UserAuthenticatorMock{
+		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+			if inputUserID != userID {
+				return nil, errors.New("Mock error")
+			}
+			return outputUserData, nil
+		},
+		UpdateUserFunc: func(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
+			return nil
+		},
+	}
+
+	authn := Authn{
+		UserAuthenticator: userAuthenticator,
+	}
+
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTxMock)
+
+	// Invalid user ID
+	request := RemoveUserFromGroupRequest{
+		UserId:  "foo",
+		GroupId: inputGroupID.String(),
+	}
+	_, err := authn.RemoveUserFromGroup(ctx, &request)
+	if err == nil {
+		t.Fatalf("Expected RemoveUserFromGroup to fail")
+	}
+	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.InvalidArgument, errStatus)
+	}
+
+	// Invalid group ID
+	request = RemoveUserFromGroupRequest{
+		UserId:  inputUserID.String(),
+		GroupId: "foo",
+	}
+	_, err = authn.RemoveUserFromGroup(ctx, &request)
+	if err == nil {
+		t.Fatalf("Expected RemoveUserFromGroup to fail")
+	}
+	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.InvalidArgument, errStatus)
+	}
+
+	// Wrong user ID
+	request = RemoveUserFromGroupRequest{
+		UserId:  uuid.Must(uuid.NewV4()).String(),
+		GroupId: inputGroupID.String(),
+	}
+	_, err = authn.RemoveUserFromGroup(ctx, &request)
+	if err == nil {
+		t.Fatalf("Expected RemoveUserFromGroup to fail")
+	}
+	if errStatus, _ := status.FromError(err); codes.InvalidArgument != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.InvalidArgument, errStatus)
+	}
+}
