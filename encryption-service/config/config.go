@@ -43,8 +43,8 @@ type Keys struct {
 	// Used for key wrapping
 	KEK []byte `koanf:"kek"`
 
-	// Used for auth storage message authentication
-	ASK []byte `koanf:"ask"`
+	// Used for access object encryption
+	AEK []byte `koanf:"aek"`
 
 	// Used for token encryption
 	TEK []byte `koanf:"tek"`
@@ -171,12 +171,12 @@ func (k *Keys) ParseConfig() error {
 		return errors.New("KEK must be 32 bytes (64 hex digits) long")
 	}
 
-	k.ASK, err = hex.DecodeString(string(k.ASK))
+	k.AEK, err = hex.DecodeString(string(k.AEK))
 	if err != nil {
-		return errors.New("ASK couldn't be parsed (decode hex)")
+		return errors.New("AEK couldn't be parsed (decode hex)")
 	}
-	if len(k.ASK) != 32 {
-		return errors.New("ASK must be 32 bytes (64 hex digits) long")
+	if len(k.AEK) != 32 {
+		return errors.New("AEK must be 32 bytes (64 hex digits) long")
 	}
 
 	k.TEK, err = hex.DecodeString(string(k.TEK))
@@ -236,8 +236,8 @@ func (k *Keys) CheckInsecure() {
 		if hex.EncodeToString(k.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
 			log.Fatal(ctx, errors.New(""), "Test KEK used outside of INSECURE testing mode")
 		}
-		if hex.EncodeToString(k.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
-			log.Fatal(ctx, errors.New(""), "Test ASK used outside of INSECURE testing mode")
+		if hex.EncodeToString(k.AEK) == "0000000000000000000000000000000000000000000000000000000000000001" {
+			log.Fatal(ctx, errors.New(""), "Test AEK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(k.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")

@@ -34,7 +34,7 @@ stringData:
   config.toml: |
     [keys]
     kek = "${KEK}"
-    ask = "${ASK}"
+    aek = "${AEK}"
     tek = "${TEK}"
     uek = "${UEK}"
 

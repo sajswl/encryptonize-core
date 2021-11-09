@@ -46,7 +46,7 @@ func main() {
 	}
 	defer authStore.Close()
 
-	accessObjectCryptor, err := crypt.NewAESCryptor(config.Keys.ASK)
+	accessObjectCryptor, err := crypt.NewAESCryptor(config.Keys.AEK)
 	if err != nil {
 		log.Fatal(ctx, err, "NewAESCryptor (access object) failed")
 	}
