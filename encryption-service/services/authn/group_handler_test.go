@@ -242,6 +242,7 @@ func TestAddUserToGroupWrongArgs(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTxMock)
 
+	// Invalid user ID
 	request := AddUserToGroupRequest{
 		UserId:  "foo",
 		GroupId: inputGroupID.String(),
@@ -254,6 +255,7 @@ func TestAddUserToGroupWrongArgs(t *testing.T) {
 		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.InvalidArgument, errStatus)
 	}
 
+	// Invalid group ID
 	request = AddUserToGroupRequest{
 		UserId:  inputUserID.String(),
 		GroupId: "foo",
@@ -266,6 +268,7 @@ func TestAddUserToGroupWrongArgs(t *testing.T) {
 		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.InvalidArgument, errStatus)
 	}
 
+	// Group doesn't exist
 	request = AddUserToGroupRequest{
 		UserId:  inputUserID.String(),
 		GroupId: inputGroupID.String(),

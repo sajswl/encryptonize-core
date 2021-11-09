@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build authz && encryption
-// +build authz,encryption
+//go:build encryption
+// +build encryption
 
 package grpce2e
 
