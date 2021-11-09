@@ -37,8 +37,8 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -61,7 +61,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatalf("Failed to fetch access object: %s", err)
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+	ctx = context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
 
 	decryptResponse, err := enc.Decrypt(
 		ctx,
@@ -97,7 +97,7 @@ func TestDecryptFail(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
 
 	_, err = enc.Decrypt(ctx, fakeRequest)
 	if err == nil {
@@ -119,8 +119,8 @@ func TestDecryptWrongAAD(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -163,8 +163,8 @@ func TestDecryptWrongOID(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -180,8 +180,8 @@ func TestDecryptWrongOID(t *testing.T) {
 	plaintext2 := []byte("plaintext_bytes2")
 	associatedData2 := []byte("associated_data_bytes2")
 
-	ctx = context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx = context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse2, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{

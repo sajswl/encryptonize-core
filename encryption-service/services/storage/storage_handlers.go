@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/interfaces"
 	log "encryption-service/logger"
 )
@@ -32,7 +32,7 @@ const CiphertextStoreSuffix = "_data"
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication or storing fails
 func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreResponse, error) {
-	userID, ok := ctx.Value(contextkeys.UserIDCtxKey).(uuid.UUID)
+	userID, ok := ctx.Value(common.UserIDCtxKey).(uuid.UUID)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while storing object")
 		log.Error(ctx, err, "Store: Could not typecast userID to uuid.UUID")
@@ -47,7 +47,7 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 	objectIDString := objectID.String()
 
 	// Access Object and OEK generation
-	authStorageTx, ok := ctx.Value(contextkeys.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		err = status.Errorf(codes.Internal, "error encountered while storing object")
 		log.Error(ctx, err, "Store: Could not typecast authstorage to AuthStoreTxInterface ")
@@ -82,7 +82,7 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.ObjectIDCtxKey, objectIDString)
+	ctx = context.WithValue(ctx, common.ObjectIDCtxKey, objectIDString)
 	log.Info(ctx, "Store: Object stored")
 
 	return &StoreResponse{ObjectId: objectIDString}, nil
@@ -93,10 +93,10 @@ func (strg *Storage) Store(ctx context.Context, request *StoreRequest) (*StoreRe
 // Errors if authentication, authorization, or retrieving the object fails
 func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*RetrieveResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while retrieving object")
-		log.Error(ctx, err, "Retrieve: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "Retrieve: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 
@@ -160,10 +160,10 @@ func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*Delet
 // Errors if authentication, authorization, or retrieving the access object fails
 func (strg *Storage) Update(ctx context.Context, request *UpdateRequest) (*UpdateResponse, error) {
 	objectIDString := request.ObjectId
-	accessObject, ok := ctx.Value(contextkeys.AccessObjectCtxKey).(interfaces.AccessObjectInterface)
+	accessObject, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
 	if !ok {
 		err := status.Errorf(codes.Internal, "error encountered while updating object")
-		log.Error(ctx, err, "Update: Could not typecast access object to AccessObjectInterface")
+		log.Error(ctx, err, "Update: Could not typecast access object to AccessObject")
 		return nil, err
 	}
 

@@ -15,23 +15,25 @@
 package grpce2e
 
 import (
-	"encryption-service/users"
+	"testing"
+
 	"log"
 	"os"
-	"testing"
+
+	"encryption-service/common"
 )
 
 var endpoint = "127.0.0.1:9000"
 var uid string
 var pwd string
-var protoUserScopes = []users.UserScope{
-	users.UserScope_READ,
-	users.UserScope_CREATE,
-	users.UserScope_INDEX,
-	users.UserScope_OBJECTPERMISSIONS,
-	users.UserScope_USERMANAGEMENT,
-	users.UserScope_UPDATE,
-	users.UserScope_DELETE,
+var protoUserScopes = []common.UserScope{
+	common.UserScope_READ,
+	common.UserScope_CREATE,
+	common.UserScope_INDEX,
+	common.UserScope_OBJECTPERMISSIONS,
+	common.UserScope_USERMANAGEMENT,
+	common.UserScope_UPDATE,
+	common.UserScope_DELETE,
 }
 var https = false
 

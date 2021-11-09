@@ -35,6 +35,7 @@ export TAG=$(git tag --points-at HEAD)
 go test -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'encryption-service/services/app.GitTag=$TAG'" -coverpkg=./... -coverprofile=coverage-e2e.out -v &
 
 echo '[*] running end-to-end tests'
+source <(./scripts/get-e2e-user.sh local)
 ./scripts/e2e_tests.sh
 
 while pkill -f -SIGINT encryption-service.test; do

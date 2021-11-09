@@ -16,7 +16,7 @@ syntax = "proto3";
 package authn;
 option go_package = "encryption-service/authn";
 
-import "users/users.proto";
+import "common/users.proto";
 
 service Encryptonize{
   // Creates a new user on the service
@@ -30,7 +30,7 @@ service Encryptonize{
 }
 
 message CreateUserRequest{
-  repeated users.UserScope user_scopes = 1;
+  repeated common.UserScope user_scopes = 1;
 }
 
 message CreateUserResponse{
