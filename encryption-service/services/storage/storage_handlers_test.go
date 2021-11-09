@@ -25,6 +25,7 @@ import (
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
+	"encryption-service/impl/objectstorage"
 )
 
 type ObjectStoreMock struct {
@@ -52,7 +53,22 @@ var authorizer = &authzimpl.Authorizer{
 
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
+	authStore, err := authstorage.NewMemoryAuthStore("./db.dat")
+	if err != nil {
+		t.Fatalf("Cannot create a new MemoryAuthStore: %v", err)
+	}
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
+
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
+	strg := Storage{
+		ObjectStore: objectstorage.NewMemoryObjectStore(),
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
+	}
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -65,7 +81,7 @@ func TestStoreRetrieve(t *testing.T) {
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
-	storeResponse, err := storage.Store(
+	storeResponse, err := strg.Store(
 		ctx,
 		&StoreRequest{
 			Plaintext:      plaintext,
@@ -77,14 +93,14 @@ func TestStoreRetrieve(t *testing.T) {
 	}
 
 	// Add access object to context
-	accessObject, err := storage.Authorizer.FetchAccessObject(ctx, uuid.FromStringOrNil(storeResponse.ObjectId))
+	accessObject, err := strg.Authorizer.FetchAccessObject(ctx, uuid.FromStringOrNil(storeResponse.ObjectId))
 	if err != nil {
 		t.Fatalf("Failed to fetch access object: %s", err)
 	}
 
 	ctx = context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
 
-	retrieveResponse, err := storage.Retrieve(
+	retrieveResponse, err := strg.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: storeResponse.ObjectId,
@@ -101,11 +117,28 @@ func TestStoreRetrieve(t *testing.T) {
 	if !reflect.DeepEqual(associatedData, retrieveResponse.AssociatedData) {
 		t.Fatalf("Retrieved associatedData not equal to stored associatedData: %v != %v", retrieveResponse.AssociatedData, associatedData)
 	}
+
+	authStore.Close()
 }
 
 // Test that retrieving a non-existing object fails
 func TestRetrieveBeforeStore(t *testing.T) {
+	authStore, err := authstorage.NewMemoryAuthStore("./db.dat")
+	if err != nil {
+		t.Fatalf("Cannot create a new MemoryAuthStore: %v", err)
+	}
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
+
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
+	strg := Storage{
+		ObjectStore: objectstorage.NewMemoryObjectStore(),
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
+	}
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -115,7 +148,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
-	retrieveResponse, err := storage.Retrieve(
+	retrieveResponse, err := strg.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: uuid.Must(uuid.NewV4()).String(),
@@ -127,6 +160,8 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Retrieve before store did not fail as expected")
 	}
+
+	authStore.Close()
 }
 
 // Test the case where the object store fails to store
@@ -183,6 +218,16 @@ func TestStoreFailAuth(t *testing.T) {
 			return fmt.Errorf("")
 		},
 	}
+	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
+	strg := Storage{
+		ObjectStore: objectstorage.NewMemoryObjectStore(),
+		Authorizer:  authorizer,
+		DataCryptor: dataCryptor,
+	}
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -195,7 +240,7 @@ func TestStoreFailAuth(t *testing.T) {
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := storage.Store(
+	storeResponse, err := strg.Store(
 		ctx,
 		&StoreRequest{
 			Plaintext:      plaintext,

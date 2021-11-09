@@ -20,10 +20,39 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
+	"encryption-service/impl/authstorage"
+	authzimpl "encryption-service/impl/authz"
+	"encryption-service/impl/crypt"
+	"encryption-service/interfaces"
 )
 
+var cryptor, _ = crypt.NewAESCryptor([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+var authorizer = &authzimpl.Authorizer{
+	AccessObjectCryptor: cryptor,
+}
+
+func initMockEnc(t *testing.T) (Enc, interfaces.AuthStoreInterface) {
+	authStore, err := authstorage.NewMemoryAuthStore("./db.dat")
+	if err != nil {
+		t.Fatalf("Cannot create a new MemoryAuthStore: %v", err)
+	}
+	cryptor, err := crypt.NewAESCryptor(make([]byte, 32))
+	if err != nil {
+		t.Fatalf("NewAESCryptor failed: %v", err)
+	}
+
+	enc := Enc{
+		Authorizer:  authorizer,
+		DataCryptor: cryptor,
+	}
+
+	return enc, authStore
+}
+
 func TestEncryptDecrypt(t *testing.T) {
+	enc, authStore := initMockEnc(t)
+
 	authStorageTx, err := authStore.NewTransaction(context.TODO())
 	if err != nil {
 		t.Fatalf("New transaction failed: %v", err)
@@ -83,9 +112,13 @@ func TestEncryptDecrypt(t *testing.T) {
 	if !bytes.Equal(decryptResponse.AssociatedData, associatedData) {
 		t.Fatalf("Associated data from decryption response is not the same!")
 	}
+
+	authStore.Close()
 }
 
 func TestDecryptFail(t *testing.T) {
+	enc, authStore := initMockEnc(t)
+
 	fakeRequest := &DecryptRequest{
 		Ciphertext:     []byte("fakecipher"),
 		AssociatedData: []byte("fakeaad"),
@@ -103,9 +136,13 @@ func TestDecryptFail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Decrypt should have errored")
 	}
+
+	authStore.Close()
 }
 
 func TestDecryptWrongAAD(t *testing.T) {
+	enc, authStore := initMockEnc(t)
+
 	authStorageTx, err := authStore.NewTransaction(context.TODO())
 	if err != nil {
 		t.Fatalf("New transaction failed: %v", err)
@@ -147,9 +184,13 @@ func TestDecryptWrongAAD(t *testing.T) {
 	if err == nil {
 		t.Fatal("Decrypting object should've failed with wrong AAD")
 	}
+
+	authStore.Close()
 }
 
 func TestDecryptWrongOID(t *testing.T) {
+	enc, authStore := initMockEnc(t)
+
 	authStorageTx, err := authStore.NewTransaction(context.TODO())
 	if err != nil {
 		t.Fatalf("New transaction failed: %v", err)
@@ -207,4 +248,6 @@ func TestDecryptWrongOID(t *testing.T) {
 	if err == nil {
 		t.Fatal("Decrypting object should've failed with wrong ObjectID")
 	}
+
+	authStore.Close()
 }

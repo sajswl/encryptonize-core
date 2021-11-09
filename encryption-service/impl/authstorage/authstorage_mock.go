@@ -146,7 +146,7 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (r
 			return nil
 		}
 
-		userData := &users.UserData{}
+		userData := &common.ProtectedUserData{}
 		dec := gob.NewDecoder(bytes.NewReader(user))
 		err := dec.Decode(userData)
 		if err != nil {
@@ -164,10 +164,8 @@ func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (r
 	return
 }
 
-func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
-	userData = nil
-
-	key = nil
+func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error) {
+	protected = nil
 
 	err = m.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(m.userBucket)
@@ -177,37 +175,36 @@ func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 			return interfaces.ErrNotFound
 		}
 
-		data := &users.UserData{}
+		userData := &common.ProtectedUserData{}
 		dec := gob.NewDecoder(bytes.NewReader(user))
-		err := dec.Decode(data)
+		err := dec.Decode(userData)
 		if err != nil {
 			return err
 		}
 
-		if data.DeletedAt != nil {
+		if userData.DeletedAt != nil {
 			return interfaces.ErrNotFound
 		}
 
-		userData = data.ConfidentialUserData
-		key = data.WrappedKey
+		protected = userData
 		return nil
 	})
 
 	return
 }
 
-func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
+func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
 	return m.db.Batch(func(tx *bolt.Tx) error {
 		var userBuffer bytes.Buffer
 		enc := gob.NewEncoder(&userBuffer)
-		err := enc.Encode(user)
+		err := enc.Encode(protected)
 		if err != nil {
 			return err
 		}
 
 		b := tx.Bucket(m.userBucket)
 
-		return b.Put(user.UserID[:], userBuffer.Bytes())
+		return b.Put(protected.UserID[:], userBuffer.Bytes())
 	})
 }
 
@@ -220,7 +217,7 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 			return interfaces.ErrNotFound
 		}
 
-		userData := &users.UserData{}
+		userData := &common.ProtectedUserData{}
 		dec := gob.NewDecoder(bytes.NewReader(user))
 		err := dec.Decode(userData)
 		if err != nil {
@@ -245,15 +242,8 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 	})
 }
 
-type accessObject struct {
-	Data []byte
-	Tag  []byte
-}
-
-func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error) {
-	object = nil
-
-	tag = nil
+func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (protected *common.ProtectedAccessObject, err error) {
+	protected = nil
 
 	err = m.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(m.objectBucket)
@@ -263,33 +253,32 @@ func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.U
 			return interfaces.ErrNotFound
 		}
 
-		accessObject := &accessObject{}
+		accessObject := &common.ProtectedAccessObject{}
 		dec := gob.NewDecoder(bytes.NewReader(obj))
 		err := dec.Decode(accessObject)
 		if err != nil {
 			return err
 		}
 
-		object = accessObject.Data
-		tag = accessObject.Tag
+		protected = accessObject
 		return nil
 	})
 
 	return
 }
 
-func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
 	return m.db.Batch(func(tx *bolt.Tx) error {
 		var objectBuffer bytes.Buffer
 		enc := gob.NewEncoder(&objectBuffer)
-		err := enc.Encode(accessObject{data, tag})
+		err := enc.Encode(protected)
 		if err != nil {
 			return err
 		}
 
 		b := tx.Bucket(m.objectBucket)
 
-		return b.Put(objectID[:], objectBuffer.Bytes())
+		return b.Put(protected.ObjectID[:], objectBuffer.Bytes())
 	})
 }
 
