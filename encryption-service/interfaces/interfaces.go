@@ -48,14 +48,23 @@ type AuthStoreTxInterface interface {
 	// Insert a user
 	InsertUser(ctx context.Context, protected *common.ProtectedUserData) (err error)
 
+	// UpdateUser updates an existing user's data
+	UpdateUser(ctx context.Context, protected *common.ProtectedUserData) (err error)
+
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	// Get user's confidential data
 	GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error)
 
+	// GroupExists checks if a group exists in the auth store
+	GroupExists(ctx context.Context, groupID uuid.UUID) (res bool, err error)
+
 	// Insert a group
 	InsertGroup(ctx context.Context, groupData *common.ProtectedGroupData) (err error)
+
+	// Removes a group
+	RemoveGroup(ctx context.Context, groupID uuid.UUID) (err error)
 
 	// Get one or more groups' confidential data
 	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.ProtectedGroupData, err error)
@@ -119,6 +128,9 @@ type UserAuthenticatorInterface interface {
 
 	// Create a new user with the requested scopes
 	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
+
+	// UpdateUser updates an existing user's data
+	UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) (err error)
 
 	// Removes a user
 	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)

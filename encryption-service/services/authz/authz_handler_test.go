@@ -70,6 +70,9 @@ var authnStorageTxMock = &authstorage.AuthStoreTxMock{
 	UserExistsFunc: func(ctx context.Context, userID uuid.UUID) (bool, error) {
 		return true, nil
 	},
+	GroupExistsFunc: func(ctx context.Context, groupID uuid.UUID) (bool, error) {
+		return true, nil
+	},
 }
 
 func TestGetPermissions(t *testing.T) {
@@ -107,7 +110,7 @@ func TestAddPermission(t *testing.T) {
 func TestAddPermissionNoTargetUser(t *testing.T) {
 	// Temporarily overwrite UserExistsFunc to return error
 	oldUserExists := authnStorageTxMock.UserExistsFunc
-	authnStorageTxMock.UserExistsFunc = func(ctx context.Context, userID uuid.UUID) (bool, error) {
+	authnStorageTxMock.GroupExistsFunc = func(ctx context.Context, groupID uuid.UUID) (bool, error) {
 		return false, nil
 	}
 

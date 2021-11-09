@@ -216,9 +216,9 @@ func (c *Client) RemovePermission(oid, target string) (*authz.RemovePermissionRe
 }
 
 // Perform a `CreateUser` request.
-func (c *Client) CreateUser(userscopes []common.Scope) (*authn.CreateUserResponse, error) {
+func (c *Client) CreateUser(scopes []common.Scope) (*authn.CreateUserResponse, error) {
 	createUserRequest := &authn.CreateUserRequest{
-		Scopes: userscopes,
+		Scopes: scopes,
 	}
 
 	createUserResponse, err := c.authClient.CreateUser(c.ctx, createUserRequest)
@@ -256,6 +256,31 @@ func (c *Client) RemoveUser(target string) (*authn.RemoveUserResponse, error) {
 		return nil, fmt.Errorf("RemoveUser failed: %v", err)
 	}
 	return removeUserResponse, nil
+}
+
+func (c *Client) CreateGroup(scopes []common.Scope) (*authn.CreateGroupResponse, error) {
+	createGroupRequest := &authn.CreateGroupRequest{
+		Scopes: scopes,
+	}
+
+	createGroupResponse, err := c.authClient.CreateGroup(c.ctx, createGroupRequest)
+	if err != nil {
+		return nil, fmt.Errorf("CreateGroup failed: %v", err)
+	}
+	return createGroupResponse, nil
+}
+
+func (c *Client) AddUserToGroup(userID, groupID string) (*authn.AddUserToGroupResponse, error) {
+	addUserToGroupRequest := &authn.AddUserToGroupRequest{
+		UserId:  userID,
+		GroupId: groupID,
+	}
+
+	addUserToGroupResponse, err := c.authClient.AddUserToGroup(c.ctx, addUserToGroupRequest)
+	if err != nil {
+		return nil, fmt.Errorf("AddUserToGroup failed: %v", err)
+	}
+	return addUserToGroupResponse, nil
 }
 
 // Perform a `Version` request.

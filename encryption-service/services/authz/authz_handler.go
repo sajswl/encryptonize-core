@@ -75,22 +75,21 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 
 	target, err := uuid.FromString(request.Target)
 	if err != nil {
-		log.Error(ctx, err, "AddPermission: Failed to parse target user ID as UUID")
-		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
+		log.Error(ctx, err, "AddPermission: Failed to parse target group ID as UUID")
+		return nil, status.Errorf(codes.InvalidArgument, "invalid target group ID")
 	}
 
-	// Check if user exists (returns error on empty rows)
-	exists, err := authStorageTx.UserExists(ctx, target)
-
+	// Check if group exists (returns error on empty rows)
+	exists, err := authStorageTx.GroupExists(ctx, target)
 	if err != nil {
-		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
+		msg := fmt.Sprintf("AddPermission: Failed to retrieve target group %v", target)
 		log.Error(ctx, err, msg)
 
-		return nil, status.Errorf(codes.Internal, "Failed to retrieve target user")
+		return nil, status.Errorf(codes.Internal, "Failed to retrieve target group")
 	}
 	if !exists {
-		msg := fmt.Sprintf("AddPermission: Failed to retrieve target user %v", target)
-		err = status.Errorf(codes.InvalidArgument, "invalid target user ID")
+		msg := fmt.Sprintf("AddPermission: Failed to retrieve target group %v", target)
+		err = status.Errorf(codes.InvalidArgument, "invalid target group ID")
 		log.Error(ctx, err, msg)
 		return nil, err
 	}
@@ -99,7 +98,7 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 	accessObject.AddGroup(target)
 	err = a.Authorizer.UpdateAccessObject(ctx, oid, *accessObject)
 	if err != nil {
-		msg := fmt.Sprintf("AddPermission: Failed to add user %v to access object %v", target, oid)
+		msg := fmt.Sprintf("AddPermission: Failed to add group %v to access object %v", target, oid)
 		log.Error(ctx, err, msg)
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
@@ -141,15 +140,15 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 
 	target, err := uuid.FromString(request.Target)
 	if err != nil {
-		log.Error(ctx, err, "RemovePermission: Failed to parse target user ID as UUID")
-		return nil, status.Errorf(codes.InvalidArgument, "invalid target user ID")
+		log.Error(ctx, err, "RemovePermission: Failed to parse target group ID as UUID")
+		return nil, status.Errorf(codes.InvalidArgument, "invalid target group ID")
 	}
 
 	// Remove the permission from the access object
 	accessObject.RemoveGroup(target)
 	err = a.Authorizer.UpdateAccessObject(ctx, oid, *accessObject)
 	if err != nil {
-		msg := fmt.Sprintf("RemovePermission: Failed to remove user %v from access object %v", target, oid)
+		msg := fmt.Sprintf("RemovePermission: Failed to remove group %v from access object %v", target, oid)
 		log.Error(ctx, err, msg)
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}

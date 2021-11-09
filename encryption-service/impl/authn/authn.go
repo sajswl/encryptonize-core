@@ -107,6 +107,26 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes common.ScopeTyp
 	return &userData.UserID, pwd, nil
 }
 
+func (ua *UserAuthenticator) UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return ErrAuthStoreTxCastFailed
+	}
+
+	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(userData, userID.Bytes())
+	if err != nil {
+		return err
+	}
+
+	protected := &common.ProtectedUserData{
+		UserID:     userID,
+		UserData:   ciphertext,
+		WrappedKey: wrappedKey,
+	}
+
+	return authStorageTx.UpdateUser(ctx, protected)
+}
+
 // GetUserData fetches the user's confidential data
 func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
@@ -161,7 +181,12 @@ func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) e
 		return ErrAuthStoreTxCastFailed
 	}
 
+	// Remove both the user and their group
 	err := authStorageTx.RemoveUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+	err = authStorageTx.RemoveGroup(ctx, userID)
 	if err != nil {
 		return err
 	}

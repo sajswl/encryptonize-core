@@ -196,6 +196,18 @@ func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, protected *common.Pr
 	return err
 }
 
+// UpdateUser updates an existing user's data
+func (storeTx *AuthStoreTx) UpdateUser(ctx context.Context, protected *common.ProtectedUserData) error {
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE users SET data = $1, key = $2 WHERE id = $3"), protected.UserData, protected.WrappedKey, protected.UserID)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() < 1 {
+		return interfaces.ErrNotFound
+	}
+	return err
+}
+
 // RemoveUser performs a soft delete by setting a deletion date
 func (storeTx *AuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
 	now := time.Now()
@@ -224,10 +236,39 @@ func (storeTx *AuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (
 	return protected, nil
 }
 
+// GroupExists checks if a group exists in the auth store
+func (storeTx *AuthStoreTx) GroupExists(ctx context.Context, groupID uuid.UUID) (bool, error) {
+	var fetchedID []byte
+
+	// TODO: COUNT could be more appropriate
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
+	err := row.Scan(&fetchedID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // InsertGroup inserts a group into the auth store
 func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO groups (id, data, key) VALUES ($1, $2, $3)"), protected.GroupID, protected.GroupData, protected.WrappedKey)
 	return err
+}
+
+// RemoveGroup performs a soft delete by setting a deletion date
+func (storeTx *AuthStoreTx) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
+	now := time.Now()
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE groups SET deleted_at = $1 WHERE id = $2"), now, groupID)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() < 1 {
+		return interfaces.ErrNotFound
+	}
+	return nil
 }
 
 // Get one or more groups' confidential data
@@ -285,7 +326,13 @@ func (storeTx *AuthStoreTx) InsertAcccessObject(ctx context.Context, protected *
 
 // UpdateAccessObject updates an Access Object with Object ID and sets data, tag
 func (storeTx *AuthStoreTx) UpdateAccessObject(ctx context.Context, protected *common.ProtectedAccessObject) error {
-	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, key = $2 WHERE id = $3"), protected.AccessObject, protected.WrappedKey, protected.ObjectID)
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE access_objects SET data = $1, key = $2 WHERE id = $3"), protected.AccessObject, protected.WrappedKey, protected.ObjectID)
+	if err != nil {
+		return err
+	}
+	if res.RowsAffected() < 1 {
+		return interfaces.ErrNotFound
+	}
 	return err
 }
 

@@ -42,6 +42,8 @@ const baseEncPath string = "/enc.Encryptonize/"
 var MethodScopeMap = map[string]ScopeType{
 	baseAuthPath + "CreateUser":        ScopeUserManagement,
 	baseAuthPath + "RemoveUser":        ScopeUserManagement,
+	baseAuthPath + "CreateGroup":       ScopeUserManagement,
+	baseAuthPath + "AddUserToGroup":    ScopeUserManagement,
 	baseAuthzPath + "GetPermissions":   ScopeIndex,
 	baseAuthzPath + "AddPermission":    ScopeObjectPermissions,
 	baseAuthzPath + "RemovePermission": ScopeObjectPermissions,

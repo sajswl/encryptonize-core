@@ -27,6 +27,12 @@ service Encryptonize{
 
   // Deletes a user in the service
   rpc RemoveUser (RemoveUserRequest) returns (RemoveUserResponse){}
+
+  // Creates a new group
+  rpc CreateGroup (CreateGroupRequest) returns (CreateGroupResponse){}
+
+  // Adds a user to a group
+  rpc AddUserToGroup (AddUserToGroupRequest) returns (AddUserToGroupResponse){}
 }
 
 message CreateUserRequest{
@@ -52,3 +58,19 @@ message RemoveUserRequest{
 }
 
 message RemoveUserResponse{}
+
+message CreateGroupRequest{
+  repeated common.Scope scopes = 1;
+}
+
+message CreateGroupResponse{
+  string group_id = 1;
+}
+
+message AddUserToGroupRequest{
+  string user_id = 1;
+  string group_id = 2;
+}
+
+message AddUserToGroupResponse{
+}

@@ -34,10 +34,13 @@ type AuthStoreTxMock struct {
 
 	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
 	InsertUserFunc  func(ctx context.Context, protected *common.ProtectedUserData) error
+	UpdateUserFunc  func(ctx context.Context, protected *common.ProtectedUserData) error
 	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error)
 	RemoveUserFunc  func(ctx context.Context, userID uuid.UUID) error
 
+	GroupExistsFunc       func(ctx context.Context, groupID uuid.UUID) (bool, error)
 	InsertGroupFunc       func(ctx context.Context, group *common.ProtectedGroupData) error
+	RemoveGroupFunc       func(ctx context.Context, groupID uuid.UUID) error
 	GetGroupDataBatchFunc func(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error)
@@ -56,8 +59,13 @@ func (db *AuthStoreTxMock) Rollback(ctx context.Context) error {
 func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
 	return db.UserExistsFunc(ctx, userID)
 }
+
 func (db *AuthStoreTxMock) InsertUser(ctx context.Context, protected *common.ProtectedUserData) error {
 	return db.InsertUserFunc(ctx, protected)
+}
+
+func (db *AuthStoreTxMock) UpdateUser(ctx context.Context, protected *common.ProtectedUserData) error {
+	return db.UpdateUserFunc(ctx, protected)
 }
 
 func (db *AuthStoreTxMock) RemoveUser(ctx context.Context, userID uuid.UUID) error {
@@ -68,8 +76,16 @@ func (db *AuthStoreTxMock) GetUserData(ctx context.Context, userID uuid.UUID) (*
 	return db.GetUserDataFunc(ctx, userID)
 }
 
+func (db *AuthStoreTxMock) GroupExists(ctx context.Context, groupID uuid.UUID) (bool, error) {
+	return db.GroupExistsFunc(ctx, groupID)
+}
+
 func (db *AuthStoreTxMock) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	return db.InsertGroupFunc(ctx, protected)
+}
+
+func (db *AuthStoreTxMock) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
+	return db.RemoveGroupFunc(ctx, groupID)
 }
 
 func (db *AuthStoreTxMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
@@ -162,6 +178,10 @@ func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user *common.Protect
 	return nil
 }
 
+func (m MemoryAuthStoreTx) UpdateUser(ctx context.Context, protected *common.ProtectedUserData) error {
+	return m.InsertUser(ctx, protected)
+}
+
 func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
 	// TODO: unsafe for concurrent usage
 	user, ok := m.Data.Load(userID)
@@ -184,9 +204,49 @@ func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) er
 	return nil
 }
 
+func (m *MemoryAuthStoreTx) GroupExists(ctx context.Context, groupID uuid.UUID) (bool, error) {
+	group, ok := m.Data.Load(groupID)
+	if !ok {
+		return false, nil
+	}
+
+	groupData, ok := group.(common.ProtectedGroupData)
+	if !ok {
+		return false, errors.New("unable to cast to UserProtectedUserData")
+	}
+
+	if groupData.DeletedAt != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (m *MemoryAuthStoreTx) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	// TODO: check if already contained
 	m.Data.Store(protected.GroupID, protected)
+	return nil
+}
+
+func (m *MemoryAuthStoreTx) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
+	// TODO: unsafe for concurrent usage
+	user, ok := m.Data.Load(groupID)
+	if !ok {
+		return interfaces.ErrNotFound
+	}
+
+	groupData, ok := user.(common.ProtectedGroupData)
+	if !ok {
+		return errors.New("unable to cast to ProtectedGroupData")
+	}
+
+	if groupData.DeletedAt != nil {
+		return interfaces.ErrNotFound
+	}
+
+	groupData.DeletedAt = func() *time.Time { t := time.Now(); return &t }()
+
+	m.Data.Store(groupID, groupData)
 	return nil
 }
 
