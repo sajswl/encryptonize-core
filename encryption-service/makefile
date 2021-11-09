@@ -167,6 +167,7 @@ clean :
 	rm -f $(binary)
 	rm -f $(protobufs)
 	rm -f $(coverage)
+	find . -name "db.dat" -type f -delete
 
 .PHONY: clean-credentials  ## Remove credentials
 clean-credentials :
