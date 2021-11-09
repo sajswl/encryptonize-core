@@ -28,7 +28,7 @@ import (
 
 func SetupAuthStore(ctx context.Context, config config.AuthStorage) (interfaces.AuthStoreInterface, error) {
 	log.Info(ctx, "Setup AuthStore mocked")
-	return authstorage.NewMemoryAuthStore(), nil
+	return authstorage.NewMemoryAuthStore("./data/db.dat")
 }
 
 func SetupObjectStore(bucket string, config config.ObjectStorage) (interfaces.ObjectStoreInterface, error) {

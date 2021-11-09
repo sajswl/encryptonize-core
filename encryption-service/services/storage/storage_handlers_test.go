@@ -25,7 +25,6 @@ import (
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
-	"encryption-service/impl/objectstorage"
 )
 
 type ObjectStoreMock struct {
@@ -55,19 +54,7 @@ var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
-	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
-
-	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
-	if err != nil {
-		t.Fatalf("NewAESCryptor failed: %v", err)
-	}
-
-	strg := Storage{
-		ObjectStore: objectstorage.NewMemoryObjectStore(),
-		Authorizer:  authorizer,
-		DataCryptor: dataCryptor,
-	}
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -80,7 +67,7 @@ func TestStoreRetrieve(t *testing.T) {
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
-	storeResponse, err := strg.Store(
+	storeResponse, err := storage.Store(
 		ctx,
 		&StoreRequest{
 			Plaintext:      plaintext,
@@ -92,14 +79,14 @@ func TestStoreRetrieve(t *testing.T) {
 	}
 
 	// Add access object to context
-	accessObject, err := strg.Authorizer.FetchAccessObject(ctx, uuid.FromStringOrNil(storeResponse.ObjectId))
+	accessObject, err := storage.Authorizer.FetchAccessObject(ctx, uuid.FromStringOrNil(storeResponse.ObjectId))
 	if err != nil {
 		t.Fatalf("Failed to fetch access object: %s", err)
 	}
 
 	ctx = context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
 
-	retrieveResponse, err := strg.Retrieve(
+	retrieveResponse, err := storage.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: storeResponse.ObjectId,
@@ -120,19 +107,7 @@ func TestStoreRetrieve(t *testing.T) {
 
 // Test that retrieving a non-existing object fails
 func TestRetrieveBeforeStore(t *testing.T) {
-	authStore := authstorage.NewMemoryAuthStore()
 	authStorageTx, _ := authStore.NewTransaction(context.TODO())
-
-	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
-	if err != nil {
-		t.Fatalf("NewAESCryptor failed: %v", err)
-	}
-
-	strg := Storage{
-		ObjectStore: objectstorage.NewMemoryObjectStore(),
-		Authorizer:  authorizer,
-		DataCryptor: dataCryptor,
-	}
 
 	userID, err := uuid.NewV4()
 	if err != nil {
@@ -142,7 +117,7 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	retrieveResponse, err := strg.Retrieve(
+	retrieveResponse, err := storage.Retrieve(
 		ctx,
 		&RetrieveRequest{
 			ObjectId: uuid.Must(uuid.NewV4()).String(),
@@ -210,16 +185,6 @@ func TestStoreFailAuth(t *testing.T) {
 			return fmt.Errorf("")
 		},
 	}
-	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
-	if err != nil {
-		t.Fatalf("NewAESCryptor failed: %v", err)
-	}
-
-	strg := Storage{
-		ObjectStore: objectstorage.NewMemoryObjectStore(),
-		Authorizer:  authorizer,
-		DataCryptor: dataCryptor,
-	}
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -232,7 +197,7 @@ func TestStoreFailAuth(t *testing.T) {
 	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
 	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
 
-	storeResponse, err := strg.Store(
+	storeResponse, err := storage.Store(
 		ctx,
 		&StoreRequest{
 			Plaintext:      plaintext,

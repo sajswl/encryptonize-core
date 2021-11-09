@@ -96,10 +96,13 @@ unit-tests: build  ## Run unit tests
 e2e-tests: build  ## Run end-to-end tests
 	./scripts/e2e_tests.sh
 
-.PHONY: e2e-tests-local
-e2e-tests-local: build  ## Run end-to-end tests against a local instance
+.PHONY: e2e-tests-mem
+e2e-tests-mem: tags += storage_mocked
+e2e-tests-mem: build  ## Run end-to-end tests against a local instance
 	source <(./scripts/get-e2e-user.sh local) && \
-	./scripts/e2e_tests.sh
+	(./scripts/run.sh &>/dev/null &) && \
+	./scripts/e2e_tests.sh && \
+	./scripts/kill_server.sh
 
 .PHONY: e2e-tests-docker
 e2e-tests-docker: build  ## Run end-to-end tests against docker

@@ -1,3 +1,16 @@
+// Copyright 2021 CYBERCRYPT
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package enc
 
 import (
@@ -8,38 +21,13 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/contextkeys"
-	"encryption-service/impl/authstorage"
-	authzimpl "encryption-service/impl/authz"
-	"encryption-service/impl/crypt"
-	"encryption-service/interfaces"
 )
 
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
-var authorizer = &authzimpl.Authorizer{
-	AccessObjectMAC: ma,
-}
-
-func initMockEnc(t *testing.T) (Enc, interfaces.AuthStoreTxInterface) {
-	authStore := authstorage.NewMemoryAuthStore()
+func TestEncryptDecrypt(t *testing.T) {
 	authStorageTx, err := authStore.NewTransaction(context.TODO())
 	if err != nil {
 		t.Fatalf("New transaction failed: %v", err)
 	}
-	cryptor, err := crypt.NewAESCryptor(make([]byte, 32))
-	if err != nil {
-		t.Fatalf("NewAESCryptor failed: %v", err)
-	}
-
-	enc := Enc{
-		Authorizer:  authorizer,
-		DataCryptor: cryptor,
-	}
-
-	return enc, authStorageTx
-}
-
-func TestEncryptDecrypt(t *testing.T) {
-	enc, authStorageTx := initMockEnc(t)
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -98,8 +86,6 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 func TestDecryptFail(t *testing.T) {
-	enc, _ := initMockEnc(t)
-
 	fakeRequest := &DecryptRequest{
 		Ciphertext:     []byte("fakecipher"),
 		AssociatedData: []byte("fakeaad"),
@@ -120,7 +106,10 @@ func TestDecryptFail(t *testing.T) {
 }
 
 func TestDecryptWrongAAD(t *testing.T) {
-	enc, authStorageTx := initMockEnc(t)
+	authStorageTx, err := authStore.NewTransaction(context.TODO())
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -161,7 +150,10 @@ func TestDecryptWrongAAD(t *testing.T) {
 }
 
 func TestDecryptWrongOID(t *testing.T) {
-	enc, authStorageTx := initMockEnc(t)
+	authStorageTx, err := authStore.NewTransaction(context.TODO())
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")

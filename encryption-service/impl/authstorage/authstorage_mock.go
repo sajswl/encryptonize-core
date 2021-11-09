@@ -14,12 +14,13 @@
 package authstorage
 
 import (
+	"bytes"
 	"context"
-	"errors"
-	"sync"
+	"encoding/gob"
 	"time"
 
 	"github.com/gofrs/uuid"
+	bolt "go.etcd.io/bbolt"
 
 	"encryption-service/interfaces"
 	"encryption-service/users"
@@ -83,23 +84,48 @@ func (db *AuthStoreTxMock) DeleteAccessObject(ctx context.Context, objectID uuid
 
 // MemoryAuthStoreTx is used by tests to mock the AutnStore in memory
 type MemoryAuthStore struct {
-	Data sync.Map // 	map[uuid.UUID][][]byte
+	db           *bolt.DB
+	userBucket   []byte
+	objectBucket []byte
 }
 
-func NewMemoryAuthStore() *MemoryAuthStore {
-	return &MemoryAuthStore{
-		Data: sync.Map{},
+func NewMemoryAuthStore(dbFilePath string) (*MemoryAuthStore, error) {
+	db, err := bolt.Open(dbFilePath, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		return nil, err
 	}
+
+	userBucket := []byte("user")
+	objectBucket := []byte("object")
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists(userBucket)
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucketIfNotExists(objectBucket)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &MemoryAuthStore{db, userBucket, objectBucket}, nil
 }
 
 func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
-	return &MemoryAuthStoreTx{Data: &store.Data}, nil
+	return &MemoryAuthStoreTx{store}, nil
 }
 
-func (store *MemoryAuthStore) Close() {}
+func (store *MemoryAuthStore) Close() {
+	store.db.Close()
+}
 
 type MemoryAuthStoreTx struct {
-	Data *sync.Map
+	*MemoryAuthStore
 }
 
 func (m *MemoryAuthStoreTx) Commit(ctx context.Context) error {
@@ -109,94 +135,162 @@ func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	user, ok := m.Data.Load(userID)
-	if !ok {
-		return false, nil
-	}
+func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error) {
+	res = false
 
-	userData, ok := user.(users.UserData)
-	if !ok {
-		return false, errors.New("unable to cast to UserData")
-	}
+	err = m.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(m.userBucket)
 
-	if userData.DeletedAt != nil {
-		return false, nil
-	}
+		user := b.Get(userID[:])
+		if user == nil {
+			return nil
+		}
 
-	return true, nil
+		userData := &users.UserData{}
+		dec := gob.NewDecoder(bytes.NewReader(user))
+		err := dec.Decode(userData)
+		if err != nil {
+			return err
+		}
+
+		if userData.DeletedAt != nil {
+			return nil
+		}
+
+		res = true
+		return nil
+	})
+
+	return
 }
 
 func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (userData []byte, key []byte, err error) {
-	user, ok := m.Data.Load(userID)
-	if !ok {
-		return nil, nil, interfaces.ErrNotFound
-	}
+	userData = nil
 
-	data, ok := user.(users.UserData)
-	if !ok {
-		return nil, nil, errors.New("unable to cast to UserData")
-	}
+	key = nil
 
-	if data.DeletedAt != nil {
-		return nil, nil, interfaces.ErrNotFound
-	}
+	err = m.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(m.userBucket)
 
-	return data.ConfidentialUserData, data.WrappedKey, nil
+		user := b.Get(userID[:])
+		if user == nil {
+			return interfaces.ErrNotFound
+		}
+
+		data := &users.UserData{}
+		dec := gob.NewDecoder(bytes.NewReader(user))
+		err := dec.Decode(data)
+		if err != nil {
+			return err
+		}
+
+		if data.DeletedAt != nil {
+			return interfaces.ErrNotFound
+		}
+
+		userData = data.ConfidentialUserData
+		key = data.WrappedKey
+		return nil
+	})
+
+	return
 }
 
 func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, user users.UserData) error {
-	// TODO: check if already contained
-	m.Data.Store(user.UserID, user)
-	return nil
+	return m.db.Batch(func(tx *bolt.Tx) error {
+		var userBuffer bytes.Buffer
+		enc := gob.NewEncoder(&userBuffer)
+		err := enc.Encode(user)
+		if err != nil {
+			return err
+		}
+
+		b := tx.Bucket(m.userBucket)
+
+		return b.Put(user.UserID[:], userBuffer.Bytes())
+	})
 }
 
 func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
-	// TODO: unsafe for concurrent usage
-	user, ok := m.Data.Load(userID)
-	if !ok {
-		return interfaces.ErrNotFound
-	}
+	return m.db.Batch(func(tx *bolt.Tx) error {
+		b := tx.Bucket(m.userBucket)
 
-	userData, ok := user.(users.UserData)
-	if !ok {
-		return errors.New("unable to cast to UserData")
-	}
+		user := b.Get(userID[:])
+		if user == nil {
+			return interfaces.ErrNotFound
+		}
 
-	if userData.DeletedAt != nil {
-		return interfaces.ErrNotFound
-	}
+		userData := &users.UserData{}
+		dec := gob.NewDecoder(bytes.NewReader(user))
+		err := dec.Decode(userData)
+		if err != nil {
+			return err
+		}
 
-	userData.DeletedAt = func() *time.Time { t := time.Now(); return &t }()
+		if userData.DeletedAt != nil {
+			return interfaces.ErrNotFound
+		}
 
-	m.Data.Store(userID, userData)
-	return nil
+		currentTime := time.Now()
+		userData.DeletedAt = &currentTime
+
+		var userBuffer bytes.Buffer
+		enc := gob.NewEncoder(&userBuffer)
+		err = enc.Encode(userData)
+		if err != nil {
+			return err
+		}
+
+		return b.Put(userID[:], userBuffer.Bytes())
+	})
 }
 
-func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) ([]byte, []byte, error) {
-	t, ok := m.Data.Load(objectID)
-	if !ok {
-		return nil, nil, interfaces.ErrNotFound
-	}
+type accessObject struct {
+	Data []byte
+	Tag  []byte
+}
 
-	data := make([]byte, len(t.([][]byte)[0]))
-	copy(data, t.([][]byte)[0])
+func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (object, tag []byte, err error) {
+	object = nil
 
-	tag := make([]byte, len(t.([][]byte)[1]))
-	copy(tag, t.([][]byte)[1])
+	tag = nil
 
-	return data, tag, nil
+	err = m.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(m.objectBucket)
+
+		obj := b.Get(objectID[:])
+		if obj == nil {
+			return interfaces.ErrNotFound
+		}
+
+		accessObject := &accessObject{}
+		dec := gob.NewDecoder(bytes.NewReader(obj))
+		err := dec.Decode(accessObject)
+		if err != nil {
+			return err
+		}
+
+		object = accessObject.Data
+		tag = accessObject.Tag
+		return nil
+	})
+
+	return
 }
 
 func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
-	dataCopy := make([]byte, len(data))
-	copy(dataCopy, data)
+	return m.db.Batch(func(tx *bolt.Tx) error {
+		var objectBuffer bytes.Buffer
+		enc := gob.NewEncoder(&objectBuffer)
+		err := enc.Encode(accessObject{data, tag})
+		if err != nil {
+			return err
+		}
 
-	tagCopy := make([]byte, len(tag))
-	copy(tagCopy, tag)
+		b := tx.Bucket(m.objectBucket)
 
-	m.Data.Store(objectID, [][]byte{dataCopy, tagCopy})
-	return nil
+		return b.Put(objectID[:], objectBuffer.Bytes())
+	})
 }
 
 func (m *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
@@ -204,6 +298,9 @@ func (m *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, objectID uui
 }
 
 func (m *MemoryAuthStoreTx) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
-	m.Data.Delete(objectID)
-	return nil
+	return m.db.Batch(func(tx *bolt.Tx) error {
+		b := tx.Bucket(m.objectBucket)
+
+		return b.Delete(objectID[:])
+	})
 }

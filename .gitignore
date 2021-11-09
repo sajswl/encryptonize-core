@@ -47,6 +47,7 @@ object_storage_id
 object_storage.crt
 kubernetes/generated_files
 kubernetes/encryptonize-secrets
+db.dat
 
 # Output of template substitutions
 kubernetes/rook-ceph/nginx.conf
