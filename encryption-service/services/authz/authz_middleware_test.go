@@ -25,7 +25,7 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/common"
-	"encryption-service/interfaces"
+	"encryption-service/impl/authn"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -63,54 +63,6 @@ func (a *AuthorizerMock) DeleteAccessObject(_ context.Context, _ uuid.UUID) erro
 	return nil
 }
 
-type UserAuthenticatorMock struct {
-	userData  *common.UserData
-	groupData map[uuid.UUID]common.GroupData
-}
-
-func (u *UserAuthenticatorMock) NewUser(_ context.Context, _ common.ScopeType) (*uuid.UUID, string, error) {
-	return &uuid.Nil, "", nil
-}
-
-func (u *UserAuthenticatorMock) NewCLIUser(_ string, _ interfaces.AuthStoreInterface) error {
-	return nil
-}
-
-func (u *UserAuthenticatorMock) RemoveUser(_ context.Context, _ uuid.UUID) error {
-	return nil
-}
-
-func (u *UserAuthenticatorMock) GetUserData(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
-	if u.userData == nil {
-		return nil, errors.New("No data")
-	}
-	return u.userData, nil
-}
-
-func (u *UserAuthenticatorMock) LoginUser(_ context.Context, _ uuid.UUID, _ string) (string, error) {
-	return "", nil
-}
-
-func (u *UserAuthenticatorMock) ParseAccessToken(_ string) (interfaces.AccessTokenInterface, error) {
-	return nil, nil
-}
-
-func (u *UserAuthenticatorMock) NewGroup(_ context.Context, _ common.ScopeType) (*uuid.UUID, error) {
-	return nil, nil
-}
-
-func (u *UserAuthenticatorMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error) {
-	groupDataBatch := make([]common.GroupData, 0, len(groupIDs))
-	for _, groupID := range groupIDs {
-		groupData, ok := u.groupData[groupID]
-		if !ok {
-			return nil, errors.New("No data")
-		}
-		groupDataBatch = append(groupDataBatch, groupData)
-	}
-	return groupDataBatch, nil
-}
-
 type MockData struct {
 	methodName   string
 	userID       uuid.UUID
@@ -133,12 +85,29 @@ func SetupMocks(mockData MockData) (context.Context, *Authz) {
 		ctx = context.WithValue(ctx, common.MethodNameCtxKey, mockData.methodName)
 	}
 
-	authz := &Authz{
-		Authorizer: &AuthorizerMock{accessObject: mockData.accessObject},
-		UserAuthenticator: &UserAuthenticatorMock{
-			userData:  mockData.userData,
-			groupData: mockData.groupData,
+	userAuthenticatorMock := &authn.UserAuthenticatorMock{
+		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+			if mockData.userData == nil {
+				return nil, errors.New("No data")
+			}
+			return mockData.userData, nil
 		},
+		GetGroupDataBatchFunc: func(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error) {
+			groupDataBatch := make([]common.GroupData, 0, len(groupIDs))
+			for _, groupID := range groupIDs {
+				groupData, ok := mockData.groupData[groupID]
+				if !ok {
+					return nil, errors.New("No data")
+				}
+				groupDataBatch = append(groupDataBatch, groupData)
+			}
+			return groupDataBatch, nil
+		},
+	}
+
+	authz := &Authz{
+		Authorizer:        &AuthorizerMock{accessObject: mockData.accessObject},
+		UserAuthenticator: userAuthenticatorMock,
 	}
 
 	return ctx, authz
