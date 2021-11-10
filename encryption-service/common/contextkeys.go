@@ -11,17 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-syntax = "proto3";
+package common
 
-package users;
-option go_package = "encryption-service/users";
+type GlobalContextKey int
 
-enum UserScope{
-  READ = 0;
-  CREATE = 1;
-  INDEX = 2;
-  OBJECTPERMISSIONS = 3;
-  USERMANAGEMENT = 4;
-  UPDATE = 5;
-  DELETE = 6;
-}
+const (
+	RequestIDCtxKey GlobalContextKey = iota
+	UserIDCtxKey
+	MethodNameCtxKey
+	StatusCtxKey
+	AuthStorageTxCtxKey
+	ObjectIDCtxKey
+	TargetIDCtxKey
+	AccessObjectCtxKey
+)

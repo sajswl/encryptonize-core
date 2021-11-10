@@ -21,7 +21,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	"encryption-service/impl/authstorage"
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
@@ -46,12 +46,10 @@ func (o *ObjectStoreMock) Delete(ctx context.Context, objectID string) error {
 	return o.DeleteFunc(ctx, objectID)
 }
 
-var ma, _ = crypt.NewMessageAuthenticator([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), crypt.AccessObjectsDomain)
+var cryptor, _ = crypt.NewAESCryptor([]byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
 var authorizer = &authzimpl.Authorizer{
-	AccessObjectMAC: ma,
+	AccessObjectCryptor: cryptor,
 }
-
-var KEK = []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
@@ -74,8 +72,8 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -97,7 +95,7 @@ func TestStoreRetrieve(t *testing.T) {
 		t.Fatalf("Failed to fetch access object: %s", err)
 	}
 
-	ctx = context.WithValue(ctx, contextkeys.AccessObjectCtxKey, accessObject)
+	ctx = context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
 
 	retrieveResponse, err := strg.Retrieve(
 		ctx,
@@ -139,8 +137,8 @@ func TestRetrieveBeforeStore(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	retrieveResponse, err := strg.Retrieve(
 		ctx,
@@ -162,7 +160,7 @@ func TestStoreFail(t *testing.T) {
 		StoreFunc: func(ctx context.Context, objectID string, object []byte) error { return fmt.Errorf("") },
 	}
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 			return nil
 		},
 	}
@@ -185,8 +183,8 @@ func TestStoreFail(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := strg.Store(
 		ctx,
@@ -206,7 +204,7 @@ func TestStoreFail(t *testing.T) {
 // Test the case where the authn store fails to store
 func TestStoreFailAuth(t *testing.T) {
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, objectID uuid.UUID, data, tag []byte) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
 			return fmt.Errorf("")
 		},
 	}
@@ -229,8 +227,8 @@ func TestStoreFailAuth(t *testing.T) {
 		t.Fatalf("Could not create user ID: %v", err)
 	}
 
-	ctx := context.WithValue(context.Background(), contextkeys.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStorageTx)
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	storeResponse, err := strg.Store(
 		ctx,

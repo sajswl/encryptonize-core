@@ -14,7 +14,9 @@
 package crypt
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/gob"
 	"errors"
 
 	"encryption-service/interfaces"
@@ -102,4 +104,27 @@ func (c *AESCryptor) Decrypt(wrappedKey, ciphertext, aad []byte) ([]byte, error)
 	}
 
 	return data, nil
+}
+
+// EncodeAndEncrypt serializes the data, but otherwise behaves like `Encrypt`
+func (c *AESCryptor) EncodeAndEncrypt(data interface{}, aad []byte) ([]byte, []byte, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	if err := enc.Encode(data); err != nil {
+		return nil, nil, err
+	}
+
+	dataBytes := buffer.Bytes()
+	return c.Encrypt(dataBytes, aad)
+}
+
+// DecodeAndDecrypt behaves like `Decrypt` by deserializes the result into `data`
+func (c *AESCryptor) DecodeAndDecrypt(data interface{}, wrappedKey, ciphertext, aad []byte) error {
+	plaintext, err := c.Decrypt(wrappedKey, ciphertext, aad)
+	if err != nil {
+		return err
+	}
+
+	dec := gob.NewDecoder(bytes.NewReader(plaintext))
+	return dec.Decode(data)
 }

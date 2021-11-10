@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"encryption-service/contextkeys"
+	"encryption-service/common"
 	log "encryption-service/logger"
 	"encryption-service/services/health"
 )
@@ -36,7 +36,7 @@ var skippedAuthStorageMethods = map[string]bool{
 func (auth *Authn) AuthStorageUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Grab method name
-		methodName, ok := ctx.Value(contextkeys.MethodNameCtxKey).(string)
+		methodName, ok := ctx.Value(common.MethodNameCtxKey).(string)
 		if !ok {
 			err := status.Errorf(codes.Internal, "error encountered while connecting to auth storage")
 			log.Error(ctx, err, "Could not typecast methodName to string")
@@ -61,7 +61,7 @@ func (auth *Authn) AuthStorageUnaryServerInterceptor() grpc.UnaryServerIntercept
 			}
 		}()
 
-		newCtx := context.WithValue(ctx, contextkeys.AuthStorageTxCtxKey, authStoreTx)
+		newCtx := context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTx)
 		return handler(newCtx, req)
 	}
 }
