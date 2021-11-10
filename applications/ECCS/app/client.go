@@ -19,9 +19,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -29,7 +32,6 @@ import (
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 	grpc_reflection "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
 	"eccs/utils"
@@ -42,6 +44,46 @@ type Client struct {
 	ctx        context.Context
 	reflSource grpcurl.DescriptorSource
 	authHeader []string
+}
+
+type Object struct {
+	ObjectID string `json:"object_id"`
+}
+
+type ObjectPermissions struct {
+	ObjectID string `json:"object_id"`
+	UserID   string `json:"target"`
+}
+
+type Data struct {
+	Plaintext      []byte `json:"plaintext"`
+	AssociatedData []byte `json:"associated_data"`
+}
+
+type EncryptedData struct {
+	Ciphertext     string `json:"ciphertext"`
+	AssociatedData string `json:"associatedData"`
+	ObjectID       string `json:"objectId"`
+}
+
+type RetrievedData struct {
+	Plaintext      []byte `json:"plaintext"`
+	AssociatedData []byte `json:"associatedData"` //TODO: change to associated_data (encryptonize core api) and replace with Data
+}
+
+type DecodedRetrievedData struct {
+	Plaintext      string `json:"plaintext"`
+	AssociatedData string `json:"associated_data"`
+}
+
+type UserScope struct {
+	Read              bool
+	Create            bool
+	Update            bool
+	Delete            bool
+	Index             bool
+	ObjectPermissions bool
+	UserManagement    bool
 }
 
 // NewClient creates a new client
@@ -81,20 +123,18 @@ func NewClient(userAT string) (*Client, error) {
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	}
 
+	// Define context
+	ctx := context.Background()
+
 	// Initialize connection with Encryptonize server
 	connection, err := grpc.Dial(endpoint, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	client := grpcreflect.NewClient(context.Background(), grpc_reflection.NewServerReflectionClient(connection))
-
-	// Add metadata/credentials to context
-	authHeader := []string{"authorization: bearer " + userAT}
-	md := grpcurl.MetadataFromHeaders(authHeader)
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
-
+	client := grpcreflect.NewClient(ctx, grpc_reflection.NewServerReflectionClient(connection))
 	reflSource := grpcurl.DescriptorSourceFromServer(ctx, client)
+	authHeader := []string{"authorization: bearer " + userAT}
 
 	return &Client{
 		connection: connection, // The grpc connection
@@ -105,6 +145,7 @@ func NewClient(userAT string) (*Client, error) {
 	}, nil
 }
 
+// Invoke invokes given method on a gRPC channel
 func (c *Client) Invoke(method, input string) (string, error) {
 	in := strings.NewReader(input)
 	options := grpcurl.FormatOptions{
@@ -115,7 +156,7 @@ func (c *Client) Invoke(method, input string) (string, error) {
 
 	rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format("json"), c.reflSource, in, options)
 	if err != nil {
-		fmt.Print("Failed to construct request parser and formatter")
+		return "", fmt.Errorf("%v: %v", utils.Fail("Failed to construct request parser and formatter"), err)
 	}
 
 	var response bytes.Buffer
@@ -134,43 +175,66 @@ func (c *Client) Invoke(method, input string) (string, error) {
 		handler,
 		rf.Next)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%v: %v", utils.Fail("Failed to invoke RPC"), err)
 	}
 
 	return response.String(), nil
 }
 
-type Object struct {
-	ObjectID string `json:"object_id"`
-}
-
-type Data struct {
-	Plaintext      []byte `json:"plaintext"`
-	AssociatedData []byte `json:"associated_data"`
-}
-
 // Store calls the Encryptonize Store endpoint
-func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
-	data, err := json.Marshal(Data{plaintext, associatedData})
+func (c *Client) Store(filename, associatedData string, stdin bool) error {
+	plaintext, err := readInput(filename, stdin)
 	if err != nil {
-		fmt.Print(err, "Failed to parse object data")
+		return fmt.Errorf("%v: %v", utils.Fail("Store failed"), err)
 	}
 
-	return c.Invoke("storage.Encryptonize.Store", string(data))
+	data, err := json.Marshal(Data{plaintext, []byte(associatedData)})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse data"), err)
+	}
+
+	response, err := c.Invoke("storage.Encryptonize.Store", string(data))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Store failed"), err)
+	}
+
+	log.Printf("%v\n%s", utils.Pass("Successfully stored object!"), response)
+
+	return nil
 }
 
 // Retrieve calls the Encryptonize Retrieve endpoint
-func (c *Client) Retrieve(oid string) (string, error) {
+func (c *Client) Retrieve(oid string) error {
 	objectID, err := json.Marshal(Object{oid})
 	if err != nil {
-		fmt.Print(err, "Failed to parse object ID")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object ID"), err)
 	}
 
-	return c.Invoke("storage.Encryptonize.Retrieve", string(objectID))
+	response, err := c.Invoke("storage.Encryptonize.Retrieve", string(objectID))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Retrieve failed"), err)
+	}
+
+	var data RetrievedData
+	err = json.Unmarshal([]byte(response), &data)
+	if err != nil {
+		return fmt.Errorf("Provided input does not contain the required structure")
+	}
+
+	retrieved, err := json.Marshal(DecodedRetrievedData{Plaintext: string(data.Plaintext), AssociatedData: string(data.AssociatedData)})
+
+	log.Printf("%v\n%s", utils.Pass("Successfully retrieved object!"), retrieved)
+
+	return nil
 }
 
 // Update calls the Encryptonize Update endpoint
-func (c *Client) Update(oid string, plaintext, associatedData []byte) (string, error) {
+func (c *Client) Update(oid, filename, associatedData string, stdin bool) error {
+	plaintext, err := readInput(filename, stdin)
+	if err != nil {
+		return fmt.Errorf("Failed to read input from file")
+	}
+
 	object, err := json.Marshal(
 		struct {
 			ObjectID       string `json:"object_id"`
@@ -179,72 +243,123 @@ func (c *Client) Update(oid string, plaintext, associatedData []byte) (string, e
 		}{
 			ObjectID:       oid,
 			Plaintext:      plaintext,
-			AssociatedData: associatedData,
+			AssociatedData: []byte(associatedData),
 		})
 	if err != nil {
-		fmt.Print(err, "Failed to parse object")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object"), err)
 	}
 
-	return c.Invoke("storage.Encryptonize.Update", string(object))
+	_, err = c.Invoke("storage.Encryptonize.Update", string(object))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Update failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully updated object!"))
+
+	return nil
 }
 
 // Delete calls the Encryptonize Delete endpoint
-func (c *Client) Delete(oid string) (string, error) {
+func (c *Client) Delete(oid string) error {
 	objectID, err := json.Marshal(Object{oid})
 	if err != nil {
-		fmt.Print(err, "Failed to parse object ID")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object ID"), err)
 	}
 
-	return c.Invoke("storage.Encryptonize.Delete", string(objectID))
+	_, err = c.Invoke("storage.Encryptonize.Delete", string(objectID))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUser failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully deleted object!"))
+
+	return nil
 }
 
 // GetPermissions calls the Encryptonize GetPermissions endpoint
-func (c *Client) GetPermissions(oid string) (string, error) {
+func (c *Client) GetPermissions(oid string) error {
 	objectID, err := json.Marshal(Object{oid})
 	if err != nil {
-		fmt.Print(err, "Failed to parse object ID")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object ID"), err)
 	}
 
-	return c.Invoke("authz.Encryptonize.GetPermissions", string(objectID))
-}
-
-type UpdateType int
-
-const (
-	UpdateKindAdd = iota
-	UpdateKindRemove
-)
-
-// UpdatePermissions either Adds a user to or Removes a user from the Access Object
-// AddPermission and RemovePermission share the same signature so they are only
-// distinguished by their name
-func (c *Client) UpdatePermission(oid, target string, kind UpdateType) (string, error) {
-	var method string
-	switch kind {
-	case UpdateKindAdd:
-		method = "AddPermission"
-	case UpdateKindRemove:
-		method = "RemovePermission"
-	default:
-		return "", errors.New("Unknown update kind")
-	}
-
-	object, err := json.Marshal(
-		struct {
-			ObjectID string `json:"object_id"`
-			UserID   string `json:"target"`
-		}{
-			ObjectID: oid,
-			UserID:   target,
-		})
+	response, err := c.Invoke("authz.Encryptonize.GetPermissions", string(objectID))
 	if err != nil {
-		fmt.Print(err, "Failed to parse object ID")
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	return c.Invoke("authz.Encryptonize."+method, string(object))
+	log.Printf("%v\n%s", utils.Pass("Successfully got permissions!"), response)
+
+	return nil
 }
 
-func (c *Client) CreateUser(scopes []string) (string, error) {
+// AddPermission calls the Encryptonize AddPermission endpoint
+func (c *Client) AddPermission(oid, target string) error {
+	object, err := json.Marshal(ObjectPermissions{oid, target})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object permissions"), err)
+	}
+
+	_, err = c.Invoke("authz.Encryptonize.AddPermission", string(object))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("AddPermission failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully added permissions!"))
+
+	return nil
+}
+
+// RemovePermission calls the Encryptonize RemovePermission endpoint
+func (c *Client) RemovePermission(oid, target string) error {
+	object, err := json.Marshal(ObjectPermissions{oid, target})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object"), err)
+	}
+
+	_, err = c.Invoke("authz.Encryptonize.RemovePermission", string(object))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("RemovePermission failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully removed permissions!"))
+
+	return nil
+}
+
+// CreateUser calls the Encryptonize CreateUser endpoint
+func (c *Client) CreateUser(userScope UserScope) error {
+	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
+	var scopes = []string{}
+
+	if userScope.Read {
+		scopes = append(scopes, "READ")
+	}
+	if userScope.Create {
+		scopes = append(scopes, "CREATE")
+	}
+	if userScope.Update {
+		scopes = append(scopes, "UPDATE")
+	}
+	if userScope.Delete {
+		scopes = append(scopes, "DELETE")
+	}
+	if userScope.Index {
+		scopes = append(scopes, "INDEX")
+	}
+	if userScope.ObjectPermissions {
+		scopes = append(scopes, "OBJECTPERMISSIONS")
+	}
+	if userScope.UserManagement {
+		scopes = append(scopes, "USERMANAGEMENT")
+	}
+
+	if len(scopes) < 1 {
+		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
+	}
+
+	log.Printf("%v", scopes)
+
 	userScopes, err := json.Marshal(
 		struct {
 			UserScopes []string `json:"user_scopes"`
@@ -252,13 +367,21 @@ func (c *Client) CreateUser(scopes []string) (string, error) {
 			UserScopes: scopes,
 		})
 	if err != nil {
-		fmt.Print(err, "Failed to parse user scopes")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user scopes"), err)
 	}
 
-	return c.Invoke("authn.Encryptonize.CreateUser", string(userScopes))
+	response, err := c.Invoke("authn.Encryptonize.CreateUser", string(userScopes))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("CreateUser failed"), err)
+	}
+
+	log.Printf("%v\n%s", utils.Pass("Successfully created user!"), response)
+
+	return nil
 }
 
-func (c *Client) LoginUser(uid, password string) (string, error) {
+// LoginUser calls the Encryptonize LoginUser endpoint
+func (c *Client) LoginUser(uid, password string) error {
 	credentials, err := json.Marshal(
 		struct {
 			UserID   string `json:"user_id"`
@@ -268,13 +391,21 @@ func (c *Client) LoginUser(uid, password string) (string, error) {
 			Password: password,
 		})
 	if err != nil {
-		fmt.Print(err, "Failed to parse credentials")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse credentials"), err)
 	}
 
-	return c.Invoke("authn.Encryptonize.LoginUser", string(credentials))
+	response, err := c.Invoke("authn.Encryptonize.LoginUser", string(credentials))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("LoginUser failed"), err)
+	}
+
+	log.Printf("%v\n%s", utils.Pass("Successfully logged in user!"), response)
+
+	return nil
 }
 
-func (c *Client) RemoveUser(uid string) (string, error) {
+// RemoveUser calls the Encryptonize RemoveUser endpoint
+func (c *Client) RemoveUser(uid string) error {
 	user, err := json.Marshal(
 		struct {
 			UserID string `json:"user_id"`
@@ -282,35 +413,120 @@ func (c *Client) RemoveUser(uid string) (string, error) {
 			UserID: uid,
 		})
 	if err != nil {
-		fmt.Print(err, "Failed to parse user id")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse used id"), err)
 	}
 
-	return c.Invoke("authn.Encryptonize.RemoveUser", string(user))
-}
-
-func (c *Client) Encrypt(plaintext, associatedData []byte) (string, error) {
-	data, err := json.Marshal(Data{plaintext, associatedData})
+	_, err = c.Invoke("authn.Encryptonize.RemoveUser", string(user))
 	if err != nil {
-		fmt.Print(err, "Failed to parse data")
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	return c.Invoke("enc.Encryptonize.Encrypt", string(data))
+	log.Printf("%v\n", utils.Pass("Successfully removed user!"))
+
+	return nil
 }
 
-func (c *Client) Decrypt(oid string, ciphertext, associatedData []byte) (string, error) {
+// Encrypt calls the Encryptonize Encrypt endpoint
+func (c *Client) Encrypt(filename, associatedData string, stdin bool) error {
+	plaintext, err := readInput(filename, stdin)
+	if err != nil {
+		return fmt.Errorf("Failed to read input from file")
+	}
+
+	data, err := json.Marshal(Data{plaintext, []byte(associatedData)})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse data"), err)
+	}
+
+	response, err := c.Invoke("enc.Encryptonize.Encrypt", string(data))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Encrypt failed"), err)
+	}
+
+	// Log status to logging output
+	log.Printf("%v\n", utils.Pass("Successfully encrypted object!"))
+
+	// Output actual output to stdout
+	fmt.Printf("%s\n", response)
+
+	return nil
+}
+
+// Decrypt calls the Encryptonize Decrypt endpoint
+func (c *Client) Decrypt(filename string, stdin bool) error {
+	var enc EncryptedData
+	storedData, err := readInput(filename, stdin)
+	if err != nil {
+		return fmt.Errorf("Failed to read input from file")
+	}
+
+	err = json.Unmarshal(storedData, &enc)
+	if err != nil {
+		return fmt.Errorf("Provided input does not contain the required structure")
+	}
+
+	decodedCiphertext, err := b64.StdEncoding.DecodeString(enc.Ciphertext)
+	if err != nil {
+		return fmt.Errorf("Failed to decode ciphertext")
+	}
+
+	decodedAAD, err := b64.StdEncoding.DecodeString(enc.AssociatedData)
+	if err != nil {
+		return fmt.Errorf("Failed to decode associated data")
+	}
+
 	object, err := json.Marshal(
 		struct {
 			ObjectID       string `json:"object_id"`
 			Ciphertext     []byte `json:"ciphertext"`
 			AssociatedData []byte `json:"associated_data"`
 		}{
-			ObjectID:       oid,
-			Ciphertext:     ciphertext,
-			AssociatedData: associatedData,
+			ObjectID:       enc.ObjectID,
+			Ciphertext:     decodedCiphertext,
+			AssociatedData: decodedAAD,
 		})
 	if err != nil {
-		fmt.Print(err, "Failed to parse data")
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object"), err)
 	}
 
-	return c.Invoke("enc.Encryptonize.Decrypt", string(object))
+	response, err := c.Invoke("enc.Encryptonize.Decrypt", string(object))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Decrypt failed"), err)
+	}
+
+	log.Printf("%v\n%s", utils.Pass("Successfully decrypted object!"), response)
+
+	return nil
+}
+
+// openFile loads a file into memory
+func openFile(filename string) []byte {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("%v: %v", utils.Fail("Open file failed"), err)
+	}
+
+	return data
+}
+
+// readInput reads bytes from provided filename, or from stdin
+// Exits program if both are provided
+func readInput(filename string, stdin bool) ([]byte, error) {
+	var plaintext []byte
+
+	if filename != "" && stdin {
+		return nil, errors.New("can't take both filename and stdin")
+	}
+	if filename != "" {
+		plaintext = openFile(filename)
+	}
+	if stdin {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		plaintext = data
+	}
+
+	return plaintext, nil
 }
