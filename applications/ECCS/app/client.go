@@ -222,6 +222,9 @@ func (c *Client) Retrieve(oid string) error {
 	}
 
 	retrieved, err := json.Marshal(DecodedRetrievedData{Plaintext: string(data.Plaintext), AssociatedData: string(data.AssociatedData)})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to decode retrieved data"), err)
+	}
 
 	log.Printf("%v\n%s", utils.Pass("Successfully retrieved object!"), retrieved)
 
