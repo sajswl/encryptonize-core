@@ -31,6 +31,7 @@ import (
 	"github.com/fullstorydev/grpcurl"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	grpc_reflection "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
@@ -176,6 +177,9 @@ func (c *Client) Invoke(method, input string) (string, error) {
 		rf.Next)
 	if err != nil {
 		return "", fmt.Errorf("%v: %v", utils.Fail("Failed to invoke RPC"), err)
+	}
+	if handler.Status.Code() != codes.OK {
+		return "", fmt.Errorf("%v: %v", utils.Fail("Request rejected by Encryptonize"), handler.Status.Message())
 	}
 
 	return response.String(), nil
