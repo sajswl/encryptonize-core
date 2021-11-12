@@ -50,13 +50,17 @@ func initMockEnc(t *testing.T) (Enc, interfaces.AuthStoreInterface) {
 	return enc, authStore
 }
 
+func newTransaction(ctx context.Context, authStore interfaces.AuthStoreInterface) (context.Context, error) {
+	authStoreTx, err := authStore.NewTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTx), nil
+}
+
 func TestEncryptDecrypt(t *testing.T) {
 	enc, authStore := initMockEnc(t)
-
-	authStorageTx, err := authStore.NewTransaction(context.TODO())
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -67,7 +71,12 @@ func TestEncryptDecrypt(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
+
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -82,6 +91,11 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	if !bytes.Equal(encryptResponse.AssociatedData, associatedData) {
 		t.Fatalf("Associated data from encryption response is not the same!")
+	}
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
 	}
 
 	// Add access object to context
@@ -143,11 +157,6 @@ func TestDecryptFail(t *testing.T) {
 func TestDecryptWrongAAD(t *testing.T) {
 	enc, authStore := initMockEnc(t)
 
-	authStorageTx, err := authStore.NewTransaction(context.TODO())
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
-
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
@@ -157,7 +166,12 @@ func TestDecryptWrongAAD(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
+
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -191,11 +205,6 @@ func TestDecryptWrongAAD(t *testing.T) {
 func TestDecryptWrongOID(t *testing.T) {
 	enc, authStore := initMockEnc(t)
 
-	authStorageTx, err := authStore.NewTransaction(context.TODO())
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
-
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
@@ -205,7 +214,12 @@ func TestDecryptWrongOID(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
+
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -222,7 +236,12 @@ func TestDecryptWrongOID(t *testing.T) {
 	associatedData2 := []byte("associated_data_bytes2")
 
 	ctx = context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
+
 	encryptResponse2, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{

@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"errors"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -116,180 +117,172 @@ func NewMemoryAuthStore(dbFilePath string) (*MemoryAuthStore, error) {
 	return &MemoryAuthStore{db, userBucket, objectBucket}, nil
 }
 
-func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
-	return &MemoryAuthStoreTx{store}, nil
-}
-
 func (store *MemoryAuthStore) Close() {
 	store.db.Close()
 }
 
 type MemoryAuthStoreTx struct {
-	*MemoryAuthStore
+	tx           *bolt.Tx
+	userBucket   []byte
+	objectBucket []byte
 }
 
-func (m *MemoryAuthStoreTx) Commit(ctx context.Context) error {
-	return nil
+func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
+	tx, err := store.db.Begin(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MemoryAuthStoreTx{tx, store.userBucket, store.objectBucket}, nil
 }
-func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
-	return nil
+
+func (storeTx *MemoryAuthStoreTx) Commit(ctx context.Context) error {
+	return storeTx.tx.Commit()
 }
 
-func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error) {
-	res = false
-
-	err = m.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(m.userBucket)
-
-		user := b.Get(userID[:])
-		if user == nil {
-			return nil
-		}
-
-		userData := &common.ProtectedUserData{}
-		dec := gob.NewDecoder(bytes.NewReader(user))
-		err := dec.Decode(userData)
-		if err != nil {
-			return err
-		}
-
-		if userData.DeletedAt != nil {
-			return nil
-		}
-
-		res = true
+func (storeTx *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
+	err := storeTx.tx.Rollback()
+	if errors.Is(err, bolt.ErrTxClosed) {
 		return nil
-	})
-
-	return
+	}
+	return err
 }
 
-func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error) {
-	protected = nil
+func (storeTx *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
+	b := storeTx.tx.Bucket(storeTx.userBucket)
 
-	err = m.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(m.userBucket)
+	user := b.Get(userID[:])
+	if err := storeTx.tx.Commit(); err != nil {
+		return false, err
+	}
+	if user == nil {
+		return false, nil
+	}
 
-		user := b.Get(userID[:])
-		if user == nil {
-			return interfaces.ErrNotFound
-		}
+	userData := &common.ProtectedUserData{}
+	dec := gob.NewDecoder(bytes.NewReader(user))
+	err := dec.Decode(userData)
+	if err != nil {
+		return false, err
+	}
 
-		userData := &common.ProtectedUserData{}
-		dec := gob.NewDecoder(bytes.NewReader(user))
-		err := dec.Decode(userData)
-		if err != nil {
-			return err
-		}
+	if userData.DeletedAt != nil {
+		return false, nil
+	}
 
-		if userData.DeletedAt != nil {
-			return interfaces.ErrNotFound
-		}
-
-		protected = userData
-		return nil
-	})
-
-	return
+	return true, nil
 }
 
-func (m *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
-	return m.db.Batch(func(tx *bolt.Tx) error {
-		var userBuffer bytes.Buffer
-		enc := gob.NewEncoder(&userBuffer)
-		err := enc.Encode(protected)
-		if err != nil {
-			return err
-		}
+func (storeTx *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error) {
+	b := storeTx.tx.Bucket(storeTx.userBucket)
 
-		b := tx.Bucket(m.userBucket)
+	user := b.Get(userID[:])
+	if err := storeTx.tx.Commit(); err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, interfaces.ErrNotFound
+	}
 
-		return b.Put(protected.UserID[:], userBuffer.Bytes())
-	})
+	userData := &common.ProtectedUserData{}
+	dec := gob.NewDecoder(bytes.NewReader(user))
+	err := dec.Decode(userData)
+	if err != nil {
+		return nil, err
+	}
+
+	if userData.DeletedAt != nil {
+		return nil, interfaces.ErrNotFound
+	}
+
+	return userData, nil
 }
 
-func (m *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
-	return m.db.Batch(func(tx *bolt.Tx) error {
-		b := tx.Bucket(m.userBucket)
+func (storeTx *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
+	var userBuffer bytes.Buffer
+	enc := gob.NewEncoder(&userBuffer)
+	err := enc.Encode(protected)
+	if err != nil {
+		return err
+	}
 
-		user := b.Get(userID[:])
-		if user == nil {
-			return interfaces.ErrNotFound
-		}
+	b := storeTx.tx.Bucket(storeTx.userBucket)
 
-		userData := &common.ProtectedUserData{}
-		dec := gob.NewDecoder(bytes.NewReader(user))
-		err := dec.Decode(userData)
-		if err != nil {
-			return err
-		}
-
-		if userData.DeletedAt != nil {
-			return interfaces.ErrNotFound
-		}
-
-		currentTime := time.Now()
-		userData.DeletedAt = &currentTime
-
-		var userBuffer bytes.Buffer
-		enc := gob.NewEncoder(&userBuffer)
-		err = enc.Encode(userData)
-		if err != nil {
-			return err
-		}
-
-		return b.Put(userID[:], userBuffer.Bytes())
-	})
+	return b.Put(protected.UserID[:], userBuffer.Bytes())
 }
 
-func (m *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (protected *common.ProtectedAccessObject, err error) {
-	protected = nil
+func (storeTx *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
+	b := storeTx.tx.Bucket(storeTx.userBucket)
 
-	err = m.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(m.objectBucket)
+	user := b.Get(userID[:])
+	if user == nil {
+		return interfaces.ErrNotFound
+	}
 
-		obj := b.Get(objectID[:])
-		if obj == nil {
-			return interfaces.ErrNotFound
-		}
+	userData := &common.ProtectedUserData{}
+	dec := gob.NewDecoder(bytes.NewReader(user))
+	err := dec.Decode(userData)
+	if err != nil {
+		return err
+	}
 
-		accessObject := &common.ProtectedAccessObject{}
-		dec := gob.NewDecoder(bytes.NewReader(obj))
-		err := dec.Decode(accessObject)
-		if err != nil {
-			return err
-		}
+	if userData.DeletedAt != nil {
+		return interfaces.ErrNotFound
+	}
 
-		protected = accessObject
-		return nil
-	})
+	currentTime := time.Now()
+	userData.DeletedAt = &currentTime
 
-	return
+	var userBuffer bytes.Buffer
+	enc := gob.NewEncoder(&userBuffer)
+	err = enc.Encode(userData)
+	if err != nil {
+		return err
+	}
+
+	return b.Put(userID[:], userBuffer.Bytes())
 }
 
-func (m *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
-	return m.db.Batch(func(tx *bolt.Tx) error {
-		var objectBuffer bytes.Buffer
-		enc := gob.NewEncoder(&objectBuffer)
-		err := enc.Encode(protected)
-		if err != nil {
-			return err
-		}
+func (storeTx *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
+	b := storeTx.tx.Bucket(storeTx.objectBucket)
 
-		b := tx.Bucket(m.objectBucket)
+	obj := b.Get(objectID[:])
+	if err := storeTx.tx.Commit(); err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		return nil, interfaces.ErrNotFound
+	}
 
-		return b.Put(protected.ObjectID[:], objectBuffer.Bytes())
-	})
+	accessObject := &common.ProtectedAccessObject{}
+	dec := gob.NewDecoder(bytes.NewReader(obj))
+	err := dec.Decode(accessObject)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessObject, nil
 }
 
-func (m *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, accessObject common.ProtectedAccessObject) error {
-	return m.InsertAcccessObject(ctx, accessObject)
+func (storeTx *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+	var objectBuffer bytes.Buffer
+	enc := gob.NewEncoder(&objectBuffer)
+	err := enc.Encode(protected)
+	if err != nil {
+		return err
+	}
+
+	b := storeTx.tx.Bucket(storeTx.objectBucket)
+
+	return b.Put(protected.ObjectID[:], objectBuffer.Bytes())
 }
 
-func (m *MemoryAuthStoreTx) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
-	return m.db.Batch(func(tx *bolt.Tx) error {
-		b := tx.Bucket(m.objectBucket)
+func (storeTx *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, accessObject common.ProtectedAccessObject) error {
+	return storeTx.InsertAcccessObject(ctx, accessObject)
+}
 
-		return b.Delete(objectID[:])
-	})
+func (storeTx *MemoryAuthStoreTx) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
+	b := storeTx.tx.Bucket(storeTx.objectBucket)
+
+	return b.Delete(objectID[:])
 }
