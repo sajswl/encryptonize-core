@@ -26,6 +26,7 @@ import (
 	authzimpl "encryption-service/impl/authz"
 	"encryption-service/impl/crypt"
 	"encryption-service/impl/objectstorage"
+	"encryption-service/interfaces"
 )
 
 type ObjectStoreMock struct {
@@ -51,13 +52,21 @@ var authorizer = &authzimpl.Authorizer{
 	AccessObjectCryptor: cryptor,
 }
 
+func newTransaction(ctx context.Context, authStore interfaces.AuthStoreInterface) (context.Context, error) {
+	authStoreTx, err := authStore.NewTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTx), nil
+}
+
 // Test normal store and retrieve flow
 func TestStoreRetrieve(t *testing.T) {
 	authStore, err := authstorage.NewMemoryAuthStore("./db.dat")
 	if err != nil {
 		t.Fatalf("Cannot create a new MemoryAuthStore: %v", err)
 	}
-	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
 	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
 	if err != nil {
@@ -76,7 +85,11 @@ func TestStoreRetrieve(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
+	}
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
@@ -90,6 +103,11 @@ func TestStoreRetrieve(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatalf("Storing object failed: %v", err)
+	}
+
+	ctx, err = newTransaction(ctx, authStore)
+	if err != nil {
+		t.Fatalf("New transaction failed: %v", err)
 	}
 
 	// Add access object to context
@@ -127,7 +145,6 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot create a new MemoryAuthStore: %v", err)
 	}
-	authStorageTx, _ := authStore.NewTransaction(context.TODO())
 
 	dataCryptor, err := crypt.NewAESCryptor(make([]byte, 32))
 	if err != nil {
@@ -146,7 +163,6 @@ func TestRetrieveBeforeStore(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 
 	retrieveResponse, err := strg.Retrieve(
 		ctx,
