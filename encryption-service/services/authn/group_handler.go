@@ -32,18 +32,18 @@ var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to aut
 func (a *Authn) CreateGroup(ctx context.Context, request *CreateGroupRequest) (*CreateGroupResponse, error) {
 	scopes, err := common.MapScopesToScopeType(request.Scopes)
 	if err != nil {
-		log.Error(ctx, errors.New("CreateGroup: Invalid scope"), err.Error())
+		log.Error(ctx, err, "CreateGroup: Invalid scope")
 		return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 	}
 
-	userID, err := a.UserAuthenticator.NewGroup(ctx, scopes)
+	groupID, err := a.UserAuthenticator.NewGroup(ctx, scopes)
 	if err != nil {
 		log.Error(ctx, err, "CreateGroup: Couldn't create new group")
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
 	}
 
 	return &CreateGroupResponse{
-		GroupId: userID.String(),
+		GroupId: groupID.String(),
 	}, nil
 }
 

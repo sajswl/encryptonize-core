@@ -205,7 +205,7 @@ func (storeTx *AuthStoreTx) UpdateUser(ctx context.Context, protected *common.Pr
 	if res.RowsAffected() < 1 {
 		return interfaces.ErrNotFound
 	}
-	return err
+	return nil
 }
 
 // RemoveUser performs a soft delete by setting a deletion date
@@ -261,7 +261,7 @@ func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected *common.P
 // RemoveGroup performs a soft delete by setting a deletion date
 func (storeTx *AuthStoreTx) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
 	now := time.Now()
-	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE groups SET deleted_at = $1 WHERE id = $2"), now, groupID)
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE groups SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL"), now, groupID)
 	if err != nil {
 		return err
 	}

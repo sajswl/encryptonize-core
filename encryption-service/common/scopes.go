@@ -90,7 +90,7 @@ func MapScopesToScopeType(protoScopes []Scope) (ScopeType, error) {
 		case Scope_USERMANAGEMENT:
 			scopes |= ScopeUserManagement
 		default:
-			return 0, fmt.Errorf("CreateUser: Invalid scope %v", scopes)
+			return 0, fmt.Errorf("Invalid scope %v", scopes)
 		}
 	}
 	return scopes, nil
@@ -116,7 +116,7 @@ func MapStringToScopeType(scopesString string) (ScopeType, error) {
 		case "m":
 			scopes |= ScopeUserManagement
 		default:
-			return 0, fmt.Errorf("CreateUser: Invalid scope %v", string(scope))
+			return 0, fmt.Errorf("Invalid scope %v", string(scope))
 		}
 	}
 	return scopes, nil
