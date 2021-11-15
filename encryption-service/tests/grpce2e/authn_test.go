@@ -12,25 +12,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build authz && encryption && storage
-// +build authz,encryption,storage
-
 package grpce2e
 
 import (
 	"testing"
 )
 
+type LoginDetails struct {
+	userid, password string
+}
+
+func TestAuthenticated(t *testing.T) {
+	client, err := NewClient(endpoint, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	newUser, err := client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+
+	_, err = client.LoginUser(newUser.UserId, newUser.Password)
+	failOnError("Could not log in user", err, t)
+}
+
 func TestWrongCredentials(t *testing.T) {
 	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
-	_, err = client.LoginUser(uid, "wrong password")
-	failOnSuccess("Should not be able to log in with wrong credentials", err, t)
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
 
-	_, err = client.LoginUser("", "")
-	failOnSuccess("Should not be able to log in with wrong credentials", err, t)
+	newUser, err := client.CreateUser(protoUserScopes)
+	failOnError("Create user request failed", err, t)
+
+	wrongCredentials := []LoginDetails{
+		LoginDetails{userid: "", password: ""},
+		LoginDetails{userid: "", password: pwd},
+		LoginDetails{userid: uid, password: ""},
+		LoginDetails{userid: uid, password: "wrong password"},
+		LoginDetails{userid: newUser.UserId, password: pwd},
+		LoginDetails{userid: newUser.UserId, password: "wrong password"},
+	}
+
+	for _, cred := range wrongCredentials {
+		_, err = client.LoginUser(cred.userid, cred.password)
+		failOnSuccess("Should not be able to log in with wrong credentials", err, t)
+	}
 }
 
 func TestWrongToken(t *testing.T) {
