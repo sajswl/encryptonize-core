@@ -60,132 +60,108 @@ Environment Variables:
 }
 
 var storeCmd = &cobra.Command{
-	Use:   "store",
-	Short: "Stores your secrets using Encryptonize",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "store",
+	Short:   "Stores your secrets using Encryptonize",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.Store(filename, associatedData, stdin)
 	},
 }
 
 var retrieveCmd = &cobra.Command{
-	Use:   "retrieve",
-	Short: "Retrieves your secrets from Encryptonize",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "retrieve",
+	Short:   "Retrieves your secrets from Encryptonize",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.Retrieve(objectID)
 	},
 }
 
 var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "Updates a stored object and its associated data",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "update",
+	Short:   "Updates a stored object and its associated data",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.Update(objectID, filename, associatedData, stdin)
 	},
 }
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Deletes a stored object",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "delete",
+	Short:   "Deletes a stored object",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.Delete(objectID)
 	},
 }
 
 var getPermissionsCmd = &cobra.Command{
-	Use:   "getpermissions",
-	Short: "Gets the permissions of an object",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "getpermissions",
+	Short:   "Gets the permissions of an object",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.GetPermissions(objectID)
 	},
 }
 
 var addPermissionCmd = &cobra.Command{
-	Use:   "addpermission",
-	Short: "Adds a user to the permissions list of an object",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "addpermission",
+	Short:   "Adds a user to the permissions list of an object",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.AddPermission(objectID, target)
 	},
 }
 
 var removePermissionCmd = &cobra.Command{
-	Use:   "removepermission",
-	Short: "Removes a user from the permissions list of an object",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "removepermission",
+	Short:   "Removes a user from the permissions list of an object",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.RemovePermission(objectID, target)
 	},
 }
 
 var createUserCmd = &cobra.Command{
-	Use:   "createuser",
-	Short: "Creates a user on the server",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "createuser",
+	Short:   "Creates a user on the server",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.CreateUser(userScope)
 	},
 }
 
 var loginUserCmd = &cobra.Command{
-	Use:   "loginuser",
-	Short: "Logs in with uid and password and prints and access token",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "loginuser",
+	Short:   "Logs in with uid and password and prints and access token",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.LoginUser(uid, password)
 	},
 }
 
 var removeUserCmd = &cobra.Command{
-	Use:   "removeuser",
-	Short: "Removes a user from the serivce",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "removeuser",
+	Short:   "Removes a user from the serivce",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.RemoveUser(uid)
 	},
 }
 
 var encryptCmd = &cobra.Command{
-	Use:   "encrypt",
-	Short: "Encrypts data and returns the ciphertext",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "encrypt",
+	Short:   "Encrypts data and returns the ciphertext",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.Encrypt(filename, associatedData, stdin)
 	},
 }
 
 var decryptCmd = &cobra.Command{
-	Use:   "decrypt",
-	Short: "Decrypts data and returns the plaintext",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return InitClient(cmd, args)
-	},
+	Use:     "decrypt",
+	Short:   "Decrypts data and returns the plaintext",
+	PreRunE: InitClient,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return client.Decrypt(filename, stdin)
 	},
