@@ -20,6 +20,9 @@ import (
 	"eccs/app"
 )
 
+// A client instance
+var client *app.Client
+
 // Init all flags
 var (
 	// Common args
@@ -59,12 +62,10 @@ Environment Variables:
 var storeCmd = &cobra.Command{
 	Use:   "store",
 	Short: "Stores your secrets using Encryptonize",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.Store(filename, associatedData, stdin)
 	},
 }
@@ -72,12 +73,10 @@ var storeCmd = &cobra.Command{
 var retrieveCmd = &cobra.Command{
 	Use:   "retrieve",
 	Short: "Retrieves your secrets from Encryptonize",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.Retrieve(objectID)
 	},
 }
@@ -85,12 +84,10 @@ var retrieveCmd = &cobra.Command{
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Updates a stored object and its associated data",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.Update(objectID, filename, associatedData, stdin)
 	},
 }
@@ -98,12 +95,10 @@ var updateCmd = &cobra.Command{
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Deletes a stored object",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.Delete(objectID)
 	},
 }
@@ -111,12 +106,10 @@ var deleteCmd = &cobra.Command{
 var getPermissionsCmd = &cobra.Command{
 	Use:   "getpermissions",
 	Short: "Gets the permissions of an object",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.GetPermissions(objectID)
 	},
 }
@@ -124,12 +117,10 @@ var getPermissionsCmd = &cobra.Command{
 var addPermissionCmd = &cobra.Command{
 	Use:   "addpermission",
 	Short: "Adds a user to the permissions list of an object",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.AddPermission(objectID, target)
 	},
 }
@@ -137,12 +128,10 @@ var addPermissionCmd = &cobra.Command{
 var removePermissionCmd = &cobra.Command{
 	Use:   "removepermission",
 	Short: "Removes a user from the permissions list of an object",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.RemovePermission(objectID, target)
 	},
 }
@@ -150,12 +139,10 @@ var removePermissionCmd = &cobra.Command{
 var createUserCmd = &cobra.Command{
 	Use:   "createuser",
 	Short: "Creates a user on the server",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.CreateUser(userScope)
 	},
 }
@@ -163,12 +150,10 @@ var createUserCmd = &cobra.Command{
 var loginUserCmd = &cobra.Command{
 	Use:   "loginuser",
 	Short: "Logs in with uid and password and prints and access token",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.LoginUser(uid, password)
 	},
 }
@@ -176,12 +161,10 @@ var loginUserCmd = &cobra.Command{
 var removeUserCmd = &cobra.Command{
 	Use:   "removeuser",
 	Short: "Removes a user from the serivce",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.RemoveUser(uid)
 	},
 }
@@ -189,12 +172,10 @@ var removeUserCmd = &cobra.Command{
 var encryptCmd = &cobra.Command{
 	Use:   "encrypt",
 	Short: "Encrypts data and returns the ciphertext",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.Encrypt(filename, associatedData, stdin)
 	},
 }
@@ -202,16 +183,25 @@ var encryptCmd = &cobra.Command{
 var decryptCmd = &cobra.Command{
 	Use:   "decrypt",
 	Short: "Decrypts data and returns the plaintext",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return InitClient(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client, err := app.NewClient(userAT)
-		if err != nil {
-			return err
-		}
-
 		return client.Decrypt(filename, stdin)
 	},
 }
 
+// InitClient creates a new client with authentication token
+func InitClient(cmd *cobra.Command, args []string) error {
+	var err error
+	client, err = app.NewClient(userAT)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// InitCmd defines commands and flags
 func InitCmd() error {
 	// Add commands to root
 	rootCmd.AddCommand(storeCmd)
