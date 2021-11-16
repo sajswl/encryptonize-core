@@ -23,18 +23,19 @@ import (
 )
 
 type UserAuthenticatorMock struct {
-	NewUserFunc           func(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, string, error)
+	NewUserFunc           func(ctx context.Context) (*uuid.UUID, string, error)
 	UpdateUserFunc        func(ctx context.Context, userID uuid.UUID, userData *common.UserData) error
 	RemoveUserFunc        func(ctx context.Context, userID uuid.UUID) error
 	GetUserDataFunc       func(ctx context.Context, userID uuid.UUID) (*common.UserData, error)
 	LoginUserFunc         func(ctx context.Context, userID uuid.UUID, password string) (string, error)
 	ParseAccessTokenFunc  func(token string) (interfaces.AccessTokenInterface, error)
+	NewGroupWithIDFunc    func(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error
 	NewGroupFunc          func(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, error)
 	GetGroupDataBatchFunc func(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error)
 }
 
-func (ua *UserAuthenticatorMock) NewUser(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, string, error) {
-	return ua.NewUserFunc(ctx, scopes)
+func (ua *UserAuthenticatorMock) NewUser(ctx context.Context) (*uuid.UUID, string, error) {
+	return ua.NewUserFunc(ctx)
 }
 
 func (ua *UserAuthenticatorMock) UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
@@ -55,6 +56,10 @@ func (ua *UserAuthenticatorMock) LoginUser(ctx context.Context, userID uuid.UUID
 
 func (ua *UserAuthenticatorMock) ParseAccessToken(token string) (interfaces.AccessTokenInterface, error) {
 	return ua.ParseAccessTokenFunc(token)
+}
+
+func (ua *UserAuthenticatorMock) NewGroupWithID(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error {
+	return ua.NewGroupWithIDFunc(ctx, groupID, scopes)
 }
 
 func (ua *UserAuthenticatorMock) NewGroup(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, error) {

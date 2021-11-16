@@ -10,8 +10,7 @@ CREATE TABLE IF NOT EXISTS users  (
 CREATE TABLE IF NOT EXISTS groups  (
     id UUID PRIMARY KEY,
     data BYTEA NOT NULL,
-    key BYTEA NOT NULL,
-    deleted_at TIMESTAMP
+    key BYTEA NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS access_objects  (

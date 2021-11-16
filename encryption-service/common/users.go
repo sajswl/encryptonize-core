@@ -31,3 +31,11 @@ type ProtectedUserData struct {
 	WrappedKey []byte
 	DeletedAt  *time.Time
 }
+
+func (u *UserData) GetGroupIDs() []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(u.GroupIDs))
+	for id := range u.GroupIDs {
+		ids = append(ids, id)
+	}
+	return ids
+}

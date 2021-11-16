@@ -14,8 +14,6 @@
 package common
 
 import (
-	"time"
-
 	"github.com/gofrs/uuid"
 )
 
@@ -27,5 +25,4 @@ type ProtectedGroupData struct {
 	GroupID    uuid.UUID
 	GroupData  []byte
 	WrappedKey []byte
-	DeletedAt  *time.Time
 }

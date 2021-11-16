@@ -276,33 +276,3 @@ func TestAddPermissionNoTargetUserEnc(t *testing.T) {
 	_, err = client.AddPermission(oid, nonExistingUser)
 	failOnSuccess("Shouldn't able to add user that does not exist!", err, t)
 }
-
-// Test that a deleted user can't be added to permissions
-func TestAddPermissionsRemovedUserEnc(t *testing.T) {
-	// Create admin client for user creation
-	client, err := NewClient(endpoint, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
-
-	_, err = client.LoginUser(uid, pwd)
-	failOnError("Could not create client", err, t)
-
-	// Create user 2
-	createUserResponse, err := client.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	// Encrypt an object
-	plaintext := []byte("foo")
-	associatedData := []byte("bar")
-	encryptResponse, err := client.Encrypt(plaintext, associatedData)
-	failOnError("Encrypt operation failed", err, t)
-	oid := encryptResponse.ObjectId
-
-	// Test user removal
-	_, err = client.RemoveUser(createUserResponse.UserId)
-	failOnError("Remove user request failed", err, t)
-
-	// Grant permissions to user 2
-	_, err = client.AddPermission(oid, createUserResponse.UserId)
-	failOnSuccess("AddPermission should have failed with deleted user", err, t)
-}

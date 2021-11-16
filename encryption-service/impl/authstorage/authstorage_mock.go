@@ -32,7 +32,6 @@ type AuthStoreTxMock struct {
 	CommitFunc   func(ctx context.Context) error
 	RollbackFunc func(ctx context.Context) error
 
-	UserExistsFunc  func(ctx context.Context, userID uuid.UUID) (bool, error)
 	InsertUserFunc  func(ctx context.Context, protected *common.ProtectedUserData) error
 	UpdateUserFunc  func(ctx context.Context, protected *common.ProtectedUserData) error
 	GetUserDataFunc func(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error)
@@ -40,7 +39,6 @@ type AuthStoreTxMock struct {
 
 	GroupExistsFunc       func(ctx context.Context, groupID uuid.UUID) (bool, error)
 	InsertGroupFunc       func(ctx context.Context, group *common.ProtectedGroupData) error
-	RemoveGroupFunc       func(ctx context.Context, groupID uuid.UUID) error
 	GetGroupDataBatchFunc func(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error)
 
 	GetAccessObjectFunc     func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error)
@@ -54,10 +52,6 @@ func (db *AuthStoreTxMock) Commit(ctx context.Context) error {
 }
 func (db *AuthStoreTxMock) Rollback(ctx context.Context) error {
 	return db.RollbackFunc(ctx)
-}
-
-func (db *AuthStoreTxMock) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	return db.UserExistsFunc(ctx, userID)
 }
 
 func (db *AuthStoreTxMock) InsertUser(ctx context.Context, protected *common.ProtectedUserData) error {
@@ -82,10 +76,6 @@ func (db *AuthStoreTxMock) GroupExists(ctx context.Context, groupID uuid.UUID) (
 
 func (db *AuthStoreTxMock) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	return db.InsertGroupFunc(ctx, protected)
-}
-
-func (db *AuthStoreTxMock) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
-	return db.RemoveGroupFunc(ctx, groupID)
 }
 
 func (db *AuthStoreTxMock) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
@@ -146,24 +136,6 @@ func (m *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 	return nil
 }
 
-func (m *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	user, ok := m.UserData.Load(userID)
-	if !ok {
-		return false, nil
-	}
-
-	userData, ok := user.(*common.ProtectedUserData)
-	if !ok {
-		return false, errors.New("unable to cast to ProtectedUserData")
-	}
-
-	if userData.DeletedAt != nil {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (m *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error) {
 	user, ok := m.UserData.Load(userID)
 	if !ok {
@@ -220,13 +192,9 @@ func (m *MemoryAuthStoreTx) GroupExists(ctx context.Context, groupID uuid.UUID) 
 		return false, nil
 	}
 
-	groupData, ok := group.(*common.ProtectedGroupData)
+	_, ok = group.(*common.ProtectedGroupData)
 	if !ok {
 		return false, errors.New("unable to cast to ProtectedUserData")
-	}
-
-	if groupData.DeletedAt != nil {
-		return false, nil
 	}
 
 	return true, nil
@@ -235,28 +203,6 @@ func (m *MemoryAuthStoreTx) GroupExists(ctx context.Context, groupID uuid.UUID) 
 func (m *MemoryAuthStoreTx) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
 	// TODO: check if already contained
 	m.GroupData.Store(protected.GroupID, protected)
-	return nil
-}
-
-func (m *MemoryAuthStoreTx) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
-	// TODO: unsafe for concurrent usage
-	user, ok := m.GroupData.Load(groupID)
-	if !ok {
-		return interfaces.ErrNotFound
-	}
-
-	groupData, ok := user.(*common.ProtectedGroupData)
-	if !ok {
-		return errors.New("unable to cast to ProtectedGroupData")
-	}
-
-	if groupData.DeletedAt != nil {
-		return interfaces.ErrNotFound
-	}
-
-	groupData.DeletedAt = func() *time.Time { t := time.Now(); return &t }()
-
-	m.GroupData.Store(groupID, groupData)
 	return nil
 }
 
@@ -272,10 +218,6 @@ func (m *MemoryAuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uu
 		protected, ok := group.(*common.ProtectedGroupData)
 		if !ok {
 			return nil, errors.New("unable to cast to UserData")
-		}
-
-		if protected.DeletedAt != nil {
-			return nil, interfaces.ErrNotFound
 		}
 
 		protectedBatch = append(protectedBatch, *protected)

@@ -174,22 +174,6 @@ func (storeTx *AuthStoreTx) NewQuery(query string) string {
 	return fmt.Sprintf("WITH request_id AS (SELECT '%s') %s", storeTx.RequestID.String(), query)
 }
 
-// Fetches a user from the database
-func (storeTx *AuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	var fetchedID []byte
-
-	// TODO: COUNT could be more appropriate
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL"), userID)
-	err := row.Scan(&fetchedID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 // InsertUser inserts a user into the auth store
 func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, protected *common.ProtectedUserData) error {
 	_, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("INSERT INTO users (id, data, key) VALUES ($1, $2, $3)"), protected.UserID, protected.UserData, protected.WrappedKey)
@@ -198,7 +182,7 @@ func (storeTx *AuthStoreTx) InsertUser(ctx context.Context, protected *common.Pr
 
 // UpdateUser updates an existing user's data
 func (storeTx *AuthStoreTx) UpdateUser(ctx context.Context, protected *common.ProtectedUserData) error {
-	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE users SET data = $1, key = $2 WHERE id = $3"), protected.UserData, protected.WrappedKey, protected.UserID)
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE users SET data = $1, key = $2 WHERE id = $3 AND deleted_at IS NULL"), protected.UserData, protected.WrappedKey, protected.UserID)
 	if err != nil {
 		return err
 	}
@@ -211,7 +195,7 @@ func (storeTx *AuthStoreTx) UpdateUser(ctx context.Context, protected *common.Pr
 // RemoveUser performs a soft delete by setting a deletion date
 func (storeTx *AuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
 	now := time.Now()
-	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE users SET deleted_at = $1 WHERE id = $2"), now, userID)
+	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE users SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL"), now, userID)
 	if err != nil {
 		return err
 	}
@@ -241,7 +225,7 @@ func (storeTx *AuthStoreTx) GroupExists(ctx context.Context, groupID uuid.UUID) 
 	var fetchedID []byte
 
 	// TODO: COUNT could be more appropriate
-	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM groups WHERE id = $1 AND deleted_at IS NULL"), groupID)
+	row := storeTx.Tx.QueryRow(ctx, storeTx.NewQuery("SELECT id FROM groups WHERE id = $1"), groupID)
 	err := row.Scan(&fetchedID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -258,22 +242,9 @@ func (storeTx *AuthStoreTx) InsertGroup(ctx context.Context, protected *common.P
 	return err
 }
 
-// RemoveGroup performs a soft delete by setting a deletion date
-func (storeTx *AuthStoreTx) RemoveGroup(ctx context.Context, groupID uuid.UUID) error {
-	now := time.Now()
-	res, err := storeTx.Tx.Exec(ctx, storeTx.NewQuery("UPDATE groups SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL"), now, groupID)
-	if err != nil {
-		return err
-	}
-	if res.RowsAffected() < 1 {
-		return interfaces.ErrNotFound
-	}
-	return nil
-}
-
 // Get one or more groups' confidential data
 func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
-	rows, err := storeTx.Tx.Query(ctx, storeTx.NewQuery("SELECT data, key, id FROM groups WHERE id = any($1) AND deleted_at IS NULL"), groupIDs)
+	rows, err := storeTx.Tx.Query(ctx, storeTx.NewQuery("SELECT data, key, id FROM groups WHERE id = any($1)"), groupIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -292,11 +263,6 @@ func (storeTx *AuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uu
 
 	if err := rows.Err(); err != nil {
 		return nil, err
-	}
-
-	// Some IDs were missing
-	if len(protectedBatch) != len(groupIDs) {
-		return nil, interfaces.ErrNotFound
 	}
 
 	return protectedBatch, nil

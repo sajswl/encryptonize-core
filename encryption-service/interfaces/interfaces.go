@@ -42,9 +42,6 @@ type AuthStoreTxInterface interface {
 	// Commit any changes
 	Commit(ctx context.Context) (err error)
 
-	// Check if a user exists in the auth store
-	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
-
 	// Insert a user
 	InsertUser(ctx context.Context, protected *common.ProtectedUserData) (err error)
 
@@ -62,9 +59,6 @@ type AuthStoreTxInterface interface {
 
 	// Insert a group
 	InsertGroup(ctx context.Context, groupData *common.ProtectedGroupData) (err error)
-
-	// Removes a group
-	RemoveGroup(ctx context.Context, groupID uuid.UUID) (err error)
 
 	// Get one or more groups' confidential data
 	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.ProtectedGroupData, err error)
@@ -121,10 +115,10 @@ type KeyWrapperInterface interface {
 	Unwrap(data []byte) ([]byte, error)
 }
 
-// Interface for authenticating and creating users
+// Interface for authenticating and creating users and groups
 type UserAuthenticatorInterface interface {
-	// Create a new user with the requested scopes
-	NewUser(ctx context.Context, scopes common.ScopeType) (userID *uuid.UUID, password string, err error)
+	// Create a new user
+	NewUser(ctx context.Context) (userID *uuid.UUID, password string, err error)
 
 	// UpdateUser updates an existing user's data
 	UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) (err error)
@@ -140,6 +134,9 @@ type UserAuthenticatorInterface interface {
 
 	// Parses a token string into the internal data type
 	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
+
+	// Create a new group with the requested scopes and group ID
+	NewGroupWithID(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) (err error)
 
 	// Create a new group with the requested scopes
 	NewGroup(ctx context.Context, scopes common.ScopeType) (groupID *uuid.UUID, err error)

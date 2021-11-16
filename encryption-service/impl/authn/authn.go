@@ -50,8 +50,7 @@ func (ua *UserAuthenticator) newUserData() (*common.ProtectedUserData, string, e
 	userData := &common.UserData{
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
-		// A user is a member of their own group
-		GroupIDs: map[uuid.UUID]bool{userID: true},
+		GroupIDs:       map[uuid.UUID]bool{},
 	}
 
 	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(userData, userID.Bytes())
@@ -69,30 +68,18 @@ func (ua *UserAuthenticator) newUserData() (*common.ProtectedUserData, string, e
 }
 
 // NewUser creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, string, error) {
+func (ua *UserAuthenticator) NewUser(ctx context.Context) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
 		return nil, "", ErrAuthStoreTxCastFailed
 	}
 
-	// Create the user iteself
 	userData, pwd, err := ua.newUserData()
 	if err != nil {
 		return nil, "", err
 	}
 
 	err = authStorageTx.InsertUser(ctx, userData)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// Create the user's group
-	groupData, err := ua.newGroupData(userData.UserID, scopes)
-	if err != nil {
-		return nil, "", err
-	}
-
-	err = authStorageTx.InsertGroup(ctx, groupData)
 	if err != nil {
 		return nil, "", err
 	}
@@ -178,17 +165,7 @@ func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) e
 		return ErrAuthStoreTxCastFailed
 	}
 
-	// Remove both the user and their group
-	err := authStorageTx.RemoveUser(ctx, userID)
-	if err != nil {
-		return err
-	}
-	err = authStorageTx.RemoveGroup(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return authStorageTx.RemoveUser(ctx, userID)
 }
 
 // this function takes a user facing token and parses it into the internal
@@ -199,14 +176,20 @@ func (ua *UserAuthenticator) ParseAccessToken(token string) (interfaces.AccessTo
 	return ParseAccessToken(ua.TokenCryptor, token)
 }
 
-// newGroup creates a group with the specified group ID and scopes
-func (ua *UserAuthenticator) newGroupData(groupID uuid.UUID, scopes common.ScopeType) (*common.ProtectedGroupData, error) {
+// NewGroupWithID creates a new group with the requested scopes and group ID. Mainly intended for
+// creating a new group when creating a new user.
+func (ua *UserAuthenticator) NewGroupWithID(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return ErrAuthStoreTxCastFailed
+	}
+
 	groupData := &common.GroupData{
 		Scopes: scopes,
 	}
 	wrappedKey, ciphertext, err := ua.GroupCryptor.EncodeAndEncrypt(groupData, groupID.Bytes())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	protected := &common.ProtectedGroupData{
@@ -215,27 +198,22 @@ func (ua *UserAuthenticator) newGroupData(groupID uuid.UUID, scopes common.Scope
 		WrappedKey: wrappedKey,
 	}
 
-	return protected, nil
+	err = authStorageTx.InsertGroup(ctx, protected)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // NewGroup creates a group with the specified scopes in the authStorage
 func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, error) {
-	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
-	if !ok {
-		return nil, ErrAuthStoreTxCastFailed
-	}
-
 	groupID, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
 
-	groupData, err := ua.newGroupData(groupID, scopes)
-	if err != nil {
-		return nil, err
-	}
-
-	err = authStorageTx.InsertGroup(ctx, groupData)
+	err = ua.NewGroupWithID(ctx, groupID, scopes)
 	if err != nil {
 		return nil, err
 	}

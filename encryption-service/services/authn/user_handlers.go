@@ -28,8 +28,8 @@ import (
 	log "encryption-service/logger"
 )
 
-// CreateUser is an exposed endpoint that enables admins to create other users
-// Fails if credentials can't be generated or if the derived tag can't be stored
+// CreateUser is an exposed endpoint that enables admins to create other users. A group with the
+// same ID as the user and the requested scopes is also created.
 func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
@@ -44,10 +44,30 @@ func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*C
 		return nil, status.Errorf(codes.InvalidArgument, "invalid scope")
 	}
 
-	userID, password, err := au.UserAuthenticator.NewUser(ctx, scopes)
+	userID, password, err := au.UserAuthenticator.NewUser(ctx)
 	if err != nil {
 		log.Error(ctx, err, "CreateUser: Couldn't create new user")
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
+	}
+
+	// Create a group for the user
+	err = au.UserAuthenticator.NewGroupWithID(ctx, *userID, scopes)
+	if err != nil {
+		log.Error(ctx, err, "CreateUser: Couldn't create new group")
+		return nil, status.Errorf(codes.Internal, "error encountered while creating group")
+	}
+
+	// Add group to user
+	userData, err := au.UserAuthenticator.GetUserData(ctx, *userID)
+	if err != nil {
+		log.Errorf(ctx, err, "CreateUser: Failed to retrieve created user")
+		return nil, status.Errorf(codes.Internal, "Failed to retrieve created user")
+	}
+	userData.GroupIDs[*userID] = true
+	err = au.UserAuthenticator.UpdateUser(ctx, *userID, userData)
+	if err != nil {
+		log.Errorf(ctx, err, "CreateUser: Failed to update created user")
+		return nil, status.Errorf(codes.Internal, "Failed to update created user")
 	}
 
 	if err := authStorageTx.Commit(ctx); err != nil {
