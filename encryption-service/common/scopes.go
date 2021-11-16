@@ -58,16 +58,21 @@ var MethodScopeMap = map[string]ScopeType{
 }
 
 // IsValid checks if the given scope is one of the defined scopes
-func (us ScopeType) IsValid() error {
-	if us < ScopeEnd {
+func (s ScopeType) IsValid() error {
+	if s < ScopeEnd {
 		return nil
 	}
 	return errors.New("invalid combination of scopes")
 }
 
 // HasScopes returns true of `target` is in the set of scopes
-func (us ScopeType) HasScopes(target ScopeType) bool {
-	return (us & target) == target
+func (s ScopeType) HasScopes(target ScopeType) bool {
+	return (s & target) == target
+}
+
+// Union returns the union between the scopes of `s` and `other`
+func (s ScopeType) Union(other ScopeType) ScopeType {
+	return s | other
 }
 
 // MapScopesToScopeType converts between the protobuf scope the in the internal scope type

@@ -153,13 +153,17 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Incorrect password")
 	}
 
-	// Fetch the user's group and extract scopes
-	groupData, err := ua.GetGroupDataBatch(ctx, []uuid.UUID{userID})
+	// Fetch the user's groups and extract scopes
+	groupDataBatch, err := ua.GetGroupDataBatch(ctx, userData.GetGroupIDs())
 	if err != nil {
 		return "", err
 	}
+	combinedScopes := common.ScopeNone
+	for _, groupData := range groupDataBatch {
+		combinedScopes = combinedScopes.Union(groupData.Scopes)
+	}
 
-	accessToken := NewAccessTokenDuration(userID, groupData[0].Scopes, tokenExpiryTime)
+	accessToken := NewAccessTokenDuration(userID, combinedScopes, tokenExpiryTime)
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {
 		return "", err

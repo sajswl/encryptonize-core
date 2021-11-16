@@ -27,12 +27,12 @@ import (
 )
 
 var (
-	TEK, _    = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000002")
-	userID    = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
-	userScope = common.ScopeUserManagement
-	AT        = &AccessToken{
+	TEK, _ = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000002")
+	userID = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000002"))
+	scope  = common.ScopeUserManagement
+	AT     = &AccessToken{
 		UserID:     userID,
-		UserScopes: userScope,
+		Scopes:     scope,
 		ExpiryTime: time.Now().Add(time.Hour * 24 * 365 * 150),
 	}
 

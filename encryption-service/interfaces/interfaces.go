@@ -177,9 +177,6 @@ type AccessTokenInterface interface {
 	// Get the user ID contained in the token
 	GetUserID() (userID uuid.UUID)
 
-	// Get the scopes contained in the token
-	GetUserScopes() (scopes common.ScopeType)
-
 	// Check if the token contains specific scopes
 	HasScopes(tar common.ScopeType) (res bool)
 }
