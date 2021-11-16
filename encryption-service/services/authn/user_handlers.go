@@ -29,6 +29,13 @@ import (
 // CreateUser is an exposed endpoint that enables admins to create other users
 // Fails if credentials can't be generated or if the derived tag can't be stored
 func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while creating user")
+		log.Error(ctx, err, "CreateUser: Could not typecast authstorage to AuthStoreTxInterface")
+		return nil, err
+	}
+
 	scopes, err := common.MapScopesToScopeType(request.Scopes)
 	if err != nil {
 		log.Error(ctx, errors.New("CreateUser: Invalid scope"), err.Error())
@@ -38,6 +45,11 @@ func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*C
 	userID, password, err := au.UserAuthenticator.NewUser(ctx, scopes)
 	if err != nil {
 		log.Error(ctx, err, "CreateUser: Couldn't create new user")
+		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
+	}
+
+	if err := authStorageTx.Commit(ctx); err != nil {
+		log.Error(ctx, err, "CreateUser: Failed to commit auth storage transaction")
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
 	}
 
@@ -65,6 +77,13 @@ func (au *Authn) LoginUser(ctx context.Context, request *LoginUserRequest) (*Log
 }
 
 func (au *Authn) RemoveUser(ctx context.Context, request *RemoveUserRequest) (*RemoveUserResponse, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while removing user")
+		log.Error(ctx, err, "RemoveUser: Could not typecast authstorage to AuthStoreTxInterface")
+		return nil, err
+	}
+
 	target, err := uuid.FromString(request.UserId)
 	if err != nil {
 		return nil, err
@@ -77,6 +96,11 @@ func (au *Authn) RemoveUser(ctx context.Context, request *RemoveUserRequest) (*R
 	}
 	if err != nil {
 		log.Error(ctx, err, "RemoveUser: Couldn't remove the user")
+		return nil, status.Errorf(codes.Internal, "error encountered while removing user")
+	}
+
+	if err := authStorageTx.Commit(ctx); err != nil {
+		log.Error(ctx, err, "RemoveUser: Failed to commit auth storage transaction")
 		return nil, status.Errorf(codes.Internal, "error encountered while removing user")
 	}
 

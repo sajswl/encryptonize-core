@@ -117,5 +117,5 @@ func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID)
 		return err
 	}
 
-	return authStorageTx.Commit(ctx)
+	return nil
 }

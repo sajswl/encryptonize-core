@@ -100,11 +100,6 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, scopes common.ScopeTyp
 		return nil, "", err
 	}
 
-	err = authStorageTx.Commit(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-
 	return &userData.UserID, pwd, nil
 }
 
@@ -188,11 +183,6 @@ func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) e
 		return err
 	}
 	err = authStorageTx.RemoveGroup(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	err = authStorageTx.Commit(ctx)
 	if err != nil {
 		return err
 	}
@@ -297,11 +287,6 @@ func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes common.ScopeTy
 	}
 
 	err = authStorageTx.InsertGroup(ctx, groupData)
-	if err != nil {
-		return nil, err
-	}
-
-	err = authStorageTx.Commit(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -47,11 +47,17 @@ func TestCreateGroup(t *testing.T) {
 		UserAuthenticator: userAuthenticator,
 	}
 
+	authStoreTx := &authstorage.AuthStoreTxMock{
+		CommitFunc: func(ctx context.Context) error { return nil },
+	}
+
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
+
 	request := CreateGroupRequest{
 		Scopes: []common.Scope{common.Scope_READ},
 	}
 
-	response, err := authn.CreateGroup(context.Background(), &request)
+	response, err := authn.CreateGroup(ctx, &request)
 	if err != nil {
 		t.Fatalf("CreateGroup failed: %s", err)
 	}
@@ -72,11 +78,17 @@ func TestCreateGroupWrongScope(t *testing.T) {
 		UserAuthenticator: userAuthenticator,
 	}
 
+	authStoreTx := &authstorage.AuthStoreTxMock{
+		CommitFunc: func(ctx context.Context) error { return nil },
+	}
+
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
+
 	request := CreateGroupRequest{
 		Scopes: []common.Scope{739397},
 	}
 
-	_, err := authn.CreateGroup(context.Background(), &request)
+	_, err := authn.CreateGroup(ctx, &request)
 	if err == nil {
 		t.Fatalf("Expected CreateGroup to fail")
 	}
@@ -96,11 +108,17 @@ func TestCreateGroupUserAuthFail(t *testing.T) {
 		UserAuthenticator: userAuthenticator,
 	}
 
+	authStoreTx := &authstorage.AuthStoreTxMock{
+		CommitFunc: func(ctx context.Context) error { return nil },
+	}
+
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
+
 	request := CreateGroupRequest{
 		Scopes: []common.Scope{common.Scope_READ},
 	}
 
-	_, err := authn.CreateGroup(context.Background(), &request)
+	_, err := authn.CreateGroup(ctx, &request)
 	if err == nil {
 		t.Fatalf("Expected CreateGroup to fail")
 	}

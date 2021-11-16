@@ -103,8 +103,7 @@ func (a *Authz) AddPermission(ctx context.Context, request *AddPermissionRequest
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
 
-	err = authStorageTx.Commit(ctx)
-	if err != nil {
+	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, err, "AddPermission: Failed to commit auth storage transaction")
 		return nil, status.Errorf(codes.Internal, "error encountered while adding permission")
 	}
@@ -152,8 +151,8 @@ func (a *Authz) RemovePermission(ctx context.Context, request *RemovePermissionR
 		log.Error(ctx, err, msg)
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}
-	err = authStorageTx.Commit(ctx)
-	if err != nil {
+
+	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, err, "RemovePermission: Failed to commit auth storage transaction")
 		return nil, status.Errorf(codes.Internal, "error encountered while removing permission")
 	}

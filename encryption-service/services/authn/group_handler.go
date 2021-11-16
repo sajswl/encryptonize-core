@@ -30,6 +30,13 @@ var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to aut
 
 // CreateGroup creates a new group with the requested scopes.
 func (a *Authn) CreateGroup(ctx context.Context, request *CreateGroupRequest) (*CreateGroupResponse, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while creating group")
+		log.Error(ctx, err, "CreateGroup: Could not typecast authstorage to AuthStoreTxInterface")
+		return nil, err
+	}
+
 	scopes, err := common.MapScopesToScopeType(request.Scopes)
 	if err != nil {
 		log.Error(ctx, err, "CreateGroup: Invalid scope")
@@ -40,6 +47,11 @@ func (a *Authn) CreateGroup(ctx context.Context, request *CreateGroupRequest) (*
 	if err != nil {
 		log.Error(ctx, err, "CreateGroup: Couldn't create new group")
 		return nil, status.Errorf(codes.Internal, "error encountered while creating user")
+	}
+
+	if err := authStorageTx.Commit(ctx); err != nil {
+		log.Error(ctx, err, "Store: Failed to commit auth storage transaction")
+		return nil, status.Errorf(codes.Internal, "error encountered while creating group")
 	}
 
 	return &CreateGroupResponse{
@@ -96,7 +108,7 @@ func (a *Authn) AddUserToGroup(ctx context.Context, request *AddUserToGroupReque
 	// All done, commit auth changes
 	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, err, "Store: Failed to commit auth storage transaction")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while adding user to group")
 	}
 
 	return &AddUserToGroupResponse{}, nil
@@ -106,7 +118,7 @@ func (a *Authn) AddUserToGroup(ctx context.Context, request *AddUserToGroupReque
 func (a *Authn) RemoveUserFromGroup(ctx context.Context, request *RemoveUserFromGroupRequest) (*RemoveUserFromGroupResponse, error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		err := status.Errorf(codes.Internal, "error encountered while adding user to group")
+		err := status.Errorf(codes.Internal, "error encountered while removing user from group")
 		log.Error(ctx, err, "RemoveUserFromGroup: Could not typecast authstorage to AuthStoreTxInterface")
 		return nil, err
 	}
@@ -139,7 +151,7 @@ func (a *Authn) RemoveUserFromGroup(ctx context.Context, request *RemoveUserFrom
 	// All done, commit auth changes
 	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, err, "Store: Failed to commit auth storage transaction")
-		return nil, status.Errorf(codes.Internal, "error encountered while storing object")
+		return nil, status.Errorf(codes.Internal, "error encountered while removing user from group")
 	}
 
 	return &RemoveUserFromGroupResponse{}, nil
