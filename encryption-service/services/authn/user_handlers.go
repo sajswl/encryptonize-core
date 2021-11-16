@@ -15,7 +15,9 @@ package authn
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
@@ -57,6 +59,58 @@ func (au *Authn) CreateUser(ctx context.Context, request *CreateUserRequest) (*C
 		UserId:   userID.String(),
 		Password: password,
 	}, nil
+}
+
+// CreateCLIUser creates a new user with the requested scopes. This function is intended to be used
+// for CLI operation.
+func (au *Authn) CreateCLIUser(scopes string) error {
+	ctx := context.Background()
+
+	// Parse user supplied scopes
+	userScopes, err := common.MapStringToScopes(scopes)
+	if err != nil {
+		return err
+	}
+
+	// Need to inject requestID manually, as these calls don't pass the usual middleware
+	requestID, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(ctx, err, "Could not generate uuid")
+	}
+	ctx = context.WithValue(ctx, common.RequestIDCtxKey, requestID)
+
+	authStoreTxCreate, err := au.AuthStore.NewTransaction(ctx)
+	if err != nil {
+		log.Fatal(ctx, err, "Authstorage Begin failed")
+	}
+	defer func() {
+		err := authStoreTxCreate.Rollback(ctx)
+		if err != nil {
+			log.Fatal(ctx, err, "Performing rollback")
+		}
+	}()
+
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTxCreate)
+	newUser, err := au.CreateUser(ctx, &CreateUserRequest{Scopes: userScopes})
+	if err != nil {
+		log.Fatal(ctx, err, "CreateUser failed")
+	}
+
+	log.Info(ctx, "User created, printing to stdout")
+	credentials, err := json.Marshal(
+		struct {
+			UserID   string `json:"user_id"`
+			Password string `json:"password"`
+		}{
+			UserID:   newUser.UserId,
+			Password: newUser.Password,
+		})
+	if err != nil {
+		log.Fatal(ctx, err, "Create user failed")
+	}
+	fmt.Println(string(credentials))
+
+	return nil
 }
 
 func (au *Authn) LoginUser(ctx context.Context, request *LoginUserRequest) (*LoginUserResponse, error) {

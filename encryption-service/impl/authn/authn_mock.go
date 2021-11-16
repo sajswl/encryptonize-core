@@ -24,7 +24,6 @@ import (
 
 type UserAuthenticatorMock struct {
 	NewUserFunc           func(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, string, error)
-	NewCLIUserFunc        func(scopes string, authStore interfaces.AuthStoreInterface) error
 	UpdateUserFunc        func(ctx context.Context, userID uuid.UUID, userData *common.UserData) error
 	RemoveUserFunc        func(ctx context.Context, userID uuid.UUID) error
 	GetUserDataFunc       func(ctx context.Context, userID uuid.UUID) (*common.UserData, error)
@@ -36,10 +35,6 @@ type UserAuthenticatorMock struct {
 
 func (ua *UserAuthenticatorMock) NewUser(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, string, error) {
 	return ua.NewUserFunc(ctx, scopes)
-}
-
-func (ua *UserAuthenticatorMock) NewCLIUser(scopes string, authStore interfaces.AuthStoreInterface) error {
-	return ua.NewCLIUserFunc(scopes, authStore)
 }
 
 func (ua *UserAuthenticatorMock) UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {

@@ -15,9 +15,7 @@ package authn
 
 import (
 	context "context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -25,7 +23,6 @@ import (
 	"encryption-service/common"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
-	log "encryption-service/logger"
 )
 
 var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
@@ -186,58 +183,6 @@ func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) e
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// NewCLIUser creates a new user with the requested scopes. This function is intended to be used for
-// CLI operation.
-func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.AuthStoreInterface) error {
-	ctx := context.Background()
-
-	// Parse user supplied scopes
-	userScopes, err := common.MapStringToScopeType(scopes)
-	if err != nil {
-		return err
-	}
-
-	// Need to inject requestID manually, as these calls don't pass the usual middleware
-	requestID, err := uuid.NewV4()
-	if err != nil {
-		log.Fatal(ctx, err, "Could not generate uuid")
-	}
-	ctx = context.WithValue(ctx, common.RequestIDCtxKey, requestID)
-
-	authStoreTxCreate, err := authStore.NewTransaction(ctx)
-	if err != nil {
-		log.Fatal(ctx, err, "Authstorage Begin failed")
-	}
-	defer func() {
-		err := authStoreTxCreate.Rollback(ctx)
-		if err != nil {
-			log.Fatal(ctx, err, "Performing rollback")
-		}
-	}()
-
-	ctxCreate := context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTxCreate)
-	userID, password, err := ua.NewUser(ctxCreate, userScopes)
-	if err != nil {
-		log.Fatal(ctxCreate, err, "Create user failed")
-	}
-
-	log.Info(ctx, "User created, printing to stdout")
-	credentials, err := json.Marshal(
-		struct {
-			UserID   string `json:"user_id"`
-			Password string `json:"password"`
-		}{
-			UserID:   userID.String(),
-			Password: password,
-		})
-	if err != nil {
-		log.Fatal(ctxCreate, err, "Create user failed")
-	}
-	fmt.Println(string(credentials))
 
 	return nil
 }

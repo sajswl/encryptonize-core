@@ -97,26 +97,26 @@ func MapScopesToScopeType(protoScopes []Scope) (ScopeType, error) {
 }
 
 // MapStringToScopeType converts a string of scope shorthands to a set of scopes
-func MapStringToScopeType(scopesString string) (ScopeType, error) {
-	var scopes ScopeType
+func MapStringToScopes(scopesString string) ([]Scope, error) {
+	scopes := make([]Scope, 0, len(scopesString))
 	for _, scope := range scopesString {
 		switch string(scope) {
 		case "r":
-			scopes |= ScopeRead
+			scopes = append(scopes, Scope_READ)
 		case "c":
-			scopes |= ScopeCreate
+			scopes = append(scopes, Scope_CREATE)
 		case "u":
-			scopes |= ScopeUpdate
+			scopes = append(scopes, Scope_UPDATE)
 		case "d":
-			scopes |= ScopeDelete
+			scopes = append(scopes, Scope_DELETE)
 		case "i":
-			scopes |= ScopeIndex
+			scopes = append(scopes, Scope_INDEX)
 		case "o":
-			scopes |= ScopeObjectPermissions
+			scopes = append(scopes, Scope_OBJECTPERMISSIONS)
 		case "m":
-			scopes |= ScopeUserManagement
+			scopes = append(scopes, Scope_USERMANAGEMENT)
 		default:
-			return 0, fmt.Errorf("Invalid scope %v", string(scope))
+			return nil, fmt.Errorf("Invalid scope %v", string(scope))
 		}
 	}
 	return scopes, nil

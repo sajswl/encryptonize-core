@@ -126,9 +126,6 @@ type UserAuthenticatorInterface interface {
 	// Create a new user with the requested scopes
 	NewUser(ctx context.Context, scopes common.ScopeType) (userID *uuid.UUID, password string, err error)
 
-	// Create a new user with the requested scopes
-	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
-
 	// UpdateUser updates an existing user's data
 	UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) (err error)
 
