@@ -32,50 +32,46 @@ var authorizer = &authzimpl.Authorizer{
 	AccessObjectCryptor: cryptor,
 }
 
-func initMockEnc(t *testing.T) (Enc, interfaces.AuthStoreInterface) {
-	authStore, err := authstorage.NewMemoryAuthStore("./db.dat")
-	if err != nil {
-		t.Fatalf("Cannot create a new MemoryAuthStore: %v", err)
-	}
-	cryptor, err := crypt.NewAESCryptor(make([]byte, 32))
-	if err != nil {
-		t.Fatalf("NewAESCryptor failed: %v", err)
-	}
-
-	enc := Enc{
-		Authorizer:  authorizer,
-		DataCryptor: cryptor,
-	}
-
-	return enc, authStore
+var enc = Enc{
+	Authorizer:  authorizer,
+	DataCryptor: cryptor,
 }
 
-func newTransaction(ctx context.Context, authStore interfaces.AuthStoreInterface) (context.Context, error) {
-	authStoreTx, err := authStore.NewTransaction(ctx)
-	if err != nil {
-		return nil, err
-	}
+var userID = uuid.Must(uuid.NewV4())
+var woek, _ = crypt.Random(32)
+var accessObject = &common.AccessObject{Woek: woek}
 
-	return context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTx), nil
+var accessObjectStore = make(map[uuid.UUID]common.ProtectedAccessObject)
+
+var authStorageTxMock = &authstorage.AuthStoreTxMock{
+	InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		accessObjectStore[protected.ObjectID] = protected
+		return nil
+	},
+	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
+		protected, exists := accessObjectStore[objectID]
+		if !exists {
+			return nil, interfaces.ErrNotFound
+		}
+		return &protected, nil
+	},
+	CommitFunc: func(ctx context.Context) error {
+		return nil
+	},
+}
+
+func setCtxKeys() context.Context {
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTxMock)
+	return ctx
 }
 
 func TestEncryptDecrypt(t *testing.T) {
-	enc, authStore := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
-
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-
-	ctx, err = newTransaction(ctx, authStore)
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
 
 	encryptResponse, err := enc.Encrypt(
 		ctx,
@@ -91,11 +87,6 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	if !bytes.Equal(encryptResponse.AssociatedData, associatedData) {
 		t.Fatalf("Associated data from encryption response is not the same!")
-	}
-
-	ctx, err = newTransaction(ctx, authStore)
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
 	}
 
 	// Add access object to context
@@ -126,12 +117,10 @@ func TestEncryptDecrypt(t *testing.T) {
 	if !bytes.Equal(decryptResponse.AssociatedData, associatedData) {
 		t.Fatalf("Associated data from decryption response is not the same!")
 	}
-
-	authStore.Close()
 }
 
 func TestDecryptFail(t *testing.T) {
-	enc, authStore := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	fakeRequest := &DecryptRequest{
 		Ciphertext:     []byte("fakecipher"),
@@ -139,38 +128,17 @@ func TestDecryptFail(t *testing.T) {
 		ObjectId:       "fakeobjectID",
 	}
 
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-
-	_, err = enc.Decrypt(ctx, fakeRequest)
+	_, err := enc.Decrypt(ctx, fakeRequest)
 	if err == nil {
 		t.Fatalf("Decrypt should have errored")
 	}
-
-	authStore.Close()
 }
 
 func TestDecryptWrongAAD(t *testing.T) {
-	enc, authStore := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
-
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-
-	ctx, err = newTransaction(ctx, authStore)
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
 
 	encryptResponse, err := enc.Encrypt(
 		ctx,
@@ -198,27 +166,13 @@ func TestDecryptWrongAAD(t *testing.T) {
 	if err == nil {
 		t.Fatal("Decrypting object should've failed with wrong AAD")
 	}
-
-	authStore.Close()
 }
 
 func TestDecryptWrongOID(t *testing.T) {
-	enc, authStore := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
-
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-
-	ctx, err = newTransaction(ctx, authStore)
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
 
 	encryptResponse, err := enc.Encrypt(
 		ctx,
@@ -234,13 +188,6 @@ func TestDecryptWrongOID(t *testing.T) {
 
 	plaintext2 := []byte("plaintext_bytes2")
 	associatedData2 := []byte("associated_data_bytes2")
-
-	ctx = context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-
-	ctx, err = newTransaction(ctx, authStore)
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
 
 	encryptResponse2, err := enc.Encrypt(
 		ctx,
@@ -267,6 +214,4 @@ func TestDecryptWrongOID(t *testing.T) {
 	if err == nil {
 		t.Fatal("Decrypting object should've failed with wrong ObjectID")
 	}
-
-	authStore.Close()
 }
