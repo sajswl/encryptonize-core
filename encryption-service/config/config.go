@@ -89,10 +89,10 @@ type AuthStorage struct {
 }
 
 type ObjectStorage struct {
-	URL  string `koanf:"url"`
-	ID   string `koanf:"id"`
-	Key  string `koanf:"key"`
-	Cert []byte `koanf:"cert"`
+	URL      string `koanf:"url"`
+	ID       string `koanf:"id"`
+	Key      string `koanf:"key"`
+	CertPath string `koanf:"certpath"`
 }
 
 type Features struct {
