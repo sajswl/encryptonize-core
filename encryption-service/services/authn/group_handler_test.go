@@ -189,6 +189,12 @@ func TestAddUserToGroup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddUserToGroup failed: %s", err)
 	}
+
+	// Test that adding a user twice doesn't change the result
+	_, err = authn.AddUserToGroup(ctx, &request)
+	if err != nil {
+		t.Fatalf("Second call to AddUserToGroup failed: %s", err)
+	}
 }
 
 func TestAddUserToGroupNoTx(t *testing.T) {
@@ -389,6 +395,12 @@ func TestRemoveUserFromGroup(t *testing.T) {
 	_, err := authn.RemoveUserFromGroup(ctx, &request)
 	if err != nil {
 		t.Fatalf("RemoveUserFromGroup failed: %s", err)
+	}
+
+	// Test that removing a user twice doesn't error
+	_, err = authn.RemoveUserFromGroup(ctx, &request)
+	if err != nil {
+		t.Fatalf("Second call to RemoveUserFromGroup failed: %s", err)
 	}
 }
 

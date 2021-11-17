@@ -68,8 +68,8 @@ func TestShareWithGroup(t *testing.T) {
 	failOnError("Retrieving object failed", err, t)
 }
 
-// Test that a user with the READ scope cannot access an object if the group that gives them access
-// to the object does not have that scope.
+// Test that a user with the READ scope in one group cannot access an object if the group that gives
+// them access to the object does not have that scope.
 func TestGroupScopes(t *testing.T) {
 	client, err := NewClient(endpoint, https)
 	failOnError("Could not create client", err, t)
@@ -104,7 +104,8 @@ func TestGroupScopes(t *testing.T) {
 	_, err = client.AddPermission(oid, gid)
 	failOnError("Add permission request failed", err, t)
 
-	// Try to retrieve the object as the other user. It should fail as group scopes take precedence.
+	// Try to retrieve the object as the other user. It should fail as the group that gives them
+	// access does not have the read scope.
 	_, err = client.LoginUser(uid2, pwd2)
 	failOnError("Could not log in user", err, t)
 
@@ -251,4 +252,39 @@ func TestRemoveUserFromGroupTwice(t *testing.T) {
 
 	_, err = client.RemoveUserFromGroup(uid, gid)
 	failOnError("Removing user from group failed", err, t)
+}
+
+// Test that we can remove a user from their default group
+func TestRemoveUserFromDefaultGroup(t *testing.T) {
+	client, err := NewClient(endpoint, https)
+	failOnError("Could not create client", err, t)
+	defer closeClient(client, t)
+
+	_, err = client.LoginUser(uid, pwd)
+	failOnError("Could not log in user", err, t)
+
+	// Create a user, a default group is automatically created
+	createUserResponse, err := client.CreateUser(protoUserScopes)
+	failOnError("User creation failed", err, t)
+	uid2 := createUserResponse.UserId
+	pwd2 := createUserResponse.Password
+
+	// Store an object as the new user
+	_, err = client.LoginUser(uid2, pwd2)
+	failOnError("Could not log in user", err, t)
+
+	plaintext := []byte("foo")
+	associatedData := []byte("bar")
+
+	storeResponse, err := client.Store(plaintext, associatedData)
+	failOnError("Store operation failed", err, t)
+	oid := storeResponse.ObjectId
+
+	// Remove user from their default group. They are now a member of no group
+	_, err = client.RemoveUserFromGroup(uid2, uid2)
+	failOnError("Removing user from group failed", err, t)
+
+	// They should be unable to access the object
+	_, err = client.Retrieve(oid)
+	failOnSuccess("Expected retrieving object to fail", err, t)
 }
