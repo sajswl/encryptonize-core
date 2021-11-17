@@ -66,9 +66,9 @@ func (store *MemoryAuthStore) Close() {
 }
 
 type MemoryAuthStoreTx struct {
-	tx           *bolt.Tx
-	userBucket   []byte
-	objectBucket []byte
+	Tx           *bolt.Tx
+	UserBucket   []byte
+	ObjectBucket []byte
 }
 
 func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
@@ -81,11 +81,11 @@ func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.Au
 }
 
 func (storeTx *MemoryAuthStoreTx) Commit(ctx context.Context) error {
-	return storeTx.tx.Commit()
+	return storeTx.Tx.Commit()
 }
 
 func (storeTx *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
-	err := storeTx.tx.Rollback()
+	err := storeTx.Tx.Rollback()
 	if errors.Is(err, bolt.ErrTxClosed) {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (storeTx *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 }
 
 func (storeTx *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	b := storeTx.tx.Bucket(storeTx.userBucket)
+	b := storeTx.Tx.Bucket(storeTx.UserBucket)
 
 	user := b.Get(userID[:])
 	if user == nil {
@@ -115,7 +115,7 @@ func (storeTx *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UU
 }
 
 func (storeTx *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error) {
-	b := storeTx.tx.Bucket(storeTx.userBucket)
+	b := storeTx.Tx.Bucket(storeTx.UserBucket)
 
 	user := b.Get(userID[:])
 	if user == nil {
@@ -144,13 +144,13 @@ func (storeTx *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected comm
 		return err
 	}
 
-	b := storeTx.tx.Bucket(storeTx.userBucket)
+	b := storeTx.Tx.Bucket(storeTx.UserBucket)
 
 	return b.Put(protected.UserID[:], userBuffer.Bytes())
 }
 
 func (storeTx *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
-	b := storeTx.tx.Bucket(storeTx.userBucket)
+	b := storeTx.Tx.Bucket(storeTx.UserBucket)
 
 	user := b.Get(userID[:])
 	if user == nil {
@@ -182,7 +182,7 @@ func (storeTx *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UU
 }
 
 func (storeTx *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
-	b := storeTx.tx.Bucket(storeTx.objectBucket)
+	b := storeTx.Tx.Bucket(storeTx.ObjectBucket)
 
 	obj := b.Get(objectID[:])
 	if obj == nil {
@@ -207,7 +207,7 @@ func (storeTx *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, prote
 		return err
 	}
 
-	b := storeTx.tx.Bucket(storeTx.objectBucket)
+	b := storeTx.Tx.Bucket(storeTx.ObjectBucket)
 
 	return b.Put(protected.ObjectID[:], objectBuffer.Bytes())
 }
@@ -217,7 +217,7 @@ func (storeTx *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, access
 }
 
 func (storeTx *MemoryAuthStoreTx) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) error {
-	b := storeTx.tx.Bucket(storeTx.objectBucket)
+	b := storeTx.Tx.Bucket(storeTx.ObjectBucket)
 
 	return b.Delete(objectID[:])
 }
