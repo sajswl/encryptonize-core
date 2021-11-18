@@ -24,6 +24,8 @@ PR #xxx
 - [ ] Infrastructure changes (Terraform, GCP, K8s, other)
 - [ ] CI/CD workflow changes
 
+If you tick many of these, consider making several smaller pull requests.
+
 ### Testing Checklist
 - [ ] I have added/updated unit tests for functional changes.
 - [ ] I have added/updated integration tests for changes that affect dependent systems.
@@ -31,12 +33,22 @@ PR #xxx
 
 ### General Checklist
 - [ ] I have pulled in the latest changes from master.
+- [ ] I have added unit tests that prove my changes should work.
+- [ ] I have successfully run tests locally with `make tests`.
 - [ ] I have run `make lint`.
-- [ ] I have successfully run `make tests`.
 - [ ] I have updated relevant workflows and deployment tools.
-- [ ] I have updated/added relevant documentation (readme, doc comments, etc).
+- [ ] I have updated/added relevant (internal and external) documentation (readme, doc comments, etc).
+- [ ] I have updated the dependency map to reflect my changes.
 - [ ] I have added the license to new source code files.
 - [ ] I have spent some time looking over the full diff before creating this PR.
+
+### Additional Checklist for features
+(delete this section for enabler or maintenance stories)
+- [ ] I have added integration tests that prove my changes work with dependent systems.
+- [ ] I have added end-to-end tests that prove my changes satisfy an acceptance criteria of a feature.
+- [ ] I have modified any user facing documentation detailing the change in the feature set.
+
+If you cannot tick an item, please describe why.
 
 ### Technical Debt
 (If there is known technical debt added at the end of this change, please create a new (technical)
