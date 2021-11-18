@@ -33,9 +33,8 @@ If you tick many of these, consider making several smaller pull requests.
 
 ### General Checklist
 - [ ] I have pulled in the latest changes from master.
-- [ ] I have added unit tests that prove my changes should work.
-- [ ] I have successfully run tests locally with `make tests`.
 - [ ] I have run `make lint`.
+- [ ] I have successfully run `make tests`.
 - [ ] I have updated relevant workflows and deployment tools.
 - [ ] I have updated/added relevant (internal and external) documentation (readme, doc comments, etc).
 - [ ] I have updated the dependency map to reflect my changes.
