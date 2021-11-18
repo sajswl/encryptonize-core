@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-while pkill -f -SIGINT encryption-service; do
+while killall -s SIGINT encryption-service &>/dev/null; do
   echo '[*] waiting for the server to shut down'
   sleep 1
 done

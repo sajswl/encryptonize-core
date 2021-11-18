@@ -29,7 +29,7 @@ protocopts = --go_opt=paths=source_relative --go_out=.
 grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
 coverage = coverage-unit.html coverage-e2e.html coverage-all.html
-localstore = data/db.dat
+localstore = data/auth_db.dat data/obj_db.dat
 
 # Build Tags variable
 tags =

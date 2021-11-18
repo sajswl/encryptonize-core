@@ -28,10 +28,10 @@ import (
 
 func SetupAuthStore(ctx context.Context, config config.AuthStorage) (interfaces.AuthStoreInterface, error) {
 	log.Info(ctx, "Setup AuthStore mocked")
-	return authstorage.NewMemoryAuthStore("./data/db.dat")
+	return authstorage.NewMemoryAuthStore("./data/auth_db.dat")
 }
 
 func SetupObjectStore(bucket string, config config.ObjectStorage) (interfaces.ObjectStoreInterface, error) {
 	log.Info(context.TODO(), "Setup ObjectStore mocked")
-	return objectstorage.NewMemoryObjectStore(), nil
+	return objectstorage.NewMemoryObjectStore("./data/obj_db.dat")
 }

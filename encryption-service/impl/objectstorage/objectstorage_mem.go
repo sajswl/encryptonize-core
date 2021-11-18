@@ -15,42 +15,71 @@ package objectstorage
 
 import (
 	"context"
-	"errors"
-	"sync"
+	"time"
+
+	bolt "go.etcd.io/bbolt"
+
+	"encryption-service/interfaces"
 )
 
-// MemoryObjectStore is used by tests to mock the ObjectStore in memory
+// MemoryObjectStore is used to run a persistent ObjectStore mapped to a local file
 type MemoryObjectStore struct {
-	Data sync.Map // map[string][]byte
+	db           *bolt.DB
+	objectBucket []byte
 }
 
-func NewMemoryObjectStore() *MemoryObjectStore {
-	return &MemoryObjectStore{
-		Data: sync.Map{},
+func NewMemoryObjectStore(dbFilepath string) (*MemoryObjectStore, error) {
+	db, err := bolt.Open(dbFilepath, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		return nil, err
 	}
+
+	objectBucket := []byte("object")
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists(objectBucket)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &MemoryObjectStore{db, objectBucket}, nil
 }
 
 func (o *MemoryObjectStore) Store(ctx context.Context, objectID string, object []byte) error {
-	objectCopy := make([]byte, len(object))
-	copy(objectCopy, object)
-	o.Data.Store(objectID, objectCopy)
-	return nil
+	return o.db.Batch(func(tx *bolt.Tx) error {
+		b := tx.Bucket(o.objectBucket)
+		return b.Put([]byte(objectID), object)
+	})
 }
 
-func (o *MemoryObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
-	object, ok := o.Data.Load(objectID)
+func (o *MemoryObjectStore) Retrieve(ctx context.Context, objectID string) (object []byte, err error) {
+	object = nil
 
-	if !ok {
-		return nil, errors.New("object not found")
-	}
+	err = o.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(o.objectBucket)
 
-	objectCopy := make([]byte, len(object.([]byte)))
-	copy(objectCopy, object.([]byte))
+		obj := b.Get([]byte(objectID))
+		if obj == nil {
+			return interfaces.ErrNotFound
+		}
 
-	return objectCopy, nil
+		object = make([]byte, len(obj))
+		copy(object, obj)
+
+		return nil
+	})
+
+	return
 }
 
 func (o *MemoryObjectStore) Delete(ctx context.Context, objectID string) error {
-	o.Data.Delete(objectID)
-	return nil
+	return o.db.Batch(func(tx *bolt.Tx) error {
+		b := tx.Bucket(o.objectBucket)
+		return b.Delete([]byte(objectID))
+	})
 }

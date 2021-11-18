@@ -34,10 +34,30 @@ var authorizer = &authzimpl.Authorizer{
 	AccessObjectCryptor: cryptor,
 }
 
+var objectStore = make(map[string][]byte)
+
+var objectStoreMock = &objectstorage.ObjectStoreMock{
+	StoreFunc: func(ctx context.Context, objectID string, object []byte) error {
+		objectStore[objectID] = object
+		return nil
+	},
+	RetrieveFunc: func(ctx context.Context, objectID string) ([]byte, error) {
+		object, exists := objectStore[objectID]
+		if !exists {
+			return nil, interfaces.ErrNotFound
+		}
+		return object, nil
+	},
+	DeleteFunc: func(ctx context.Context, objectID string) error {
+		delete(objectStore, objectID)
+		return nil
+	},
+}
+
 var strg = Storage{
 	Authorizer:  authorizer,
 	DataCryptor: cryptor,
-	ObjectStore: objectstorage.NewMemoryObjectStore(),
+	ObjectStore: objectStoreMock,
 }
 
 var userID = uuid.Must(uuid.NewV4())
