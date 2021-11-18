@@ -42,26 +42,35 @@ type AuthStoreTxInterface interface {
 	// Commit any changes
 	Commit(ctx context.Context) (err error)
 
-	// Check if a user exists in the auth store
-	UserExists(ctx context.Context, userID uuid.UUID) (res bool, err error)
+	// Insert a user
+	InsertUser(ctx context.Context, protected *common.ProtectedUserData) (err error)
+
+	// UpdateUser updates an existing user's data
+	UpdateUser(ctx context.Context, protected *common.ProtectedUserData) (err error)
+
+	// Removes a user
+	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
 
 	// Get user's confidential data
 	GetUserData(ctx context.Context, userID uuid.UUID) (protected *common.ProtectedUserData, err error)
 
-	// Insert a user
-	InsertUser(ctx context.Context, protected common.ProtectedUserData) (err error)
+	// GroupExists checks if a group exists in the auth store
+	GroupExists(ctx context.Context, groupID uuid.UUID) (res bool, err error)
 
-	// Removes a user
-	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
+	// Insert a group
+	InsertGroup(ctx context.Context, groupData *common.ProtectedGroupData) (err error)
+
+	// Get one or more groups' confidential data
+	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.ProtectedGroupData, err error)
 
 	//  Retrieve an existing access object
 	GetAccessObject(ctx context.Context, objectID uuid.UUID) (protected *common.ProtectedAccessObject, err error)
 
 	// Insert a new access object
-	InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
+	InsertAcccessObject(ctx context.Context, protected *common.ProtectedAccessObject) (err error)
 
 	// Update an existing access object
-	UpdateAccessObject(ctx context.Context, protected common.ProtectedAccessObject) (err error)
+	UpdateAccessObject(ctx context.Context, protected *common.ProtectedAccessObject) (err error)
 
 	// Delete an existing access object
 	DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error)
@@ -106,28 +115,40 @@ type KeyWrapperInterface interface {
 	Unwrap(data []byte) ([]byte, error)
 }
 
-// Interface for authenticating and creating users
+// Interface for authenticating and creating users and groups
 type UserAuthenticatorInterface interface {
-	// Create a new user with the requested scopes
-	NewUser(ctx context.Context, userscopes common.ScopeType) (userID *uuid.UUID, password string, err error)
+	// Create a new user
+	NewUser(ctx context.Context) (userID *uuid.UUID, password string, err error)
 
-	// Create a new user with the requested scopes
-	NewCLIUser(scopes string, authStore AuthStoreInterface) (err error)
+	// UpdateUser updates an existing user's data
+	UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) (err error)
 
-	// Parses a token string into the internal data type
-	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
+	// Removes a user
+	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
+
+	// GetUserData fetches the user's confidential data
+	GetUserData(ctx context.Context, userID uuid.UUID) (userData *common.UserData, err error)
 
 	// Logs a user in with userID and password pair
 	LoginUser(ctx context.Context, userID uuid.UUID, password string) (string, error)
 
-	// Removes a user
-	RemoveUser(ctx context.Context, userID uuid.UUID) (err error)
+	// Parses a token string into the internal data type
+	ParseAccessToken(token string) (tokenStruct AccessTokenInterface, err error)
+
+	// Create a new group with the requested scopes and group ID
+	NewGroupWithID(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) (err error)
+
+	// Create a new group with the requested scopes
+	NewGroup(ctx context.Context, scopes common.ScopeType) (groupID *uuid.UUID, err error)
+
+	// GetGroupDataBatch fetches one or more groups' confidential data
+	GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) (groupDataBatch []common.GroupData, err error)
 }
 
 // Interface for authenticating and creating Access Objects
 type AccessObjectAuthenticatorInterface interface {
 	// Creates a new Access Object and inserts it into the Authstorage
-	CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) (err error)
+	CreateAccessObject(ctx context.Context, objectID, groupID uuid.UUID, woek []byte) (err error)
 
 	// Fetches an existing Access Object
 	FetchAccessObject(ctx context.Context, objectID uuid.UUID) (accessObject *common.AccessObject, err error)
@@ -152,9 +173,6 @@ type MessageAuthenticatorInterface interface {
 type AccessTokenInterface interface {
 	// Get the user ID contained in the token
 	GetUserID() (userID uuid.UUID)
-
-	// Get the scopes contained in the token
-	GetUserScopes() (scopes common.ScopeType)
 
 	// Check if the token contains specific scopes
 	HasScopes(tar common.ScopeType) (res bool)

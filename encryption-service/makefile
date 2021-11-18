@@ -23,8 +23,8 @@ SHELL := /bin/bash
 
 ##### Files #####
 binary = encryption-service
-protobufs = services/authz/authz.pb.go services/authz/authz_grpc.pb.go services/storage/storage_grpc.pb.go services/storage/storage.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/enc/enc.pb.go services/enc/enc_grpc.pb.go services/app/app_grpc.pb.go services/app/app.pb.go common/users.pb.go
-protosource = services/authz/authz.proto services/storage/storage.proto services/authn/authn.proto services/app/app.proto common/users.proto services/enc/enc.proto
+protobufs = services/authz/authz.pb.go services/authz/authz_grpc.pb.go services/storage/storage_grpc.pb.go services/storage/storage.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/enc/enc.pb.go services/enc/enc_grpc.pb.go services/app/app_grpc.pb.go services/app/app.pb.go common/scopes.pb.go
+protosource = services/authz/authz.proto services/storage/storage.proto services/authn/authn.proto services/app/app.proto common/scopes.proto services/enc/enc.proto
 protocopts = --go_opt=paths=source_relative --go_out=.
 grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
@@ -55,7 +55,7 @@ $(protobufs): $(protosource)
 	protoc $(grpcopts) services/authz/authz.proto
 	protoc $(grpcopts) services/authn/authn.proto
 	protoc $(grpcopts) services/app/app.proto
-	protoc $(protocopts) common/users.proto
+	protoc $(protocopts) common/scopes.proto
 
 .PHONY: docker-build
 docker-build:  ## Build the Encryption Service docker image

@@ -48,4 +48,4 @@ test_folders=$(go list ./tests/... | grep "${filter}")
 echo '[*] running end-to-end tests'
 echo '[*] testfolders: '
 echo $test_folders
-go test -count=1 -v -tags="authz ${tags}" $test_folders
+go test -count=1 -v -tags="${tags}" $test_folders

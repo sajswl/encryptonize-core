@@ -27,26 +27,7 @@ import (
 	"encryption-service/services/health"
 )
 
-const baseAppPath string = "/app.Encryptonize/"
-const baseStoragePath string = "/storage.Encryptonize/"
 const baseAuthPath string = "/authn.Encryptonize/"
-const baseAuthzPath string = "/authz.Encryptonize/"
-const baseEncPath string = "/enc.Encryptonize/"
-
-var methodScopeMap = map[string]common.ScopeType{
-	baseAuthPath + "CreateUser":        common.ScopeUserManagement,
-	baseAuthPath + "RemoveUser":        common.ScopeUserManagement,
-	baseAuthzPath + "GetPermissions":   common.ScopeIndex,
-	baseAuthzPath + "AddPermission":    common.ScopeObjectPermissions,
-	baseAuthzPath + "RemovePermission": common.ScopeObjectPermissions,
-	baseStoragePath + "Store":          common.ScopeCreate,
-	baseStoragePath + "Update":         common.ScopeUpdate,
-	baseStoragePath + "Retrieve":       common.ScopeRead,
-	baseStoragePath + "Delete":         common.ScopeDelete,
-	baseEncPath + "Encrypt":            common.ScopeCreate,
-	baseEncPath + "Decrypt":            common.ScopeRead,
-	baseAppPath + "Version":            common.ScopeNone,
-}
 
 var skippedTokenMethods = map[string]bool{
 	health.HealthEndpointCheck: true,
@@ -80,6 +61,7 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 		return nil, status.Errorf(codes.InvalidArgument, "missing access token")
 	}
 
+	// User authentication
 	accessToken, err := au.UserAuthenticator.ParseAccessToken(token)
 	if errors.Is(err, authn.ErrTokenExpired) {
 		log.Error(ctx, err, "AuthenticateUser: Access Token expired")
@@ -92,7 +74,8 @@ func (au *Authn) CheckAccessToken(ctx context.Context) (context.Context, error) 
 
 	newCtx := context.WithValue(ctx, common.UserIDCtxKey, accessToken.GetUserID())
 
-	reqScope, ok := methodScopeMap[methodName]
+	// Endpoint authorization
+	reqScope, ok := common.MethodScopeMap[methodName]
 	if !ok {
 		err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
 		log.Error(newCtx, err, "AuthenticateUser: Invalid Endpoint")

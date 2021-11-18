@@ -16,8 +16,8 @@ package authz
 import (
 	"testing"
 
-	"bytes"
 	"context"
+	"errors"
 	"reflect"
 
 	"github.com/gofrs/uuid"
@@ -25,7 +25,7 @@ import (
 	status "google.golang.org/grpc/status"
 
 	"encryption-service/common"
-	"encryption-service/impl/crypt"
+	"encryption-service/impl/authn"
 )
 
 func failOnError(message string, err error, t *testing.T) {
@@ -41,7 +41,7 @@ func failOnSuccess(message string, err error, t *testing.T) {
 }
 
 type AuthorizerMock struct {
-	FetchAccessObjectFunc func(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error)
+	accessObject *common.AccessObject
 }
 
 func (a *AuthorizerMock) CreateAccessObject(_ context.Context, _, _ uuid.UUID, _ []byte) error {
@@ -49,7 +49,10 @@ func (a *AuthorizerMock) CreateAccessObject(_ context.Context, _, _ uuid.UUID, _
 }
 
 func (a *AuthorizerMock) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
-	return a.FetchAccessObjectFunc(ctx, objectID)
+	if a.accessObject == nil {
+		return nil, errors.New("No object")
+	}
+	return a.accessObject, nil
 }
 
 func (a *AuthorizerMock) UpdateAccessObject(_ context.Context, _ uuid.UUID, _ common.AccessObject) error {
@@ -60,33 +63,77 @@ func (a *AuthorizerMock) DeleteAccessObject(_ context.Context, _ uuid.UUID) erro
 	return nil
 }
 
-func TestAuthorizeWrapper(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	Woek, err := crypt.Random(32)
-	failOnError("Couldn't generate WOEK!", err, t)
+type MockData struct {
+	methodName   string
+	userID       uuid.UUID
+	objectID     uuid.UUID
+	accessObject *common.AccessObject
+	userData     *common.UserData
+	groupData    map[uuid.UUID]common.GroupData
+}
 
-	accessObject := &common.AccessObject{
-		UserIDs: map[uuid.UUID]bool{
+func SetupMocks(mockData MockData) (context.Context, *Authz) {
+	ctx := context.Background()
+
+	if mockData.userID != uuid.Nil {
+		ctx = context.WithValue(ctx, common.UserIDCtxKey, mockData.userID)
+	}
+	if mockData.objectID != uuid.Nil {
+		ctx = context.WithValue(ctx, common.ObjectIDCtxKey, mockData.objectID)
+	}
+	if mockData.methodName != "" {
+		ctx = context.WithValue(ctx, common.MethodNameCtxKey, mockData.methodName)
+	}
+
+	userAuthenticatorMock := &authn.UserAuthenticatorMock{
+		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+			if mockData.userData == nil {
+				return nil, errors.New("No data")
+			}
+			return mockData.userData, nil
+		},
+		GetGroupDataBatchFunc: func(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error) {
+			groupDataBatch := make([]common.GroupData, 0, len(groupIDs))
+			for _, groupID := range groupIDs {
+				groupData, ok := mockData.groupData[groupID]
+				if !ok {
+					return nil, errors.New("No data")
+				}
+				groupDataBatch = append(groupDataBatch, groupData)
+			}
+			return groupDataBatch, nil
+		},
+	}
+
+	authz := &Authz{
+		Authorizer:        &AuthorizerMock{accessObject: mockData.accessObject},
+		UserAuthenticator: userAuthenticatorMock,
+	}
+
+	return ctx, authz
+}
+
+var mockData = MockData{
+	methodName: "/storage.Encryptonize/Retrieve",
+	userID:     uuid.Must(uuid.NewV4()),
+	objectID:   uuid.Must(uuid.NewV4()),
+	accessObject: &common.AccessObject{
+		GroupIDs: map[uuid.UUID]bool{
 			userID: true,
 		},
-		Woek:    Woek,
-		Version: 0,
-	}
-
-	authorizerMock := &AuthorizerMock{
-		FetchAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
-			return accessObject, nil
+	},
+	userData: &common.UserData{
+		GroupIDs: map[uuid.UUID]bool{
+			userID: true,
 		},
-	}
-	authz := Authz{
-		Authorizer: authorizerMock,
-	}
+	},
+	groupData: map[uuid.UUID]common.GroupData{
+		userID: {Scopes: common.ScopeRead},
+	},
+}
 
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authnStorageTxMock)
-	ctx = context.WithValue(ctx, common.ObjectIDCtxKey, objectID)
-	ctx = context.WithValue(ctx, common.MethodNameCtxKey, "fake method")
+func TestAuthzMiddleware(t *testing.T) {
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		accessObjectFetched, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
@@ -94,16 +141,7 @@ func TestAuthorizeWrapper(t *testing.T) {
 			t.Fatal("Access object not added to context")
 		}
 
-		usersFetched := accessObjectFetched.GetUsers()
-		woekFetched := accessObjectFetched.GetWOEK()
-
-		if len(accessObject.UserIDs) != len(usersFetched) {
-			t.Fatal("Access object in context not equal to original")
-		}
-		if !reflect.DeepEqual(accessObject.UserIDs, usersFetched) {
-			t.Fatal("Access object in context not equal to original")
-		}
-		if !bytes.Equal(accessObject.Woek, woekFetched) {
+		if !reflect.DeepEqual(mockData.accessObject, accessObjectFetched) {
 			t.Fatal("Access object in context not equal to original")
 		}
 
@@ -111,38 +149,16 @@ func TestAuthorizeWrapper(t *testing.T) {
 	}
 
 	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
-	if err != nil {
-		t.Fatalf("User couldn't be authorized")
-	}
+	failOnError("Expected user to be authorized", err, t)
 }
 
-func TestAuthorizeWrapperUnauthorized(t *testing.T) {
-	userID := uuid.Must(uuid.NewV4())
-	objectID := uuid.Must(uuid.NewV4())
-	Woek, err := crypt.Random(32)
-	failOnError("Couldn't generate WOEK!", err, t)
-
-	unAuthAccessObject := &common.AccessObject{
-		UserIDs: map[uuid.UUID]bool{
+func TestAuthzMiddlewareUnauthorized(t *testing.T) {
+	mockData.userData = &common.UserData{
+		GroupIDs: map[uuid.UUID]bool{
 			uuid.Must(uuid.NewV4()): true,
 		},
-		Woek:    Woek,
-		Version: 0,
 	}
-
-	authorizerMock := &AuthorizerMock{
-		FetchAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
-			return unAuthAccessObject, nil
-		},
-	}
-	authz := Authz{
-		Authorizer: authorizerMock,
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authnStorageTxMock)
-	ctx = context.WithValue(ctx, common.ObjectIDCtxKey, objectID)
-	ctx = context.WithValue(ctx, common.MethodNameCtxKey, "fake method")
+	ctx, authz := SetupMocks(mockData)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		t.Fatal("Handler should not have been called")
@@ -155,4 +171,141 @@ func TestAuthorizeWrapperUnauthorized(t *testing.T) {
 	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
 		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
 	}
+}
+
+func TestAuthzMiddlewareWrongScope(t *testing.T) {
+	mockData.groupData = map[uuid.UUID]common.GroupData{
+		userID: {Scopes: common.ScopeDelete},
+	}
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.PermissionDenied != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.PermissionDenied, errStatus)
+	}
+}
+
+func TestAuthzNoAccessObject(t *testing.T) {
+	mockData.accessObject = nil
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.NotFound != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.NotFound, errStatus)
+	}
+}
+
+func TestAuthzNoUserData(t *testing.T) {
+	mockData.userData = nil
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.NotFound != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.NotFound, errStatus)
+	}
+}
+
+func TestAuthzNoGroupData(t *testing.T) {
+	mockData.groupData = nil
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.NotFound != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.NotFound, errStatus)
+	}
+}
+
+func TestAuthzNoMethod(t *testing.T) {
+	mockData.methodName = ""
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.Internal != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.Internal, errStatus)
+	}
+}
+
+func TestAuthzNoUserID(t *testing.T) {
+	mockData.userID = uuid.Nil
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.Internal != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.Internal, errStatus)
+	}
+}
+
+func TestAuthzNoObjectID(t *testing.T) {
+	mockData.objectID = uuid.Nil
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		t.Fatal("Handler should not have been called")
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnSuccess("User should not be authorized", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.Internal != errStatus.Code() {
+		t.Fatalf("Wrong error returned: expected %v, but got %v", codes.Internal, errStatus)
+	}
+}
+
+func TestAuthzSkippedMethod(t *testing.T) {
+	mockData.methodName = "/app.Encryptonize/Version"
+	ctx, authz := SetupMocks(mockData)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		_, ok := ctx.Value(common.AccessObjectCtxKey).(*common.AccessObject)
+		if ok {
+			t.Fatal("Found unexpected access object in context")
+		}
+		return nil, nil
+	}
+
+	_, err = authz.AuthorizationUnaryServerInterceptor()(ctx, nil, nil, handler)
+	failOnError("Expected authorization to be skipped", err, t)
 }

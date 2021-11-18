@@ -15,9 +15,7 @@ package authn
 
 import (
 	context "context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -25,29 +23,25 @@ import (
 	"encryption-service/common"
 	"encryption-service/impl/crypt"
 	"encryption-service/interfaces"
-	log "encryption-service/logger"
 )
+
+var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 
 const tokenExpiryTime = time.Hour
 
 type UserAuthenticator struct {
 	TokenCryptor interfaces.CryptorInterface
 	UserCryptor  interfaces.CryptorInterface
+	GroupCryptor interfaces.CryptorInterface
 }
 
-// NewUser creates an user of specified kind with random credentials in the authStorage
-func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes common.ScopeType) (*uuid.UUID, string, error) {
-	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
-	if !ok {
-		return nil, "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
-	}
+func (ua *UserAuthenticator) newUserData() (*common.ProtectedUserData, string, error) {
 	userID, err := uuid.NewV4()
 	if err != nil {
 		return nil, "", err
 	}
 
 	// user password creation
-
 	pwd, salt, err := crypt.GenerateUserPassword()
 	if err != nil {
 		return nil, "", err
@@ -56,7 +50,7 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes common.Scop
 	userData := &common.UserData{
 		HashedPassword: crypt.HashPassword(pwd, salt),
 		Salt:           salt,
-		Scopes:         userscopes,
+		GroupIDs:       map[uuid.UUID]bool{},
 	}
 
 	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(userData, userID.Bytes())
@@ -64,42 +58,80 @@ func (ua *UserAuthenticator) NewUser(ctx context.Context, userscopes common.Scop
 		return nil, "", err
 	}
 
-	protected := common.ProtectedUserData{
+	protected := &common.ProtectedUserData{
 		UserID:     userID,
 		UserData:   ciphertext,
 		WrappedKey: wrappedKey,
 	}
 
-	// insert user for compatibility with the check in permissions_handler
-	// we only need to know if a user exists there, thus it is only important
-	// that a row exists
-	err = authStorageTx.InsertUser(ctx, protected)
-	if err != nil {
-		return nil, "", err
-	}
-
-	err = authStorageTx.Commit(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return &userID, pwd, nil
+	return protected, pwd, nil
 }
 
-// LoginUser logs in a user
-func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
+// NewUser creates an user of specified kind with random credentials in the authStorage
+func (ua *UserAuthenticator) NewUser(ctx context.Context) (*uuid.UUID, string, error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return "", errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return nil, "", ErrAuthStoreTxCastFailed
+	}
+
+	userData, pwd, err := ua.newUserData()
+	if err != nil {
+		return nil, "", err
+	}
+
+	err = authStorageTx.InsertUser(ctx, userData)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return &userData.UserID, pwd, nil
+}
+
+func (ua *UserAuthenticator) UpdateUser(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return ErrAuthStoreTxCastFailed
+	}
+
+	wrappedKey, ciphertext, err := ua.UserCryptor.EncodeAndEncrypt(userData, userID.Bytes())
+	if err != nil {
+		return err
+	}
+
+	protected := &common.ProtectedUserData{
+		UserID:     userID,
+		UserData:   ciphertext,
+		WrappedKey: wrappedKey,
+	}
+
+	return authStorageTx.UpdateUser(ctx, protected)
+}
+
+// GetUserData fetches the user's confidential data
+func (ua *UserAuthenticator) GetUserData(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return nil, errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
 	}
 
 	protected, err := authStorageTx.GetUserData(ctx, userID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	userData := &common.UserData{}
 	err = ua.UserCryptor.DecodeAndDecrypt(userData, protected.WrappedKey, protected.UserData, userID.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	return userData, nil
+}
+
+// LoginUser logs in a user
+func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, providedPassword string) (string, error) {
+	// Fetch user data and check the provided credentials
+	userData, err := ua.GetUserData(ctx, userID)
 	if err != nil {
 		return "", err
 	}
@@ -108,8 +140,17 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 		return "", errors.New("Incorrect password")
 	}
 
-	accessToken := NewAccessTokenDuration(userID, userData.Scopes, tokenExpiryTime)
+	// Fetch the user's groups and extract scopes
+	groupDataBatch, err := ua.GetGroupDataBatch(ctx, userData.GetGroupIDs())
+	if err != nil {
+		return "", err
+	}
+	combinedScopes := common.ScopeNone
+	for _, groupData := range groupDataBatch {
+		combinedScopes = combinedScopes.Union(groupData.Scopes)
+	}
 
+	accessToken := NewAccessTokenDuration(userID, combinedScopes, tokenExpiryTime)
 	token, err := accessToken.SerializeAccessToken(ua.TokenCryptor)
 	if err != nil {
 		return "", err
@@ -121,72 +162,10 @@ func (ua *UserAuthenticator) LoginUser(ctx context.Context, userID uuid.UUID, pr
 func (ua *UserAuthenticator) RemoveUser(ctx context.Context, userID uuid.UUID) error {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
-	err := authStorageTx.RemoveUser(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	err = authStorageTx.Commit(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// NewCLIUser creates a new user with the requested scopes. This function is intended to be used for
-// CLI operation.
-func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.AuthStoreInterface) error {
-	ctx := context.Background()
-
-	// Parse user supplied scopes
-	userScopes, err := common.MapStringToScopeType(scopes)
-	if err != nil {
-		return err
-	}
-
-	// Need to inject requestID manually, as these calls don't pass the usual middleware
-	requestID, err := uuid.NewV4()
-	if err != nil {
-		log.Fatal(ctx, err, "Could not generate uuid")
-	}
-	ctx = context.WithValue(ctx, common.RequestIDCtxKey, requestID)
-
-	authStoreTxCreate, err := authStore.NewTransaction(ctx)
-	if err != nil {
-		log.Fatal(ctx, err, "Authstorage Begin failed")
-	}
-	defer func() {
-		err := authStoreTxCreate.Rollback(ctx)
-		if err != nil {
-			log.Fatal(ctx, err, "Performing rollback")
-		}
-	}()
-
-	ctxCreate := context.WithValue(ctx, common.AuthStorageTxCtxKey, authStoreTxCreate)
-	userID, password, err := ua.NewUser(ctxCreate, userScopes)
-	if err != nil {
-		log.Fatal(ctxCreate, err, "Create user failed")
-	}
-
-	log.Info(ctx, "User created, printing to stdout")
-	credentials, err := json.Marshal(
-		struct {
-			UserID   string `json:"user_id"`
-			Password string `json:"password"`
-		}{
-			UserID:   userID.String(),
-			Password: password,
-		})
-	if err != nil {
-		log.Fatal(ctxCreate, err, "Create user failed")
-	}
-	fmt.Println(string(credentials))
-
-	return nil
+	return authStorageTx.RemoveUser(ctx, userID)
 }
 
 // this function takes a user facing token and parses it into the internal
@@ -195,4 +174,76 @@ func (ua *UserAuthenticator) NewCLIUser(scopes string, authStore interfaces.Auth
 // TODO: this is name is bad
 func (ua *UserAuthenticator) ParseAccessToken(token string) (interfaces.AccessTokenInterface, error) {
 	return ParseAccessToken(ua.TokenCryptor, token)
+}
+
+// NewGroupWithID creates a new group with the requested scopes and group ID. Mainly intended for
+// creating a new group when creating a new user.
+func (ua *UserAuthenticator) NewGroupWithID(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return ErrAuthStoreTxCastFailed
+	}
+
+	groupData := &common.GroupData{
+		Scopes: scopes,
+	}
+	wrappedKey, ciphertext, err := ua.GroupCryptor.EncodeAndEncrypt(groupData, groupID.Bytes())
+	if err != nil {
+		return err
+	}
+
+	protected := &common.ProtectedGroupData{
+		GroupID:    groupID,
+		GroupData:  ciphertext,
+		WrappedKey: wrappedKey,
+	}
+
+	err = authStorageTx.InsertGroup(ctx, protected)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// NewGroup creates a group with the specified scopes in the authStorage
+func (ua *UserAuthenticator) NewGroup(ctx context.Context, scopes common.ScopeType) (*uuid.UUID, error) {
+	groupID, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ua.NewGroupWithID(ctx, groupID, scopes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &groupID, nil
+}
+
+// GetGroupDataBatch fetches one or more groups' confidential data
+func (ua *UserAuthenticator) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.GroupData, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		return nil, ErrAuthStoreTxCastFailed
+	}
+
+	protectedBatch, err := authStorageTx.GetGroupDataBatch(ctx, groupIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	groupDataBatch := make([]common.GroupData, 0, len(protectedBatch))
+
+	for _, protected := range protectedBatch {
+		groupData := &common.GroupData{}
+		err := ua.GroupCryptor.DecodeAndDecrypt(groupData, protected.WrappedKey, protected.GroupData, protected.GroupID.Bytes())
+		if err != nil {
+			return nil, err
+		}
+
+		groupDataBatch = append(groupDataBatch, *groupData)
+	}
+
+	return groupDataBatch, nil
 }

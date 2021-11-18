@@ -67,8 +67,8 @@ var accessObject = &common.AccessObject{Woek: woek}
 var accessObjectStore = make(map[uuid.UUID]common.ProtectedAccessObject)
 
 var authStorageTxMock = &authstorage.AuthStoreTxMock{
-	InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
-		accessObjectStore[protected.ObjectID] = protected
+	InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
+		accessObjectStore[protected.ObjectID] = *protected
 		return nil
 	},
 	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
@@ -196,7 +196,7 @@ func TestStoreFailAuth(t *testing.T) {
 	ctx := setCtxKeys()
 
 	authStorageTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return fmt.Errorf("")
 		},
 	}

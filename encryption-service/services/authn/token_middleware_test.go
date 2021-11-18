@@ -60,10 +60,10 @@ func CreateUserForTests(c interfaces.CryptorInterface, userID uuid.UUID, scopes 
 func TestCheckAccessTokenGoodPath(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
-	ASK, _ := crypt.Random(32)
+	AEK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
-	c, err := crypt.NewAESCryptor(ASK)
+	c, err := crypt.NewAESCryptor(AEK)
 	failOnError("NewAESCryptor errored", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
@@ -89,10 +89,10 @@ func TestCheckAccessTokenGoodPath(t *testing.T) {
 func TestCheckAccessTokenNonBase64(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
-	ASK, _ := crypt.Random(32)
+	AEK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
-	c, err := crypt.NewAESCryptor(ASK)
+	c, err := crypt.NewAESCryptor(AEK)
 	failOnError("NewAESCryptor errored %v", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
@@ -136,10 +136,10 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 	userIDFirst := uuid.Must(uuid.NewV4())
 	userIDSecond := uuid.Must(uuid.NewV4())
 	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
-	ASK, _ := crypt.Random(32)
+	AEK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
-	c, err := crypt.NewAESCryptor(ASK)
+	c, err := crypt.NewAESCryptor(AEK)
 	failOnError("NewAESCryptor errored %v", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
@@ -186,10 +186,10 @@ func TestCheckAccessTokenSwappedTokenParts(t *testing.T) {
 func TestCheckAccessTokenInvalidAT(t *testing.T) {
 	userID := uuid.Must(uuid.NewV4())
 	userScope := common.ScopeRead | common.ScopeCreate | common.ScopeIndex | common.ScopeObjectPermissions
-	ASK, _ := crypt.Random(32)
+	AEK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
 
-	c, err := crypt.NewAESCryptor(ASK)
+	c, err := crypt.NewAESCryptor(AEK)
 	failOnError("NewAESCryptor errored", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
@@ -236,9 +236,9 @@ func TestCheckAccessTokenInvalidATformat(t *testing.T) {
 // This test tries to access each endpoint with every but the required scope
 // all tests should fail
 func TestCheckAccessTokenNegativeScopes(t *testing.T) {
-	ASK, _ := crypt.Random(32)
+	AEK, _ := crypt.Random(32)
 	UEK, _ := crypt.Random(32)
-	c, err := crypt.NewAESCryptor(ASK)
+	c, err := crypt.NewAESCryptor(AEK)
 	failOnError("Error creating MessageAuthenticator", err, t)
 
 	uc, err := crypt.NewAESCryptor(UEK)
@@ -251,7 +251,7 @@ func TestCheckAccessTokenNegativeScopes(t *testing.T) {
 		},
 	}
 
-	for endpoint, rscope := range methodScopeMap {
+	for endpoint, rscope := range common.MethodScopeMap {
 		if rscope == common.ScopeNone {
 			// endpoints that only require logged in users are already covered
 			// by tests that check if authentication works

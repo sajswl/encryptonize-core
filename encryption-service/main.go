@@ -46,7 +46,7 @@ func main() {
 	}
 	defer authStore.Close()
 
-	accessObjectCryptor, err := crypt.NewAESCryptor(config.Keys.ASK)
+	accessObjectCryptor, err := crypt.NewAESCryptor(config.Keys.AEK)
 	if err != nil {
 		log.Fatal(ctx, err, "NewAESCryptor (access object) failed")
 	}
@@ -61,9 +61,15 @@ func main() {
 		log.Fatal(ctx, err, "NewAESCryptor (user) failed")
 	}
 
+	groupCryptor, err := crypt.NewAESCryptor(config.Keys.GEK)
+	if err != nil {
+		log.Fatal(ctx, err, "NewAESCryptor (user) failed")
+	}
+
 	userAuthenticator := &authnimpl.UserAuthenticator{
 		TokenCryptor: tokenCryptor,
 		UserCryptor:  userCryptor,
+		GroupCryptor: groupCryptor,
 	}
 
 	dataCryptor, err := crypt.NewAESCryptor(config.Keys.KEK)
@@ -112,7 +118,8 @@ func main() {
 	}
 
 	authzService := &authz.Authz{
-		Authorizer: authorizer,
+		Authorizer:        authorizer,
+		UserAuthenticator: userAuthenticator,
 	}
 
 	app := &app.App{

@@ -30,23 +30,21 @@ var ErrTokenExpired = errors.New("token expired")
 
 // AccessToken is the internal representation of an access token
 type AccessToken struct {
-	UserID uuid.UUID
-	// this field is not exported to prevent other parts
-	// of the encryption service to depend on its implementation
-	UserScopes common.ScopeType
+	UserID     uuid.UUID
+	Scopes     common.ScopeType // Joint scopes for all groups the user is a member of
 	ExpiryTime time.Time
 }
 
 // NewAccessTokenDuration instantiates a new access token with user ID, user scopes and validity period
-func NewAccessTokenDuration(userID uuid.UUID, userScopes common.ScopeType, validityPeriod time.Duration) *AccessToken {
-	return NewAccessToken(userID, userScopes, time.Now().Add(validityPeriod))
+func NewAccessTokenDuration(userID uuid.UUID, scopes common.ScopeType, validityPeriod time.Duration) *AccessToken {
+	return NewAccessToken(userID, scopes, time.Now().Add(validityPeriod))
 }
 
 // NewAccessToken does the same as NewAccessTokenDuration, except it takes a point in time at which the access token exires
-func NewAccessToken(userID uuid.UUID, userScopes common.ScopeType, expiryTime time.Time) *AccessToken {
+func NewAccessToken(userID uuid.UUID, scopes common.ScopeType, expiryTime time.Time) *AccessToken {
 	return &AccessToken{
-		UserID:     userID,
-		UserScopes: userScopes,
+		UserID: userID,
+		Scopes: scopes,
 		// Strip monotonic clock reading, as it has no meaning outside the current process.
 		// For more info: https://pkg.go.dev/time#hdr-Monotonic_Clocks
 		ExpiryTime: expiryTime.Round(0),
@@ -57,12 +55,8 @@ func (at *AccessToken) GetUserID() uuid.UUID {
 	return at.UserID
 }
 
-func (at *AccessToken) GetUserScopes() common.ScopeType {
-	return at.UserScopes
-}
-
 func (at *AccessToken) HasScopes(tar common.ScopeType) bool {
-	return at.GetUserScopes().HasScopes(tar)
+	return at.Scopes.HasScopes(tar)
 }
 
 // IsValid returns false if the token is expired, true otherwise.
@@ -74,7 +68,7 @@ func (at *AccessToken) IsValid() bool {
 // Format (only used internally): base64_url(wrapped_key).base64_url(gob(enc(AccessToken)))
 func (at *AccessToken) SerializeAccessToken(cryptor interfaces.CryptorInterface) (string, error) {
 	//TODO not sure about these checks
-	if at.GetUserScopes().IsValid() != nil {
+	if at.Scopes.IsValid() != nil {
 		return "", errors.New("Invalid scopes")
 	}
 

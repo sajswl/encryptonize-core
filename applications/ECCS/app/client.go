@@ -330,7 +330,7 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 
 	outType := mth.GetOutputType()
 	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
+		"group_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
 	}
 	if !sanitize(outType, outExp) {
 		return nil, errors.New("Unexpected output type of GetPermissions method")
@@ -354,7 +354,7 @@ func (c *Client) GetPermissions(oid string) ([]string, error) {
 	}
 
 	// collect repeated user_ids field
-	idsField := outType.FindFieldByName("user_ids")
+	idsField := outType.FindFieldByName("group_ids")
 	numIds := res.FieldLength(idsField)
 	var ids = []string{}
 	for i := 0; i < numIds; i++ {
@@ -430,7 +430,7 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 	// sanitize input and output
 	inType := mth.GetInputType()
 	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_scopes": descriptorpb.FieldDescriptorProto_TYPE_ENUM,
+		"scopes": descriptorpb.FieldDescriptorProto_TYPE_ENUM,
 	}
 	if !sanitize(inType, inExp) {
 		return "", "", errors.New("Unexpected input type of CreateUser method")
@@ -445,7 +445,7 @@ func (c *Client) CreateUser(scopes []string) (string, string, error) {
 	}
 
 	// create a map to translate the scope names to the enum
-	scopeField := inType.FindFieldByName("user_scopes")
+	scopeField := inType.FindFieldByName("scopes")
 	scopeMap := make(map[string]int32)
 	for _, e := range scopeField.GetEnumType().GetValues() {
 		scopeMap[e.GetName()] = e.GetNumber()

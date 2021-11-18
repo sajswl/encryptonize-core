@@ -31,6 +31,7 @@ import (
 type MemoryAuthStore struct {
 	db                 *bolt.DB
 	userBucket         []byte
+	groupBucket        []byte
 	accessObjectBucket []byte
 }
 
@@ -41,10 +42,15 @@ func NewMemoryAuthStore(dbFilePath string) (*MemoryAuthStore, error) {
 	}
 
 	userBucket := []byte("user")
+	groupBucket := []byte("group")
 	accessObjectBucket := []byte("access_object")
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(userBucket)
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucketIfNotExists(groupBucket)
 		if err != nil {
 			return err
 		}
@@ -58,7 +64,7 @@ func NewMemoryAuthStore(dbFilePath string) (*MemoryAuthStore, error) {
 		return nil, err
 	}
 
-	return &MemoryAuthStore{db, userBucket, accessObjectBucket}, nil
+	return &MemoryAuthStore{db, userBucket, groupBucket, accessObjectBucket}, nil
 }
 
 func (store *MemoryAuthStore) Close() {
@@ -68,6 +74,7 @@ func (store *MemoryAuthStore) Close() {
 type MemoryAuthStoreTx struct {
 	Tx                 *bolt.Tx
 	UserBucket         []byte
+	GroupBucket        []byte
 	AccessObjectBucket []byte
 }
 
@@ -77,7 +84,7 @@ func (store *MemoryAuthStore) NewTransaction(ctx context.Context) (interfaces.Au
 		return nil, err
 	}
 
-	return &MemoryAuthStoreTx{tx, store.userBucket, store.accessObjectBucket}, nil
+	return &MemoryAuthStoreTx{tx, store.userBucket, store.groupBucket, store.accessObjectBucket}, nil
 }
 
 func (storeTx *MemoryAuthStoreTx) Commit(ctx context.Context) error {
@@ -90,17 +97,6 @@ func (storeTx *MemoryAuthStoreTx) Rollback(ctx context.Context) error {
 		return nil
 	}
 	return err
-}
-
-func (storeTx *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UUID) (bool, error) {
-	_, err := storeTx.GetUserData(ctx, userID)
-	if err != nil {
-		if errors.Is(err, interfaces.ErrNotFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
 }
 
 func (storeTx *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.UUID) (*common.ProtectedUserData, error) {
@@ -125,7 +121,7 @@ func (storeTx *MemoryAuthStoreTx) GetUserData(ctx context.Context, userID uuid.U
 	return userData, nil
 }
 
-func (storeTx *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected common.ProtectedUserData) error {
+func (storeTx *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected *common.ProtectedUserData) error {
 	var userBuffer bytes.Buffer
 	enc := gob.NewEncoder(&userBuffer)
 	err := enc.Encode(protected)
@@ -136,6 +132,13 @@ func (storeTx *MemoryAuthStoreTx) InsertUser(ctx context.Context, protected comm
 	b := storeTx.Tx.Bucket(storeTx.UserBucket)
 
 	return b.Put(protected.UserID.Bytes(), userBuffer.Bytes())
+}
+
+func (storeTx *MemoryAuthStoreTx) UpdateUser(ctx context.Context, protected *common.ProtectedUserData) error {
+	if _, err := storeTx.GetUserData(ctx, protected.UserID); err != nil {
+		return err
+	}
+	return storeTx.InsertUser(ctx, protected)
 }
 
 func (storeTx *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UUID) error {
@@ -159,6 +162,51 @@ func (storeTx *MemoryAuthStoreTx) RemoveUser(ctx context.Context, userID uuid.UU
 	return b.Put(userID.Bytes(), userBuffer.Bytes())
 }
 
+func (storeTx *MemoryAuthStoreTx) GroupExists(ctx context.Context, groupID uuid.UUID) (bool, error) {
+	groupDataBatch, err := storeTx.GetGroupDataBatch(ctx, []uuid.UUID{groupID})
+	if err != nil {
+		return false, err
+	}
+	return len(groupDataBatch) == 1, nil
+}
+
+func (storeTx *MemoryAuthStoreTx) InsertGroup(ctx context.Context, protected *common.ProtectedGroupData) error {
+	var groupBuffer bytes.Buffer
+	enc := gob.NewEncoder(&groupBuffer)
+	err := enc.Encode(protected)
+	if err != nil {
+		return err
+	}
+
+	b := storeTx.Tx.Bucket(storeTx.GroupBucket)
+
+	return b.Put(protected.GroupID.Bytes(), groupBuffer.Bytes())
+}
+
+func (storeTx *MemoryAuthStoreTx) GetGroupDataBatch(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
+	b := storeTx.Tx.Bucket(storeTx.GroupBucket)
+
+	groupDataBatch := make([]common.ProtectedGroupData, 0, len(groupIDs))
+
+	for _, groupID := range groupIDs {
+		group := b.Get(groupID.Bytes())
+		if group == nil {
+			continue
+		}
+
+		groupData := &common.ProtectedGroupData{}
+		dec := gob.NewDecoder(bytes.NewReader(group))
+		err := dec.Decode(groupData)
+		if err != nil {
+			return nil, err
+		}
+
+		groupDataBatch = append(groupDataBatch, *groupData)
+	}
+
+	return groupDataBatch, nil
+}
+
 func (storeTx *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
 	b := storeTx.Tx.Bucket(storeTx.AccessObjectBucket)
 
@@ -177,7 +225,7 @@ func (storeTx *MemoryAuthStoreTx) GetAccessObject(ctx context.Context, objectID 
 	return accessObject, nil
 }
 
-func (storeTx *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, protected common.ProtectedAccessObject) error {
+func (storeTx *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, protected *common.ProtectedAccessObject) error {
 	var objectBuffer bytes.Buffer
 	enc := gob.NewEncoder(&objectBuffer)
 	err := enc.Encode(protected)
@@ -190,7 +238,7 @@ func (storeTx *MemoryAuthStoreTx) InsertAcccessObject(ctx context.Context, prote
 	return b.Put(protected.ObjectID.Bytes(), objectBuffer.Bytes())
 }
 
-func (storeTx *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, accessObject common.ProtectedAccessObject) error {
+func (storeTx *MemoryAuthStoreTx) UpdateAccessObject(ctx context.Context, accessObject *common.ProtectedAccessObject) error {
 	return storeTx.InsertAcccessObject(ctx, accessObject)
 }
 

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build authz && encryption && storage
-// +build authz,encryption,storage
+//go:build encryption && storage
+// +build encryption,storage
 
 package grpce2e
 
@@ -86,13 +86,13 @@ func TestUnauthorizedToRead(t *testing.T) {
 	_, err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.UserScope{
-		common.UserScope_CREATE,
-		common.UserScope_INDEX,
-		common.UserScope_OBJECTPERMISSIONS,
-		common.UserScope_USERMANAGEMENT,
-		common.UserScope_UPDATE,
-		common.UserScope_DELETE,
+	var scopes = []common.Scope{
+		common.Scope_CREATE,
+		common.Scope_INDEX,
+		common.Scope_OBJECTPERMISSIONS,
+		common.Scope_USERMANAGEMENT,
+		common.Scope_UPDATE,
+		common.Scope_DELETE,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
@@ -125,13 +125,13 @@ func TestUnauthorizedToCreate(t *testing.T) {
 	_, err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.UserScope{
-		common.UserScope_READ,
-		common.UserScope_INDEX,
-		common.UserScope_OBJECTPERMISSIONS,
-		common.UserScope_USERMANAGEMENT,
-		common.UserScope_UPDATE,
-		common.UserScope_DELETE,
+	var scopes = []common.Scope{
+		common.Scope_READ,
+		common.Scope_INDEX,
+		common.Scope_OBJECTPERMISSIONS,
+		common.Scope_USERMANAGEMENT,
+		common.Scope_UPDATE,
+		common.Scope_DELETE,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
@@ -158,13 +158,13 @@ func TestUnauthorizedToGetPermissions(t *testing.T) {
 	_, err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.UserScope{
-		common.UserScope_READ,
-		common.UserScope_CREATE,
-		common.UserScope_OBJECTPERMISSIONS,
-		common.UserScope_USERMANAGEMENT,
-		common.UserScope_UPDATE,
-		common.UserScope_DELETE,
+	var scopes = []common.Scope{
+		common.Scope_READ,
+		common.Scope_CREATE,
+		common.Scope_OBJECTPERMISSIONS,
+		common.Scope_USERMANAGEMENT,
+		common.Scope_UPDATE,
+		common.Scope_DELETE,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
@@ -189,13 +189,13 @@ func TestUnauthorizedToManagePermissions(t *testing.T) {
 	_, err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.UserScope{
-		common.UserScope_READ,
-		common.UserScope_CREATE,
-		common.UserScope_INDEX,
-		common.UserScope_USERMANAGEMENT,
-		common.UserScope_UPDATE,
-		common.UserScope_DELETE,
+	var scopes = []common.Scope{
+		common.Scope_READ,
+		common.Scope_CREATE,
+		common.Scope_INDEX,
+		common.Scope_USERMANAGEMENT,
+		common.Scope_UPDATE,
+		common.Scope_DELETE,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
@@ -223,13 +223,13 @@ func TestUnauthorizedToManageUsers(t *testing.T) {
 	_, err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.UserScope{
-		common.UserScope_READ,
-		common.UserScope_CREATE,
-		common.UserScope_INDEX,
-		common.UserScope_OBJECTPERMISSIONS,
-		common.UserScope_UPDATE,
-		common.UserScope_DELETE,
+	var scopes = []common.Scope{
+		common.Scope_READ,
+		common.Scope_CREATE,
+		common.Scope_INDEX,
+		common.Scope_OBJECTPERMISSIONS,
+		common.Scope_UPDATE,
+		common.Scope_DELETE,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
@@ -250,12 +250,12 @@ func TestUnauthorizedToUpdateAndDelete(t *testing.T) {
 	_, err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.UserScope{
-		common.UserScope_READ,
-		common.UserScope_CREATE,
-		common.UserScope_INDEX,
-		common.UserScope_OBJECTPERMISSIONS,
-		common.UserScope_USERMANAGEMENT,
+	var scopes = []common.Scope{
+		common.Scope_READ,
+		common.Scope_CREATE,
+		common.Scope_INDEX,
+		common.Scope_OBJECTPERMISSIONS,
+		common.Scope_USERMANAGEMENT,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)

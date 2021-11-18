@@ -16,7 +16,7 @@ syntax = "proto3";
 package authn;
 option go_package = "encryption-service/authn";
 
-import "common/users.proto";
+import "common/scopes.proto";
 
 service Encryptonize{
   // Creates a new user on the service
@@ -27,10 +27,19 @@ service Encryptonize{
 
   // Deletes a user in the service
   rpc RemoveUser (RemoveUserRequest) returns (RemoveUserResponse){}
+
+  // Creates a new group
+  rpc CreateGroup (CreateGroupRequest) returns (CreateGroupResponse){}
+
+  // Adds a user to a group
+  rpc AddUserToGroup (AddUserToGroupRequest) returns (AddUserToGroupResponse){}
+
+  // Removes a user from a group
+  rpc RemoveUserFromGroup (RemoveUserFromGroupRequest) returns (RemoveUserFromGroupResponse){}
 }
 
 message CreateUserRequest{
-  repeated common.UserScope user_scopes = 1;
+  repeated common.Scope scopes = 1;
 }
 
 message CreateUserResponse{
@@ -52,3 +61,27 @@ message RemoveUserRequest{
 }
 
 message RemoveUserResponse{}
+
+message CreateGroupRequest{
+  repeated common.Scope scopes = 1;
+}
+
+message CreateGroupResponse{
+  string group_id = 1;
+}
+
+message AddUserToGroupRequest{
+  string user_id = 1;
+  string group_id = 2;
+}
+
+message AddUserToGroupResponse{
+}
+
+message RemoveUserFromGroupRequest{
+  string user_id = 1;
+  string group_id = 2;
+}
+
+message RemoveUserFromGroupResponse{
+}
