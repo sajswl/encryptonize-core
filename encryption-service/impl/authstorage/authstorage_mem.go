@@ -97,9 +97,8 @@ func (storeTx *MemoryAuthStoreTx) UserExists(ctx context.Context, userID uuid.UU
 	if err != nil {
 		if errors.Is(err, interfaces.ErrNotFound) {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 	return true, nil
 }
