@@ -171,35 +171,6 @@ func TestRetrieveOlderObject(t *testing.T) {
 	}
 }
 
-// Test that storing and retrieving is not possible with wrong credentials.
-func TestStoreRetrieveWithWrongCredentials(t *testing.T) {
-	// Create a client with invalid token format and try to store something
-
-	badTokens := []string{
-		"bad__bad__token!",
-		"ChAAAAAAAAXXXXAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
-		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
-		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAA+-~/AAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
-		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-+-~/7tSWsAYgaDHjAEc1sUA",
-		"extra.ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-+-~/7tSWsAYgaDHjAEc1sUA",
-		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAA.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
-		"ChAAAAAAAABAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-",
-		"BAAIAAAAAAAAACEgEE.AAAAAAAAAAAAAAAAAAAAAg.47THgf10Vei2v55TGZP-nXpZ7tSWsAYgaDHjAEc1sUA",
-		"",
-	}
-
-	for _, token := range badTokens {
-		client, err := NewClient(endpoint, https)
-		defer closeClient(client, t)
-		failOnError("Could not create client", err, t)
-
-		client.SetToken(token)
-
-		_, err = client.Store([]byte("plaintext"), []byte("associated data"))
-		failOnSuccess("Should not be able to store anything with wrong uat", err, t)
-	}
-}
-
 // Test that a user can store and retrieve a bigger object
 func TestStoreRetrieveBigObject(t *testing.T) {
 	client, err := NewClient(endpoint, https)

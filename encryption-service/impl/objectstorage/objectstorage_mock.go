@@ -13,44 +13,22 @@
 // limitations under the License.
 package objectstorage
 
-import (
-	"context"
-	"errors"
-	"sync"
-)
+import "context"
 
-// MemoryObjectStore is used by tests to mock the ObjectStore in memory
-type MemoryObjectStore struct {
-	Data sync.Map // map[string][]byte
+type ObjectStoreMock struct {
+	StoreFunc    func(ctx context.Context, objectID string, object []byte) error
+	RetrieveFunc func(ctx context.Context, objectID string) ([]byte, error)
+	DeleteFunc   func(ctx context.Context, objectID string) error
 }
 
-func NewMemoryObjectStore() *MemoryObjectStore {
-	return &MemoryObjectStore{
-		Data: sync.Map{},
-	}
+func (o *ObjectStoreMock) Store(ctx context.Context, objectID string, object []byte) error {
+	return o.StoreFunc(ctx, objectID, object)
 }
 
-func (o *MemoryObjectStore) Store(ctx context.Context, objectID string, object []byte) error {
-	objectCopy := make([]byte, len(object))
-	copy(objectCopy, object)
-	o.Data.Store(objectID, objectCopy)
-	return nil
+func (o *ObjectStoreMock) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
+	return o.RetrieveFunc(ctx, objectID)
 }
 
-func (o *MemoryObjectStore) Retrieve(ctx context.Context, objectID string) ([]byte, error) {
-	object, ok := o.Data.Load(objectID)
-
-	if !ok {
-		return nil, errors.New("object not found")
-	}
-
-	objectCopy := make([]byte, len(object.([]byte)))
-	copy(objectCopy, object.([]byte))
-
-	return objectCopy, nil
-}
-
-func (o *MemoryObjectStore) Delete(ctx context.Context, objectID string) error {
-	o.Data.Delete(objectID)
-	return nil
+func (o *ObjectStoreMock) Delete(ctx context.Context, objectID string) error {
+	return o.DeleteFunc(ctx, objectID)
 }

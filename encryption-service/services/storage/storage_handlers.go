@@ -152,6 +152,18 @@ func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*Delet
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting access object")
 	}
 
+	err = strg.ObjectStore.Delete(ctx, objectIDString+AssociatedDataStoreSuffix)
+	if err != nil {
+		log.Error(ctx, err, "Delete: Failed to delete associated data")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
+	}
+
+	err = strg.ObjectStore.Delete(ctx, objectIDString+CiphertextStoreSuffix)
+	if err != nil {
+		log.Error(ctx, err, "Delete: Failed to delete object")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
+	}
+
 	if err := authStorageTx.Commit(ctx); err != nil {
 		log.Error(ctx, err, "Delete: Failed to commit auth storage transaction")
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
