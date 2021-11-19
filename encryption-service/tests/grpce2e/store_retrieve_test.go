@@ -29,7 +29,7 @@ import (
 
 // Test the we can store an object and retrieve it later
 func TestStoreAndRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -56,7 +56,7 @@ func TestStoreAndRetrieve(t *testing.T) {
 
 // Test that we can store the same object/data multiple times and still retrieve it
 func TestStoreSameObjectMultipleTimes(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -85,7 +85,7 @@ func TestStoreSameObjectMultipleTimes(t *testing.T) {
 
 // Test retrieving object with invalid oid
 func TestRetrieveBadOid(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -99,7 +99,7 @@ func TestRetrieveBadOid(t *testing.T) {
 
 // Test multiple retrieve operations of the same object
 func TestMultipleStoreRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -130,7 +130,7 @@ func TestMultipleStoreRetrieve(t *testing.T) {
 
 // Test that an older object can be retrieved after storing multiple objects.
 func TestRetrieveOlderObject(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	defer closeClient(client, t)
 	failOnError("Could not create client", err, t)
 
@@ -173,7 +173,7 @@ func TestRetrieveOlderObject(t *testing.T) {
 
 // Test that a user can store and retrieve a bigger object
 func TestStoreRetrieveBigObject(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -194,7 +194,7 @@ func TestStoreRetrieveBigObject(t *testing.T) {
 
 // Tests random sizes to store and retrieve
 func TestStoreRetrieveRandomSizes(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -275,7 +275,7 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 				globErr.append(fmt.Errorf("Couldn't create AD: %v", err))
 				return
 			}
-			client, err := NewClient(endpoint, https)
+			client, err := NewClient(endpoint, certPath)
 			defer closeClient(client, t)
 			if err != nil { // Bail out early on error
 				globErr.append(fmt.Errorf("Couldn't create client: %v", err))
@@ -314,7 +314,7 @@ func TestConcurrentStoreRetrieve(t *testing.T) {
 
 // Test storage and retrieval of objects with no data and no associated data
 func TestStoreRetrieveEmptyObjects(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

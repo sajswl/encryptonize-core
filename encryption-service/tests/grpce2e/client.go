@@ -45,12 +45,12 @@ type Client struct {
 }
 
 // Create a new client.
-func NewClient(endpoint string, https bool) (*Client, error) {
+func NewClient(endpoint, certPath string) (*Client, error) {
 	var dialOption grpc.DialOption
 
-	if https {
+	if certPath != "" {
 		// Configure certificate
-		clientCredentials, err := credentials.NewClientTLSFromFile("../../data/encryptonize.crt", "")
+		clientCredentials, err := credentials.NewClientTLSFromFile(certPath, "")
 		if err != nil {
 			return nil, err
 		}
