@@ -215,8 +215,6 @@ if __name__ == "__main__":
 		print(f"[-] failed to update object")
 		sys.exit(1)
 
-	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
-	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
 	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)

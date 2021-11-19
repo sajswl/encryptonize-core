@@ -47,46 +47,6 @@ type Client struct {
 	authHeader []string
 }
 
-type Object struct {
-	ObjectID string `json:"object_id"`
-}
-
-type ObjectPermissions struct {
-	ObjectID string `json:"object_id"`
-	UserID   string `json:"target"`
-}
-
-type Data struct {
-	Plaintext      []byte `json:"plaintext"`
-	AssociatedData []byte `json:"associated_data"`
-}
-
-type EncryptedData struct {
-	Ciphertext     string `json:"ciphertext"`
-	AssociatedData string `json:"associatedData"`
-	ObjectID       string `json:"objectId"`
-}
-
-type RetrievedData struct {
-	Plaintext      []byte `json:"plaintext"`
-	AssociatedData []byte `json:"associatedData"` //TODO: change to associated_data (encryptonize core api) and replace with Data
-}
-
-type DecodedRetrievedData struct {
-	Plaintext      string `json:"plaintext"`
-	AssociatedData string `json:"associated_data"`
-}
-
-type UserScope struct {
-	Read              bool
-	Create            bool
-	Update            bool
-	Delete            bool
-	Index             bool
-	ObjectPermissions bool
-	UserManagement    bool
-}
-
 // NewClient creates a new client
 // For a secure connection set the environment variable "ECCS_CRT" appropriately
 func NewClient(userAT string) (*Client, error) {
@@ -155,7 +115,7 @@ func (c *Client) Invoke(method, input string) (string, error) {
 		AllowUnknownFields:    false,
 	}
 
-	rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format("json"), c.reflSource, in, options)
+	rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.FormatJSON, c.reflSource, in, options)
 	if err != nil {
 		return "", fmt.Errorf("%v: %v", utils.Fail("Failed to construct request parser and formatter"), err)
 	}
@@ -242,21 +202,12 @@ func (c *Client) Update(oid, filename, associatedData string, stdin bool) error 
 		return fmt.Errorf("Failed to read input from file")
 	}
 
-	object, err := json.Marshal(
-		struct {
-			ObjectID       string `json:"object_id"`
-			Plaintext      []byte `json:"plaintext"`
-			AssociatedData []byte `json:"associated_data"`
-		}{
-			ObjectID:       oid,
-			Plaintext:      plaintext,
-			AssociatedData: []byte(associatedData),
-		})
+	updateObject, err := json.Marshal(UpdateObject{oid, plaintext, []byte(associatedData)})
 	if err != nil {
-		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object"), err)
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse update object"), err)
 	}
 
-	_, err = c.Invoke("storage.Encryptonize.Update", string(object))
+	_, err = c.Invoke("storage.Encryptonize.Update", string(updateObject))
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("Update failed"), err)
 	}
@@ -365,14 +316,7 @@ func (c *Client) CreateUser(userScope UserScope) error {
 		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
 	}
 
-	log.Printf("%v", scopes)
-
-	userScopes, err := json.Marshal(
-		struct {
-			UserScopes []string `json:"user_scopes"`
-		}{
-			UserScopes: scopes,
-		})
+	userScopes, err := json.Marshal(UserScopes{scopes})
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user scopes"), err)
 	}
@@ -389,14 +333,7 @@ func (c *Client) CreateUser(userScope UserScope) error {
 
 // LoginUser calls the Encryptonize LoginUser endpoint
 func (c *Client) LoginUser(uid, password string) error {
-	credentials, err := json.Marshal(
-		struct {
-			UserID   string `json:"user_id"`
-			Password string `json:"password"`
-		}{
-			UserID:   uid,
-			Password: password,
-		})
+	credentials, err := json.Marshal(Credentials{uid, password})
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse credentials"), err)
 	}
@@ -413,14 +350,9 @@ func (c *Client) LoginUser(uid, password string) error {
 
 // RemoveUser calls the Encryptonize RemoveUser endpoint
 func (c *Client) RemoveUser(uid string) error {
-	user, err := json.Marshal(
-		struct {
-			UserID string `json:"user_id"`
-		}{
-			UserID: uid,
-		})
+	user, err := json.Marshal(User{uid})
 	if err != nil {
-		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse used id"), err)
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user id"), err)
 	}
 
 	_, err = c.Invoke("authn.Encryptonize.RemoveUser", string(user))
@@ -461,7 +393,7 @@ func (c *Client) Encrypt(filename, associatedData string, stdin bool) error {
 
 // Decrypt calls the Encryptonize Decrypt endpoint
 func (c *Client) Decrypt(filename string, stdin bool) error {
-	var enc EncryptedData
+	var enc DecodedEncryptedData
 	storedData, err := readInput(filename, stdin)
 	if err != nil {
 		return fmt.Errorf("Failed to read input from file")
@@ -482,21 +414,12 @@ func (c *Client) Decrypt(filename string, stdin bool) error {
 		return fmt.Errorf("Failed to decode associated data")
 	}
 
-	object, err := json.Marshal(
-		struct {
-			ObjectID       string `json:"object_id"`
-			Ciphertext     []byte `json:"ciphertext"`
-			AssociatedData []byte `json:"associated_data"`
-		}{
-			ObjectID:       enc.ObjectID,
-			Ciphertext:     decodedCiphertext,
-			AssociatedData: decodedAAD,
-		})
+	encryptedData, err := json.Marshal(EncryptedData{decodedCiphertext, decodedAAD, enc.ObjectID})
 	if err != nil {
-		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object"), err)
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse data"), err)
 	}
 
-	response, err := c.Invoke("enc.Encryptonize.Decrypt", string(object))
+	response, err := c.Invoke("enc.Encryptonize.Decrypt", string(encryptedData))
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("Decrypt failed"), err)
 	}
@@ -504,16 +427,6 @@ func (c *Client) Decrypt(filename string, stdin bool) error {
 	log.Printf("%v\n%s", utils.Pass("Successfully decrypted object!"), response)
 
 	return nil
-}
-
-// openFile loads a file into memory
-func openFile(filename string) []byte {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("Open file failed"), err)
-	}
-
-	return data
 }
 
 // readInput reads bytes from provided filename, or from stdin
@@ -525,7 +438,11 @@ func readInput(filename string, stdin bool) ([]byte, error) {
 		return nil, errors.New("can't take both filename and stdin")
 	}
 	if filename != "" {
-		plaintext = openFile(filename)
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			log.Fatalf("%v: %v", utils.Fail("Open file failed"), err)
+		}
+		plaintext = data
 	}
 	if stdin {
 		data, err := io.ReadAll(os.Stdin)
