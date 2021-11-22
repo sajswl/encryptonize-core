@@ -43,14 +43,17 @@ type Keys struct {
 	// Used for key wrapping
 	KEK []byte `koanf:"kek"`
 
-	// Used for auth storage message authentication
-	ASK []byte `koanf:"ask"`
+	// Used for access object encryption
+	AEK []byte `koanf:"aek"`
 
 	// Used for token encryption
 	TEK []byte `koanf:"tek"`
 
 	// Used for confidential user data encryption
 	UEK []byte `koanf:"uek"`
+
+	// Used for confidential group data encryption
+	GEK []byte `koanf:"gek"`
 }
 
 type AuthStorage struct {
@@ -171,12 +174,12 @@ func (k *Keys) ParseConfig() error {
 		return errors.New("KEK must be 32 bytes (64 hex digits) long")
 	}
 
-	k.ASK, err = hex.DecodeString(string(k.ASK))
+	k.AEK, err = hex.DecodeString(string(k.AEK))
 	if err != nil {
-		return errors.New("ASK couldn't be parsed (decode hex)")
+		return errors.New("AEK couldn't be parsed (decode hex)")
 	}
-	if len(k.ASK) != 32 {
-		return errors.New("ASK must be 32 bytes (64 hex digits) long")
+	if len(k.AEK) != 32 {
+		return errors.New("AEK must be 32 bytes (64 hex digits) long")
 	}
 
 	k.TEK, err = hex.DecodeString(string(k.TEK))
@@ -193,6 +196,14 @@ func (k *Keys) ParseConfig() error {
 	}
 	if len(k.UEK) != 32 {
 		return errors.New("UEK must be 32 bytes (64 hex digits) long")
+	}
+
+	k.GEK, err = hex.DecodeString(string(k.GEK))
+	if err != nil {
+		return errors.New("GEK couldn't be parsed (decode hex)")
+	}
+	if len(k.GEK) != 32 {
+		return errors.New("GEK must be 32 bytes (64 hex digits) long")
 	}
 
 	return nil
@@ -236,14 +247,17 @@ func (k *Keys) CheckInsecure() {
 		if hex.EncodeToString(k.KEK) == "0000000000000000000000000000000000000000000000000000000000000000" {
 			log.Fatal(ctx, errors.New(""), "Test KEK used outside of INSECURE testing mode")
 		}
-		if hex.EncodeToString(k.ASK) == "0000000000000000000000000000000000000000000000000000000000000001" {
-			log.Fatal(ctx, errors.New(""), "Test ASK used outside of INSECURE testing mode")
+		if hex.EncodeToString(k.AEK) == "0000000000000000000000000000000000000000000000000000000000000001" {
+			log.Fatal(ctx, errors.New(""), "Test AEK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(k.TEK) == "0000000000000000000000000000000000000000000000000000000000000002" {
 			log.Fatal(ctx, errors.New(""), "Test TEK used outside of INSECURE testing mode")
 		}
 		if hex.EncodeToString(k.UEK) == "0000000000000000000000000000000000000000000000000000000000000003" {
 			log.Fatal(ctx, errors.New(""), "Test UEK used outside of INSECURE testing mode")
+		}
+		if hex.EncodeToString(k.GEK) == "0000000000000000000000000000000000000000000000000000000000000004" {
+			log.Fatal(ctx, errors.New(""), "Test GEK used outside of INSECURE testing mode")
 		}
 	}
 }

@@ -10,9 +10,10 @@ import (
 var testConfigTOML = `
 [keys]
 kek = "0101010101010101010101010101010101010101010101010101010101010101"
-ask = "0202020202020202020202020202020202020202020202020202020202020202"
+aek = "0202020202020202020202020202020202020202020202020202020202020202"
 tek = "0303030303030303030303030303030303030303030303030303030303030303"
 uek = "0404040404040404040404040404040404040404040404040404040404040404"
+gek = "0505050505050505050505050505050505050505050505050505050505050505"
 
 [authstorage]
 username = "authstorage.username"
@@ -34,9 +35,10 @@ cert = "objectstorage.cert"
 var testConfigYAML = `
 keys:
   kek: "0101010101010101010101010101010101010101010101010101010101010101"
-  ask: "0202020202020202020202020202020202020202020202020202020202020202"
+  aek: "0202020202020202020202020202020202020202020202020202020202020202"
   tek: "0303030303030303030303030303030303030303030303030303030303030303"
   uek: "0404040404040404040404040404040404040404040404040404040404040404"
+  gek: "0505050505050505050505050505050505050505050505050505050505050505"
 
 authstorage:
   username: "authstorage.username"
@@ -59,9 +61,10 @@ var testConfigJSON = `
 {
 	"keys": {
 		"kek": "0101010101010101010101010101010101010101010101010101010101010101",
-		"ask": "0202020202020202020202020202020202020202020202020202020202020202",
+		"aek": "0202020202020202020202020202020202020202020202020202020202020202",
 		"tek": "0303030303030303030303030303030303030303030303030303030303030303",
-		"uek": "0404040404040404040404040404040404040404040404040404040404040404"
+		"uek": "0404040404040404040404040404040404040404040404040404040404040404",
+		"gek": "0505050505050505050505050505050505050505050505050505050505050505"
 	},
 	"authstorage": {
 		"username": "authstorage.username",
@@ -85,9 +88,10 @@ var testConfigJSON = `
 var testConfig = Config{
 	Keys: Keys{
 		KEK: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		ASK: []byte{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+		AEK: []byte{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
 		TEK: []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
 		UEK: []byte{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
+		GEK: []byte{5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5},
 	},
 	AuthStorage: AuthStorage{
 		Username:    "authstorage.username",
@@ -227,9 +231,10 @@ func TestReadEnv(t *testing.T) {
 func TestParseKeys(t *testing.T) {
 	testKeys := Keys{
 		KEK: []byte("0101010101010101010101010101010101010101010101010101010101010101"),
-		ASK: []byte("0202020202020202020202020202020202020202020202020202020202020202"),
+		AEK: []byte("0202020202020202020202020202020202020202020202020202020202020202"),
 		TEK: []byte("0303030303030303030303030303030303030303030303030303030303030303"),
 		UEK: []byte("0404040404040404040404040404040404040404040404040404040404040404"),
+		GEK: []byte("0505050505050505050505050505050505050505050505050505050505050505"),
 	}
 	keys := testKeys
 
@@ -240,9 +245,9 @@ func TestParseKeys(t *testing.T) {
 	}
 	keys = testKeys
 
-	keys.ASK = []byte("totally not hex")
+	keys.AEK = []byte("totally not hex")
 	if err := keys.ParseConfig(); err == nil {
-		t.Error("Expected ParseConfig to fail (ASK)")
+		t.Error("Expected ParseConfig to fail (AEK)")
 	}
 	keys = testKeys
 
@@ -258,6 +263,12 @@ func TestParseKeys(t *testing.T) {
 	}
 	keys = testKeys
 
+	keys.GEK = []byte("totally not hex")
+	if err := keys.ParseConfig(); err == nil {
+		t.Error("Expected ParseConfig to fail (GEK)")
+	}
+	keys = testKeys
+
 	// Test wrong length
 	keys.KEK = []byte("deadbeef")
 	if err := keys.ParseConfig(); err == nil {
@@ -265,9 +276,9 @@ func TestParseKeys(t *testing.T) {
 	}
 	keys = testKeys
 
-	keys.ASK = []byte("deadbeef")
+	keys.AEK = []byte("deadbeef")
 	if err := keys.ParseConfig(); err == nil {
-		t.Error("Expected ParseConfig to fail (ASK)")
+		t.Error("Expected ParseConfig to fail (AEK)")
 	}
 	keys = testKeys
 
@@ -280,6 +291,12 @@ func TestParseKeys(t *testing.T) {
 	keys.UEK = []byte("deadbeef")
 	if err := keys.ParseConfig(); err == nil {
 		t.Error("Expected ParseConfig to fail (UEK)")
+	}
+	keys = testKeys
+
+	keys.GEK = []byte("deadbeef")
+	if err := keys.ParseConfig(); err == nil {
+		t.Error("Expected ParseConfig to fail (GEK)")
 	}
 	keys = testKeys
 }

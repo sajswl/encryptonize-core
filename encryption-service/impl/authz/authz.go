@@ -23,25 +23,27 @@ import (
 	"encryption-service/interfaces"
 )
 
+var ErrAuthStoreTxCastFailed = errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+
 // Authorizer encapsulates a MessageAuthenticator and a backing Auth Storage for reading and writing Access Objects
 type Authorizer struct {
 	AccessObjectCryptor interfaces.CryptorInterface
 }
 
 // CreateObject creates a new object with given parameters and inserts it into the Auth Store.
-func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uuid.UUID, woek []byte) error {
+func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, groupID uuid.UUID, woek []byte) error {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
-	accessObject := common.NewAccessObject(userID, woek)
+	accessObject := common.NewAccessObject(groupID, woek)
 	wrappedKey, ciphertext, err := a.AccessObjectCryptor.EncodeAndEncrypt(accessObject, objectID.Bytes())
 	if err != nil {
 		return err
 	}
 
-	protected := common.ProtectedAccessObject{
+	protected := &common.ProtectedAccessObject{
 		ObjectID:     objectID,
 		AccessObject: ciphertext,
 		WrappedKey:   wrappedKey,
@@ -59,7 +61,7 @@ func (a *Authorizer) CreateAccessObject(ctx context.Context, objectID, userID uu
 func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) (*common.AccessObject, error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return nil, errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return nil, ErrAuthStoreTxCastFailed
 	}
 
 	protected, err := authStorageTx.GetAccessObject(ctx, objectID)
@@ -80,7 +82,7 @@ func (a *Authorizer) FetchAccessObject(ctx context.Context, objectID uuid.UUID) 
 func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID, accessObject common.AccessObject) error {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
 	accessObject.Version++
@@ -90,7 +92,7 @@ func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID,
 		return err
 	}
 
-	protected := common.ProtectedAccessObject{
+	protected := &common.ProtectedAccessObject{
 		ObjectID:     objectID,
 		AccessObject: ciphertext,
 		WrappedKey:   wrappedKey,
@@ -107,7 +109,7 @@ func (a *Authorizer) UpdateAccessObject(ctx context.Context, objectID uuid.UUID,
 func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID) (err error) {
 	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
 	if !ok {
-		return errors.New("Could not typecast authstorage to authstorage.AuthStoreInterface")
+		return ErrAuthStoreTxCastFailed
 	}
 
 	err = authStorageTx.DeleteAccessObject(ctx, objectID)
@@ -115,5 +117,5 @@ func (a *Authorizer) DeleteAccessObject(ctx context.Context, objectID uuid.UUID)
 		return err
 	}
 
-	return authStorageTx.Commit(ctx)
+	return nil
 }

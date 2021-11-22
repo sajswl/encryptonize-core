@@ -14,18 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run gofmt and golanci-lint. Usage
-#   ./scripts/lint.sh
-
 set -euo pipefail
 
-source ./scripts/build-env
-
-echo "[*] formatting code"
-gofmt -l -w .
-
-echo "[*] tidying up"
-go mod tidy
-
-echo "[*] running linter"
-golangci-lint run -E gosec,asciicheck,bodyclose,gocyclo,unconvert,gocognit,misspell,revive,whitespace -D unused --timeout 5m --build-tags "encryption storage"
+while killall -s SIGINT encryption-service &>/dev/null; do
+  echo '[*] waiting for the server to shut down'
+  sleep 1
+done

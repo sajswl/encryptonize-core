@@ -23,12 +23,13 @@ SHELL := /bin/bash
 
 ##### Files #####
 binary = encryption-service
-protobufs = services/authz/authz.pb.go services/authz/authz_grpc.pb.go services/storage/storage_grpc.pb.go services/storage/storage.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/enc/enc.pb.go services/enc/enc_grpc.pb.go services/app/app_grpc.pb.go services/app/app.pb.go common/users.pb.go
-protosource = services/authz/authz.proto services/storage/storage.proto services/authn/authn.proto services/app/app.proto common/users.proto services/enc/enc.proto
+protobufs = services/authz/authz.pb.go services/authz/authz_grpc.pb.go services/storage/storage_grpc.pb.go services/storage/storage.pb.go services/authn/authn_grpc.pb.go services/authn/authn.pb.go services/enc/enc.pb.go services/enc/enc_grpc.pb.go services/app/app_grpc.pb.go services/app/app.pb.go common/scopes.pb.go
+protosource = services/authz/authz.proto services/storage/storage.proto services/authn/authn.proto services/app/app.proto common/scopes.proto services/enc/enc.proto
 protocopts = --go_opt=paths=source_relative --go_out=.
 grpcopts = $(protocopts) --go-grpc_opt=paths=source_relative --go-grpc_out=.
 credentials = data/client.root.crt data/object_storage_key data/ca.crt data/client.root.key data/encryptonize.crt data/object_storage_id data/object_storage.crt
 coverage = coverage-unit.html coverage-e2e.html coverage-all.html
+localstore = data/auth_db.dat data/obj_db.dat
 
 # Build Tags variable
 tags =
@@ -54,7 +55,7 @@ $(protobufs): $(protosource)
 	protoc $(grpcopts) services/authz/authz.proto
 	protoc $(grpcopts) services/authn/authn.proto
 	protoc $(grpcopts) services/app/app.proto
-	protoc $(protocopts) common/users.proto
+	protoc $(protocopts) common/scopes.proto
 
 .PHONY: docker-build
 docker-build:  ## Build the Encryption Service docker image
@@ -96,10 +97,13 @@ unit-tests: build  ## Run unit tests
 e2e-tests: build  ## Run end-to-end tests
 	./scripts/e2e_tests.sh
 
-.PHONY: e2e-tests-local
-e2e-tests-local: build  ## Run end-to-end tests against a local instance
+.PHONY: e2e-tests-mem
+e2e-tests-mem: tags += storage_mocked
+e2e-tests-mem: build  ## Run end-to-end tests against a local instance
 	source <(./scripts/get-e2e-user.sh local) && \
-	./scripts/e2e_tests.sh
+	(./scripts/run.sh &>/dev/null &) && \
+	./scripts/e2e_tests.sh && \
+	./scripts/kill_server.sh
 
 .PHONY: e2e-tests-docker
 e2e-tests-docker: build  ## Run end-to-end tests against docker
@@ -164,6 +168,7 @@ clean :
 	rm -f $(binary)
 	rm -f $(protobufs)
 	rm -f $(coverage)
+	rm -f $(localstore)
 
 .PHONY: clean-credentials  ## Remove credentials
 clean-credentials :

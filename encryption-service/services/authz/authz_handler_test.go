@@ -41,7 +41,7 @@ var objectID = uuid.Must(uuid.NewV4())
 var Woek, err = crypt.Random(32)
 
 var accessObject = &common.AccessObject{
-	UserIDs: map[uuid.UUID]bool{
+	GroupIDs: map[uuid.UUID]bool{
 		userID: true,
 	},
 	Woek:    Woek,
@@ -61,13 +61,13 @@ var authnStorageTxMock = &authstorage.AuthStoreTxMock{
 			WrappedKey:   wrappedKey,
 		}, nil
 	},
-	UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+	UpdateAccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 		return nil
 	},
 	CommitFunc: func(ctx context.Context) error {
 		return nil
 	},
-	UserExistsFunc: func(ctx context.Context, userID uuid.UUID) (bool, error) {
+	GroupExistsFunc: func(ctx context.Context, groupID uuid.UUID) (bool, error) {
 		return true, nil
 	},
 }
@@ -81,7 +81,7 @@ func TestGetPermissions(t *testing.T) {
 		t.Fatalf("Couldn't get user: %v", err)
 	}
 
-	if !reflect.DeepEqual(expected, getPermissionsResponse.UserIds) {
+	if !reflect.DeepEqual(expected, getPermissionsResponse.GroupIds) {
 		t.Fatal("Wrong users returned")
 	}
 }
@@ -105,19 +105,17 @@ func TestAddPermission(t *testing.T) {
 
 // Tests that a permission cannot be added if the target user doesn't exist
 func TestAddPermissionNoTargetUser(t *testing.T) {
-	// Temporarily overwrite UserExistsFunc to return error
-	oldUserExists := authnStorageTxMock.UserExistsFunc
-	authnStorageTxMock.UserExistsFunc = func(ctx context.Context, userID uuid.UUID) (bool, error) {
+	// Temporarily overwrite GroupExistsFunc to return false
+	oldGroupExists := authnStorageTxMock.GroupExistsFunc
+	authnStorageTxMock.GroupExistsFunc = func(ctx context.Context, groupID uuid.UUID) (bool, error) {
 		return false, nil
 	}
+	defer func() { authnStorageTxMock.GroupExistsFunc = oldGroupExists }()
 
 	ctx := context.WithValue(context.Background(), common.AccessObjectCtxKey, accessObject)
 	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authnStorageTxMock)
 
 	_, err = permissions.AddPermission(ctx, &AddPermissionRequest{ObjectId: objectID.String(), Target: targetID.String()})
-
-	// Restore the original GetTag function for the other tests
-	authnStorageTxMock.UserExistsFunc = oldUserExists
 
 	if err == nil {
 		t.Fatalf("Shouldn't able to add user that does not exist!")

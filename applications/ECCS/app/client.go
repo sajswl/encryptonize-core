@@ -15,23 +15,25 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	b64 "encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
-	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
+	"github.com/fullstorydev/grpcurl"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 	grpc_reflection "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
-	"google.golang.org/protobuf/types/descriptorpb"
 
 	"eccs/utils"
 )
@@ -41,14 +43,13 @@ type Client struct {
 	connection *grpc.ClientConn
 	refClient  *grpcreflect.Client
 	ctx        context.Context
+	reflSource grpcurl.DescriptorSource
+	authHeader []string
 }
 
 // NewClient creates a new client
 // For a secure connection set the environment variable "ECCS_CRT" appropriately
 func NewClient(userAT string) (*Client, error) {
-	// Wrap credentials as gRPC metadata
-	md := metadata.Pairs("authorization", fmt.Sprintf("bearer %s", userAT)) // set authorization header
-
 	// Get endpoint from env var
 	endpoint, ok := os.LookupEnv("ECCS_ENDPOINT") // Fetch endpoint, note that the service is running on port 9000
 	if !ok {
@@ -83,571 +84,373 @@ func NewClient(userAT string) (*Client, error) {
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	}
 
+	// Define context
+	ctx := context.Background()
+
 	// Initialize connection with Encryptonize server
 	connection, err := grpc.Dial(endpoint, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	client := grpcreflect.NewClient(context.Background(), grpc_reflection.NewServerReflectionClient(connection))
-
-	// Add metadata/credetials to context
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	client := grpcreflect.NewClient(ctx, grpc_reflection.NewServerReflectionClient(connection))
+	reflSource := grpcurl.DescriptorSourceFromServer(ctx, client)
+	authHeader := []string{"authorization: bearer " + userAT}
 
 	return &Client{
 		connection: connection, // The grpc connection
 		refClient:  client,     // The reflection client
 		ctx:        ctx,        // The request context
+		reflSource: reflSource, // The reflection source
+		authHeader: authHeader, // The authorization header
 	}, nil
 }
 
-// findMethod queries the grpc server via reflection to get a descriptor for some method
-func (c *Client) findMethod(service, method string) (*desc.MethodDescriptor, error) {
-	// resolve the service by name
-	srvDes, err := c.refClient.ResolveService(service)
+// Invoke invokes given method on a gRPC channel
+func (c *Client) Invoke(method, input string) (string, error) {
+	in := strings.NewReader(input)
+	options := grpcurl.FormatOptions{
+		EmitJSONDefaultFields: false,
+		IncludeTextSeparator:  true,
+		AllowUnknownFields:    false,
+	}
+
+	rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.FormatJSON, c.reflSource, in, options)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("%v: %v", utils.Fail("Failed to construct request parser and formatter"), err)
 	}
 
-	// resolve the method of the service
-	methDes := srvDes.FindMethodByName(method)
-	if methDes == nil {
-		errMsg := fmt.Sprintf("Service %s has no method named %s", service, method)
-		return nil, errors.New(errMsg)
+	var response bytes.Buffer
+	handler := &grpcurl.DefaultEventHandler{
+		Out:            &response,
+		Formatter:      formatter,
+		VerbosityLevel: 0,
 	}
 
-	return methDes, nil
-}
-
-// sanitize asserts that a message has the specified fields
-func sanitize(mt *desc.MessageDescriptor, ex map[string]descriptorpb.FieldDescriptorProto_Type) bool {
-	fields := mt.GetFields()
-
-	// make sure the message has exactly the number of fields we are expecting
-	if len(fields) != len(ex) {
-		return false
+	err = grpcurl.InvokeRPC(
+		c.ctx,
+		c.reflSource,
+		c.connection,
+		method,
+		c.authHeader,
+		handler,
+		rf.Next)
+	if err != nil {
+		return "", fmt.Errorf("%v: %v", utils.Fail("Failed to invoke RPC"), err)
+	}
+	if handler.Status.Code() != codes.OK {
+		return "", fmt.Errorf("%v: %v", utils.Fail("Request rejected by Encryptonize"), handler.Status.Message())
 	}
 
-	// look for each field we are expecting
-	for name, exType := range ex {
-		fd := mt.FindFieldByName(name)
-		// assert it has the type we are expecting
-		if fd == nil || fd.GetType() != exType {
-			return false
-		}
-	}
-
-	return true
+	return response.String(), nil
 }
 
 // Store calls the Encryptonize Store endpoint
-func (c *Client) Store(plaintext, associatedData []byte) (string, error) {
-	mth, err := c.findMethod("storage.Encryptonize", "Store")
+func (c *Client) Store(filename, associatedData string, stdin bool) error {
+	plaintext, err := readInput(filename, stdin)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("%v: %v", utils.Fail("Store failed"), err)
 	}
 
-	// sanitize in and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-	if !sanitize(inType, inExp) {
-		return "", errors.New("Unexpected input type of Store method")
-	}
-
-	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(outType, outExp) {
-		return "", errors.New("Unexpected type of the object message")
-	}
-
-	// create the argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("plaintext", plaintext)
-	msg.SetFieldByName("associated_data", associatedData)
-
-	// invoke the RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	data, err := json.Marshal(Data{plaintext, []byte(associatedData)})
 	if err != nil {
-		return "", err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse data"), err)
 	}
 
-	// deconstruct the result
-	res, err := dynamic.AsDynamicMessage(pres)
+	response, err := c.Invoke("storage.Encryptonize.Store", string(data))
 	if err != nil {
-		return "", err
+		return fmt.Errorf("%v: %v", utils.Fail("Store failed"), err)
 	}
 
-	objID := res.GetFieldByName("object_id").(string)
+	log.Printf("%v\n%s", utils.Pass("Successfully stored object!"), response)
 
-	return objID, nil
+	return nil
 }
 
 // Retrieve calls the Encryptonize Retrieve endpoint
-func (c *Client) Retrieve(oid string) ([]byte, []byte, error) {
-	mth, err := c.findMethod("storage.Encryptonize", "Retrieve")
+func (c *Client) Retrieve(oid string) error {
+	objectID, err := json.Marshal(Object{oid})
 	if err != nil {
-		return nil, nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object ID"), err)
 	}
 
-	// sanitize input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(inType, inExp) {
-		return nil, nil, errors.New("Unexpected input type of Retrieve method")
-	}
-
-	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-	if !sanitize(outType, outExp) {
-		return nil, nil, errors.New("Unexpected output type of Retrieve method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object_id", oid)
-
-	// invoke RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	response, err := c.Invoke("storage.Encryptonize.Retrieve", string(objectID))
 	if err != nil {
-		return nil, nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("Retrieve failed"), err)
 	}
 
-	// deconstruct result
-	res, err := dynamic.AsDynamicMessage(pres)
+	var data RetrievedData
+	err = json.Unmarshal([]byte(response), &data)
 	if err != nil {
-		return nil, nil, err
+		return fmt.Errorf("Provided input does not contain the required structure")
 	}
 
-	m := res.GetFieldByName("plaintext").([]byte)
-	aad := res.GetFieldByName("associated_data").([]byte)
+	retrieved, err := json.Marshal(DecodedRetrievedData{Plaintext: string(data.Plaintext), AssociatedData: string(data.AssociatedData)})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to decode retrieved data"), err)
+	}
 
-	return m, aad, nil
+	log.Printf("%v\n%s", utils.Pass("Successfully retrieved object!"), retrieved)
+
+	return nil
 }
 
 // Update calls the Encryptonize Update endpoint
-func (c *Client) Update(oid string, plaintext, associatedData []byte) error {
-	mth, err := c.findMethod("storage.Encryptonize", "Update")
+func (c *Client) Update(oid, filename, associatedData string, stdin bool) error {
+	plaintext, err := readInput(filename, stdin)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to read input from file")
 	}
 
-	// sanitize input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id":       descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-	if !sanitize(inType, inExp) {
-		return errors.New("Unexpected input type of Update method")
-	}
-
-	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
-	if !sanitize(outType, outExp) {
-		return errors.New("Unexpected output type of Update method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object_id", oid)
-	msg.SetFieldByName("plaintext", plaintext)
-	msg.SetFieldByName("associated_data", associatedData)
-
-	// invoke RPC and disregard nonexisting return values
-	stub := grpcdynamic.NewStub(c.connection)
-	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	updateObject, err := json.Marshal(UpdateObject{oid, plaintext, []byte(associatedData)})
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse update object"), err)
 	}
+
+	_, err = c.Invoke("storage.Encryptonize.Update", string(updateObject))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Update failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully updated object!"))
 
 	return nil
 }
 
 // Delete calls the Encryptonize Delete endpoint
 func (c *Client) Delete(oid string) error {
-	mth, err := c.findMethod("storage.Encryptonize", "Delete")
+	objectID, err := json.Marshal(Object{oid})
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object ID"), err)
 	}
 
-	// sanitize input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(inType, inExp) {
-		return errors.New("Unexpected input type of Delete method")
-	}
-
-	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
-	if !sanitize(outType, outExp) {
-		return errors.New("Unexpected output type of Delete method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object_id", oid)
-
-	// invoke RPC and disregard nonexisting return values
-	stub := grpcdynamic.NewStub(c.connection)
-	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	_, err = c.Invoke("storage.Encryptonize.Delete", string(objectID))
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
+
+	log.Printf("%v\n", utils.Pass("Successfully deleted object!"))
 
 	return nil
 }
 
 // GetPermissions calls the Encryptonize GetPermissions endpoint
-func (c *Client) GetPermissions(oid string) ([]string, error) {
-	mth, err := c.findMethod("authz.Encryptonize", "GetPermissions")
+func (c *Client) GetPermissions(oid string) error {
+	objectID, err := json.Marshal(Object{oid})
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object ID"), err)
 	}
 
-	// sanitzie input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(inType, inExp) {
-		return nil, errors.New("Unexpected input type of GetPermissions method")
-	}
-
-	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_ids": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(outType, outExp) {
-		return nil, errors.New("Unexpected output type of GetPermissions method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object_id", oid)
-
-	// invoke RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	response, err := c.Invoke("authz.Encryptonize.GetPermissions", string(objectID))
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	// deconstruct result
-	res, err := dynamic.AsDynamicMessage(pres)
-	if err != nil {
-		return nil, err
-	}
+	log.Printf("%v\n%s", utils.Pass("Successfully got permissions!"), response)
 
-	// collect repeated user_ids field
-	idsField := outType.FindFieldByName("user_ids")
-	numIds := res.FieldLength(idsField)
-	var ids = []string{}
-	for i := 0; i < numIds; i++ {
-		ids = append(ids, res.GetRepeatedField(idsField, i).(string))
-	}
-
-	return ids, nil
+	return nil
 }
 
-type UpdateType int
-
-const (
-	UpdateKindAdd = iota
-	UpdateKindRemove
-)
-
-// UpdatePermissions either Adds a user to or Removes a user from the Access Object
-// AddPermission and RemovePermission share the same signature so they are only
-// distinguished by their name
-func (c *Client) UpdatePermission(oid, target string, kind UpdateType) error {
-	var method string
-	switch kind {
-	case UpdateKindAdd:
-		method = "AddPermission"
-	case UpdateKindRemove:
-		method = "RemovePermission"
-	default:
-		return errors.New("Unknown update kind")
-	}
-
-	mth, err := c.findMethod("authz.Encryptonize", method)
+// AddPermission calls the Encryptonize AddPermission endpoint
+func (c *Client) AddPermission(oid, target string) error {
+	object, err := json.Marshal(ObjectPermissions{oid, target})
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object permissions"), err)
 	}
 
-	// sanitize input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"target":    descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(inType, inExp) {
-		return errors.New("Unexpected input type of UpdatePermission method")
-	}
-
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
-	if !sanitize(mth.GetOutputType(), outExp) {
-		return errors.New("Unexpected output type of UpdatePermission method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object_id", oid)
-	msg.SetFieldByName("target", target)
-
-	// invoke RPC and disregard nonexisting return values
-	stub := grpcdynamic.NewStub(c.connection)
-	_, err = stub.InvokeRpc(c.ctx, mth, msg)
+	_, err = c.Invoke("authz.Encryptonize.AddPermission", string(object))
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: %v", utils.Fail("AddPermission failed"), err)
 	}
+
+	log.Printf("%v\n", utils.Pass("Successfully added permissions!"))
+
+	return nil
+}
+
+// RemovePermission calls the Encryptonize RemovePermission endpoint
+func (c *Client) RemovePermission(oid, target string) error {
+	object, err := json.Marshal(ObjectPermissions{oid, target})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object permissions"), err)
+	}
+
+	_, err = c.Invoke("authz.Encryptonize.RemovePermission", string(object))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("RemovePermission failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully removed permissions!"))
 
 	return nil
 }
 
 // CreateUser calls the Encryptonize CreateUser endpoint
-func (c *Client) CreateUser(scopes []string) (string, string, error) {
-	mth, err := c.findMethod("authn.Encryptonize", "CreateUser")
+func (c *Client) CreateUser(userScope UserScope) error {
+	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
+	var scopes = []string{}
+
+	if userScope.Read {
+		scopes = append(scopes, "READ")
+	}
+	if userScope.Create {
+		scopes = append(scopes, "CREATE")
+	}
+	if userScope.Update {
+		scopes = append(scopes, "UPDATE")
+	}
+	if userScope.Delete {
+		scopes = append(scopes, "DELETE")
+	}
+	if userScope.Index {
+		scopes = append(scopes, "INDEX")
+	}
+	if userScope.ObjectPermissions {
+		scopes = append(scopes, "OBJECTPERMISSIONS")
+	}
+	if userScope.UserManagement {
+		scopes = append(scopes, "USERMANAGEMENT")
+	}
+
+	if len(scopes) < 1 {
+		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
+	}
+
+	userScopes, err := json.Marshal(UserScopes{scopes})
 	if err != nil {
-		return "", "", err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user scopes"), err)
 	}
 
-	// sanitize input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_scopes": descriptorpb.FieldDescriptorProto_TYPE_ENUM,
-	}
-	if !sanitize(inType, inExp) {
-		return "", "", errors.New("Unexpected input type of CreateUser method")
-	}
-
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_id":  descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"password": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(mth.GetOutputType(), outExp) {
-		return "", "", errors.New("Unexpected output type of CreateUser method")
-	}
-
-	// create a map to translate the scope names to the enum
-	scopeField := inType.FindFieldByName("user_scopes")
-	scopeMap := make(map[string]int32)
-	for _, e := range scopeField.GetEnumType().GetValues() {
-		scopeMap[e.GetName()] = e.GetNumber()
-		log.Printf("%s: %v", e.GetName(), e.GetNumber())
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	for _, scope := range scopes {
-		msg.AddRepeatedField(scopeField, scopeMap[scope])
-	}
-
-	// invoke RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	response, err := c.Invoke("authn.Encryptonize.CreateUser", string(userScopes))
 	if err != nil {
-		return "", "", err
+		return fmt.Errorf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
 
-	// deconstruct return value
-	res, err := dynamic.AsDynamicMessage(pres)
-	if err != nil {
-		return "", "", err
-	}
-
-	uid := res.GetFieldByName("user_id").(string)
-	password := res.GetFieldByName("password").(string)
-
-	return uid, password, nil
-}
-
-func (c *Client) LoginUser(uid, password string) (string, error) {
-	mth, err := c.findMethod("authn.Encryptonize", "LoginUser")
-	if err != nil {
-		return "", err
-	}
-
-	// sanitize input and outputs
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_id":  descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"password": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(inType, inExp) {
-		return "", errors.New("Unexpected input type of LoginUser method")
-	}
-
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"access_token": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-
-	if !sanitize(mth.GetOutputType(), outExp) {
-		return "", errors.New("Unexpected output type of LoginUser method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("user_id", uid)
-	msg.SetFieldByName("password", password)
-
-	// invoke RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
-	if err != nil {
-		return "", err
-	}
-
-	// deconstruct return value
-	res, err := dynamic.AsDynamicMessage(pres)
-	if err != nil {
-		return "", err
-	}
-
-	at := res.GetFieldByName("access_token").(string)
-
-	return at, nil
-}
-
-func (c *Client) RemoveUser(uid string) error {
-	mth, err := c.findMethod("authn.Encryptonize", "RemoveUser")
-	if err != nil {
-		return err
-	}
-
-	// sanitize input and outputs
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"user_id": descriptorpb.FieldDescriptorProto_TYPE_STRING,
-	}
-	if !sanitize(inType, inExp) {
-		return errors.New("Unexpected input type of RemoveUser method")
-	}
-
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{}
-	if !sanitize(mth.GetOutputType(), outExp) {
-		return errors.New("Unexpected output type of RemoveUser method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("user_id", uid)
-
-	// invoke RPC and disregard nonexisting return values
-	stub := grpcdynamic.NewStub(c.connection)
-	_, err = stub.InvokeRpc(c.ctx, mth, msg)
-	if err != nil {
-		return err
-	}
+	log.Printf("%v\n%s", utils.Pass("Successfully created user!"), response)
 
 	return nil
 }
 
-func (c *Client) Encrypt(plaintext, associatedData []byte) (string, []byte, []byte, error) {
-	mth, err := c.findMethod("enc.Encryptonize", "Encrypt")
+// LoginUser calls the Encryptonize LoginUser endpoint
+func (c *Client) LoginUser(uid, password string) error {
+	credentials, err := json.Marshal(Credentials{uid, password})
 	if err != nil {
-		return "", nil, nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse credentials"), err)
 	}
 
-	// sanitize in and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-	if !sanitize(inType, inExp) {
-		return "", nil, nil, errors.New("Unexpected input type of Encrypt method")
-	}
-
-	// create the argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("plaintext", plaintext)
-	msg.SetFieldByName("associated_data", associatedData)
-
-	// invoke the RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	response, err := c.Invoke("authn.Encryptonize.LoginUser", string(credentials))
 	if err != nil {
-		return "", nil, nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("LoginUser failed"), err)
 	}
 
-	// deconstruct the result
-	res, err := dynamic.AsDynamicMessage(pres)
-	if err != nil {
-		return "", nil, nil, err
-	}
+	log.Printf("%v\n%s", utils.Pass("Successfully logged in user!"), response)
 
-	objID := res.GetFieldByName("object_id").(string)
-
-	ciphertext := res.GetFieldByName("ciphertext").([]byte)
-	aad := res.GetFieldByName("associated_data").([]byte)
-
-	return objID, ciphertext, aad, nil
+	return nil
 }
 
-func (c *Client) Decrypt(oid string, ciphertext []byte, associatedData []byte) ([]byte, []byte, error) {
-	mth, err := c.findMethod("enc.Encryptonize", "Decrypt")
+// RemoveUser calls the Encryptonize RemoveUser endpoint
+func (c *Client) RemoveUser(uid string) error {
+	user, err := json.Marshal(User{uid})
 	if err != nil {
-		return nil, nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user id"), err)
 	}
 
-	// sanitize input and output
-	inType := mth.GetInputType()
-	var inExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"object_id":       descriptorpb.FieldDescriptorProto_TYPE_STRING,
-		"ciphertext":      descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-
-	if !sanitize(inType, inExp) {
-		return nil, nil, errors.New("Unexpected input type of Decrypt method")
-	}
-
-	outType := mth.GetOutputType()
-	var outExp = map[string]descriptorpb.FieldDescriptorProto_Type{
-		"plaintext":       descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-		"associated_data": descriptorpb.FieldDescriptorProto_TYPE_BYTES,
-	}
-	if !sanitize(outType, outExp) {
-		return nil, nil, errors.New("Unexpected output type of Decrypt method")
-	}
-
-	// create argument
-	msg := dynamic.NewMessage(inType)
-	msg.SetFieldByName("object_id", oid)
-	msg.SetFieldByName("ciphertext", ciphertext)
-	msg.SetFieldByName("associated_data", associatedData)
-
-	// invoke RPC
-	stub := grpcdynamic.NewStub(c.connection)
-	pres, err := stub.InvokeRpc(c.ctx, mth, msg)
+	_, err = c.Invoke("authn.Encryptonize.RemoveUser", string(user))
 	if err != nil {
-		return nil, nil, err
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUser failed"), err)
 	}
 
-	// deconstruct result
-	res, err := dynamic.AsDynamicMessage(pres)
+	log.Printf("%v\n", utils.Pass("Successfully removed user!"))
+
+	return nil
+}
+
+// Encrypt calls the Encryptonize Encrypt endpoint
+func (c *Client) Encrypt(filename, associatedData string, stdin bool) error {
+	plaintext, err := readInput(filename, stdin)
 	if err != nil {
-		return nil, nil, err
+		return fmt.Errorf("Failed to read input from file")
 	}
 
-	m := res.GetFieldByName("plaintext").([]byte)
-	aad := res.GetFieldByName("associated_data").([]byte)
+	data, err := json.Marshal(Data{plaintext, []byte(associatedData)})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse data"), err)
+	}
 
-	return m, aad, nil
+	response, err := c.Invoke("enc.Encryptonize.Encrypt", string(data))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Encrypt failed"), err)
+	}
+
+	// Log status to logging output
+	log.Printf("%v\n", utils.Pass("Successfully encrypted object!"))
+
+	// Output actual output to stdout
+	fmt.Printf("%s\n", response)
+
+	return nil
+}
+
+// Decrypt calls the Encryptonize Decrypt endpoint
+func (c *Client) Decrypt(filename string, stdin bool) error {
+	var enc DecodedEncryptedData
+	storedData, err := readInput(filename, stdin)
+	if err != nil {
+		return fmt.Errorf("Failed to read input from file")
+	}
+
+	err = json.Unmarshal(storedData, &enc)
+	if err != nil {
+		return fmt.Errorf("Provided input does not contain the required structure")
+	}
+
+	decodedCiphertext, err := b64.StdEncoding.DecodeString(enc.Ciphertext)
+	if err != nil {
+		return fmt.Errorf("Failed to decode ciphertext")
+	}
+
+	decodedAAD, err := b64.StdEncoding.DecodeString(enc.AssociatedData)
+	if err != nil {
+		return fmt.Errorf("Failed to decode associated data")
+	}
+
+	encryptedData, err := json.Marshal(EncryptedData{decodedCiphertext, decodedAAD, enc.ObjectID})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse data"), err)
+	}
+
+	response, err := c.Invoke("enc.Encryptonize.Decrypt", string(encryptedData))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Decrypt failed"), err)
+	}
+
+	log.Printf("%v\n%s", utils.Pass("Successfully decrypted object!"), response)
+
+	return nil
+}
+
+// readInput reads bytes from provided filename, or from stdin
+// Exits program if both are provided
+func readInput(filename string, stdin bool) ([]byte, error) {
+	var plaintext []byte
+
+	if filename != "" && stdin {
+		return nil, errors.New("can't take both filename and stdin")
+	}
+	if filename != "" {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			log.Fatalf("%v: %v", utils.Fail("Open file failed"), err)
+		}
+		plaintext = data
+	}
+	if stdin {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		plaintext = data
+	}
+
+	return plaintext, nil
 }

@@ -11,28 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package app
+package common
 
 import (
-	"eccs/utils"
-	"log"
+	"github.com/gofrs/uuid"
 )
 
-// RemoveUser creates a new client and calls RemoveUser
-func RemoveUser(userAT, uid string) error {
-	client, err := NewClient(userAT)
-	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("RemoveUser failed"), err)
-	}
+type GroupData struct {
+	Scopes ScopeType
+}
 
-	err = client.RemoveUser(uid)
-	if err != nil {
-		log.Fatalf("%v: %v", utils.Fail("RemoveUser failed"), err)
-	}
-
-	// Print removal success to user
-	log.Printf("%vUid: \"%s\"", utils.Pass("Successfully removed user!\n"), uid)
-
-	return nil
+type ProtectedGroupData struct {
+	GroupID    uuid.UUID
+	GroupData  []byte
+	WrappedKey []byte
 }

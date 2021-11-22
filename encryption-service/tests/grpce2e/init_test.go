@@ -26,14 +26,14 @@ import (
 var endpoint = "127.0.0.1:9000"
 var uid string
 var pwd string
-var protoUserScopes = []common.UserScope{
-	common.UserScope_READ,
-	common.UserScope_CREATE,
-	common.UserScope_INDEX,
-	common.UserScope_OBJECTPERMISSIONS,
-	common.UserScope_USERMANAGEMENT,
-	common.UserScope_UPDATE,
-	common.UserScope_DELETE,
+var protoUserScopes = []common.Scope{
+	common.Scope_READ,
+	common.Scope_CREATE,
+	common.Scope_INDEX,
+	common.Scope_OBJECTPERMISSIONS,
+	common.Scope_USERMANAGEMENT,
+	common.Scope_UPDATE,
+	common.Scope_DELETE,
 }
 var https = false
 
