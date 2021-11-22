@@ -142,7 +142,7 @@ The base command to add a permission to an object is
 ### Flags
 
 `-o`, `--objectid` - object id of the file to add a permission to
-`-t`, `--target` - the uid of the user to add to the permissions list
+`-t`, `--target` - the uid of the user or the group to add to the permissions list
 
 ### Examples
 Add a permission to a file:
@@ -159,7 +159,7 @@ The base command to remove a permission from an object is
 ### Flags
 
 `-o`, `--objectid` - object id of the file to remove a permission from
-`-t`, `--target` - the uid of the user to remove from the permissions list
+`-t`, `--target` - the uid of the user or the group to remove from the permissions list
 
 ### Examples
 Remove a permission to a file:
@@ -188,4 +188,59 @@ belong to a user with the `USERMANAGEMENT` scope.
 Create a new user:
 ```
 ./eccs -a <uat> createuser -k user
+```
+
+## CreateGroup
+The base command to create a group on the Encryptonize service is:
+```
+./eccs -a <uat> creategroup <flags>
+```
+
+### Flags
+
+`-r`, `--read` - grants the Read scope
+`-c`, `--create` - grants the Create scope
+`-u`, `--update` - grants the Update scope
+`-i`, `--index` - grants the Index scope
+`-p`, `--object_permissions` - grants the ObjectPermissions scope
+`-m`, `--user_management` - grants the UserManagement scope
+
+### Examples
+Create a new group:
+```
+./eccs -a <uat> creategroup
+```
+
+## AddUserToGroup
+The base command to add a user to a group is
+```
+./eccs -a <uat> addusertogroup <flags>
+```
+
+### Flags
+
+`-g`, `--groupid` - group id of the group to add a user to
+`-t`, `--target` - the uid of the user to be added to the group
+
+### Examples
+Add a user to a group:
+```
+./eccs -a <uat> addusertogroup -g bf90fe6a-e75a-4ff2-89a2-82c5596a7930 -t 31c7e8e5-15b8-42da-a4ce-9ac812cb0927
+```
+
+## RemoveUserFromGroup
+The base command to remove a user from a group is
+```
+./eccs -a <uat> removeuserfromgroup <flags>
+```
+
+### Flags
+
+`-g`, `--groupid` - group id of the group to remove a user from
+`-t`, `--target` - the uid of the user to be removed from the group
+
+### Examples
+Remove a user from a group:
+```
+./eccs -a <uat> removeuserfromgroup -g bf90fe6a-e75a-4ff2-89a2-82c5596a7930 -t 31c7e8e5-15b8-42da-a4ce-9ac812cb0927
 ```
