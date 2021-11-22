@@ -104,6 +104,27 @@ def login_user(uid, password):
 
 	return at
 
+def create_group(token, flags=None):
+	cmd = ["./eccs", "-a", token, "creategroup"]
+	if flags is not None:
+		cmd.append(flags)
+
+	# groupID is returned on stderr so we need to get that
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+
+	gid = None
+	for match in re.finditer(r"\"groupId\": \"([^\"]+)\"", res.stderr):
+		if gid is not None:
+			print(f"multiple matches for the groupID, aborting")
+			sys.exit(1)
+		gid = match.group(1)
+
+	if gid is None or at is None:
+		print(f"unable to match groupID in {res}")
+		sys.exit(1)
+
+	return gid
+
 def create_object(token, data, associated_data):
 	cmd = ["./eccs", "-a", token, "store", "-s"]
 	if associated_data is not None:
@@ -219,4 +240,9 @@ if __name__ == "__main__":
 	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)
 	subprocess.run(["./eccs", "-a", at, "removeuser", "-t", uid2], check=True)
+
+
+	gid = create_group(at, "-rcudip")
+	print(f"[+] created group:  GroupID {gid}")
+
 	print("[+] all tests succeeded")

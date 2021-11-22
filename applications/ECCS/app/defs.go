@@ -60,7 +60,7 @@ type User struct {
 	UserID string `json:"user_id"`
 }
 
-type UserScope struct {
+type Scope struct {
 	Read              bool
 	Create            bool
 	Update            bool
@@ -70,7 +70,7 @@ type UserScope struct {
 	UserManagement    bool
 }
 
-type UserScopes struct {
+type Scopes struct {
 	Scopes []string `json:"scopes"`
 }
 

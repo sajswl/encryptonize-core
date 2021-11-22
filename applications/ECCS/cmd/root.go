@@ -41,8 +41,8 @@ var (
 	stdin          bool
 	associatedData string
 
-	// CreateUser args
-	userScope app.UserScope
+	// CreateUser, CreateGroup args
+	scope app.Scope
 )
 
 var rootCmd = &cobra.Command{
@@ -143,7 +143,7 @@ var createUserCmd = &cobra.Command{
 	Short:   "Creates a user on the server",
 	PreRunE: InitClient,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := client.CreateUser(userScope); err != nil {
+		if err := client.CreateUser(scope); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -166,6 +166,17 @@ var removeUserCmd = &cobra.Command{
 	PreRunE: InitClient,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := client.RemoveUser(uid); err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+var createGroupCmd = &cobra.Command{
+	Use:     "creategroup",
+	Short:   "Creates a group on the server",
+	PreRunE: InitClient,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := client.CreateGroup(scope); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -216,6 +227,7 @@ func InitCmd() error {
 	rootCmd.AddCommand(createUserCmd)
 	rootCmd.AddCommand(loginUserCmd)
 	rootCmd.AddCommand(removeUserCmd)
+	rootCmd.AddCommand(createGroupCmd)
 	rootCmd.AddCommand(encryptCmd)
 	rootCmd.AddCommand(decryptCmd)
 
@@ -278,13 +290,13 @@ func InitCmd() error {
 	}
 
 	// Set createUser flags
-	createUserCmd.Flags().BoolVarP(&userScope.Read, "read", "r", false, "Grants the Read scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&userScope.Create, "create", "c", false, "Grants the Create scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&userScope.Update, "update", "u", false, "Grants the Update scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&userScope.Delete, "delete", "d", false, "Grants the Delete scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&userScope.Index, "index", "i", false, "Grants the Index scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&userScope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
-	createUserCmd.Flags().BoolVarP(&userScope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.Read, "read", "r", false, "Grants the Read scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.Create, "create", "c", false, "Grants the Create scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.Update, "update", "u", false, "Grants the Update scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.Delete, "delete", "d", false, "Grants the Delete scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.Index, "index", "i", false, "Grants the Index scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created user")
+	createUserCmd.Flags().BoolVarP(&scope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created user")
 
 	// Set loginUser flags
 	loginUserCmd.Flags().StringVarP(&uid, "uid", "u", "", "UID of the user to retrieve a token for")
@@ -292,6 +304,15 @@ func InitCmd() error {
 
 	// Set removeUser flags
 	removeUserCmd.Flags().StringVarP(&uid, "target", "t", "", "Target UID of the user to be removed")
+
+	// Set createGroup flags
+	createGroupCmd.Flags().BoolVarP(&scope.Read, "read", "r", false, "Grants the Read scope to the newly created group")
+	createGroupCmd.Flags().BoolVarP(&scope.Create, "create", "c", false, "Grants the Create scope to the newly created group")
+	createGroupCmd.Flags().BoolVarP(&scope.Update, "update", "u", false, "Grants the Update scope to the newly created group")
+	createGroupCmd.Flags().BoolVarP(&scope.Delete, "delete", "d", false, "Grants the Delete scope to the newly created group")
+	createGroupCmd.Flags().BoolVarP(&scope.Index, "index", "i", false, "Grants the Index scope to the newly created group")
+	createGroupCmd.Flags().BoolVarP(&scope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created group")
+	createGroupCmd.Flags().BoolVarP(&scope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created group")
 
 	// Set encrypt flags
 	encryptCmd.Flags().BoolVarP(&stdin, "stdin", "s", false, "Tell ECCS to read from STDIN")

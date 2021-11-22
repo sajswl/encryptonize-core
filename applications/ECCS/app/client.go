@@ -286,7 +286,7 @@ func (c *Client) RemovePermission(oid, target string) error {
 }
 
 // CreateUser calls the Encryptonize CreateUser endpoint
-func (c *Client) CreateUser(userScope UserScope) error {
+func (c *Client) CreateUser(userScope Scope) error {
 	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
 	var scopes = []string{}
 
@@ -316,7 +316,7 @@ func (c *Client) CreateUser(userScope UserScope) error {
 		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
 	}
 
-	userScopes, err := json.Marshal(UserScopes{scopes})
+	userScopes, err := json.Marshal(Scopes{scopes})
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user scopes"), err)
 	}
@@ -361,6 +361,51 @@ func (c *Client) RemoveUser(uid string) error {
 	}
 
 	log.Printf("%v\n", utils.Pass("Successfully removed user!"))
+
+	return nil
+}
+
+// CreateGroup calls the Encryptonize CreateGroup endpoint
+func (c *Client) CreateGroup(groupScope Scope) error {
+	var scopes = []string{}
+
+	if groupScope.Read {
+		scopes = append(scopes, "READ")
+	}
+	if groupScope.Create {
+		scopes = append(scopes, "CREATE")
+	}
+	if groupScope.Update {
+		scopes = append(scopes, "UPDATE")
+	}
+	if groupScope.Delete {
+		scopes = append(scopes, "DELETE")
+	}
+	if groupScope.Index {
+		scopes = append(scopes, "INDEX")
+	}
+	if groupScope.ObjectPermissions {
+		scopes = append(scopes, "OBJECTPERMISSIONS")
+	}
+	if groupScope.UserManagement {
+		scopes = append(scopes, "USERMANAGEMENT")
+	}
+
+	if len(scopes) < 1 {
+		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateGroup failed"))
+	}
+
+	groupScopes, err := json.Marshal(Scopes{scopes})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse group scopes"), err)
+	}
+
+	response, err := c.Invoke("authn.Encryptonize.CreateGroup", string(groupScopes))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("CreateGroup failed"), err)
+	}
+
+	log.Printf("%v\n%s", utils.Pass("Successfully created group!"), response)
 
 	return nil
 }
