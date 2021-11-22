@@ -11,13 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: encryptonize-sa
+  namespace: encryptonize
+imagePullSecrets:
+- name: artifact-registry
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: encryptonize-deployment
   namespace: encryptonize
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: encryptonize-service
@@ -37,23 +45,8 @@ spec:
         # Insert Encryption Service image name here
         image: cybercryptcom/encryptonize-core:v3.1.0 
         imagePullPolicy: Always
-        resources:
-          requests:
-            cpu: "750m"
-            memory: "2Gi"
-          limits:
-            cpu: "1500m"
-            memory: "4Gi"
         ports:
         - containerPort: 9000
-        volumeMounts:
-          - name: encryptonize-config
-            mountPath: /config.toml
-            subPath: config.toml
-            readOnly: true
-          - name: encryptonize-secrets
-            mountPath: /data/
-            readOnly: true
         readinessProbe:
           exec:
             command: ["/grpc_health_probe", "-addr=:9000"]
@@ -62,13 +55,42 @@ spec:
           exec:
             command: ["/grpc_health_probe", "-addr=:9000"]
           initialDelaySeconds: 10
+        env:
+        - name: ECTNZ_OBJECTSTORAGE_ID
+          valueFrom:
+            secretKeyRef:
+              name: object-secrets
+              key: object_storage_id
+        - name: ECTNZ_OBJECTSTORAGE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: object-secrets
+              key: object_storage_key
+        envFrom:
+        - secretRef:
+            name: encryptonize-keys
+        volumeMounts:
+          - name: encryptonize-config
+            mountPath: /config.toml
+            subPath: config.toml
+            readOnly: true
+          - name: auth-secrets
+            mountPath: /auth-certs/
+            readOnly: true
+          - name: object-secrets
+            mountPath: /object-certs/object_storage.crt
+            subPath: object_storage.crt
+            readOnly: true
       volumes:
         - name: encryptonize-config
+          configMap:
+            name: encryptonize-config
+        - name: auth-secrets
           secret:
-            secretName: encryptonize-config
-        - name: encryptonize-secrets
+            secretName: auth-secrets
+        - name: object-secrets
           secret:
-            secretName: encryptonize-secrets
+            secretName: object-secrets
 ---
 apiVersion: v1
 kind: Service
