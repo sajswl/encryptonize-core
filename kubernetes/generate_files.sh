@@ -65,15 +65,16 @@ envsubst '$ELASTICSEARCH_HOSTNAME' \
 if [ -d "$SECRETS_PATH" ]; then
   echo "Generating configuration from secrets in '${SECRETS_PATH}'"
   export KEK=$(cat ${SECRETS_PATH}/KEK)
-  export ASK=$(cat ${SECRETS_PATH}/ASK)
+  export AEK=$(cat ${SECRETS_PATH}/AEK)
   export TEK=$(cat ${SECRETS_PATH}/TEK)
   export UEK=$(cat ${SECRETS_PATH}/UEK)
+  export GEK=$(cat ${SECRETS_PATH}/GEK)
   export OBJECT_STORAGE_ID=$(cat ${SECRETS_PATH}/object_storage_id)
   export OBJECT_STORAGE_KEY=$(cat ${SECRETS_PATH}/object_storage_key)
   # Indent lines of cert to match yaml, skipping the first line
   export OBJECT_STORAGE_CERT=$(cat ${SECRETS_PATH}/object_storage.crt | sed -e '2,$s/^/    /')
 
-  envsubst '$KEK $ASK $TEK $UEK $AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME $OBJECT_STORAGE_ID $OBJECT_STORAGE_KEY $OBJECT_STORAGE_CERT' \
+  envsubst '$KEK $AEK $TEK $UEK $GEK $AUTH_STORAGE_HOSTNAME $OBJECT_STORAGE_HOSTNAME $OBJECT_STORAGE_ID $OBJECT_STORAGE_KEY $OBJECT_STORAGE_CERT' \
     < ./encryptonize/encryptonize-config.yaml \
     > ${FILE_DIR}/encryptonize/encryptonize-config.yaml
 else

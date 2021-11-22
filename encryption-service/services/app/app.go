@@ -121,7 +121,7 @@ func (app *App) StartServer() {
 			if len(os.Args) != 3 {
 				log.Fatal(ctx, errors.New("Scopes argument missing"), "CreateUserCommand")
 			}
-			if err := app.AuthnService.UserAuthenticator.NewCLIUser(os.Args[2], app.AuthnService.AuthStore); err != nil {
+			if err := app.AuthnService.CreateCLIUser(os.Args[2]); err != nil {
 				log.Fatal(ctx, err, "CreateUserCommand")
 			}
 		default:

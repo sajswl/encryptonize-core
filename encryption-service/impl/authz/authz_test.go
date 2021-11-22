@@ -27,12 +27,12 @@ import (
 )
 
 var objectID = uuid.Must(uuid.FromString("20000000-0000-0000-0000-000000000000"))
-var userID = uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000"))
+var groupID = uuid.Must(uuid.FromString("10000000-0000-0000-0000-000000000000"))
 var woek = []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 var accessObject = &common.AccessObject{
 	Version: 0,
-	UserIDs: map[uuid.UUID]bool{
-		userID: true,
+	GroupIDs: map[uuid.UUID]bool{
+		groupID: true,
 	},
 	Woek: woek,
 }
@@ -43,18 +43,18 @@ var authorizer = &Authorizer{
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
-	expected := accessObject.UserIDs
+	expected := accessObject.GroupIDs
 
-	accessObject.RemoveUser(uuid.Must(uuid.FromString("A0000000-0000-0000-0000-000000000000")))
+	accessObject.RemoveGroup(uuid.Must(uuid.FromString("A0000000-0000-0000-0000-000000000000")))
 
-	if !reflect.DeepEqual(expected, accessObject.UserIDs) {
-		t.Error("Remove User Non Existing failed")
+	if !reflect.DeepEqual(expected, accessObject.GroupIDs) {
+		t.Error("Remove Group Non Existing failed")
 	}
 }
 
 func TestCreateObject(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			ao := &common.AccessObject{}
 			err := cryptor.DecodeAndDecrypt(ao, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
 			if err != nil {
@@ -69,7 +69,7 @@ func TestCreateObject(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	err := authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err := authorizer.CreateAccessObject(ctx, objectID, groupID, woek)
 	if err != nil {
 		t.Fatalf("CreateAccessObject errored: %s", err)
 	}
@@ -77,13 +77,13 @@ func TestCreateObject(t *testing.T) {
 
 func TestCreateObjectFail(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		InsertAcccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return errors.New("mock error")
 		},
 	}
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	err := authorizer.CreateAccessObject(ctx, objectID, userID, woek)
+	err := authorizer.CreateAccessObject(ctx, objectID, groupID, woek)
 	if err == nil || err.Error() != "mock error" {
 		t.Error("CreateObject should have errored")
 	}
@@ -155,14 +155,14 @@ func TestUpdate(t *testing.T) {
 	objectID := uuid.Must(uuid.NewV4())
 	newAccessObject := &common.AccessObject{
 		Version: 42,
-		UserIDs: map[uuid.UUID]bool{
+		GroupIDs: map[uuid.UUID]bool{
 			uuid.Must(uuid.FromString("30000000-0000-0000-0000-000000000000")): true,
 		},
 		Woek: []byte("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
 	}
 
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		UpdateAccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			ao := &common.AccessObject{}
 			err := cryptor.DecodeAndDecrypt(ao, protected.WrappedKey, protected.AccessObject, objectID.Bytes())
 			if err != nil {
@@ -186,7 +186,7 @@ func TestUpdate(t *testing.T) {
 
 func TestUpdateStoreFailed(t *testing.T) {
 	authStoreTx := &authstorage.AuthStoreTxMock{
-		UpdateAccessObjectFunc: func(ctx context.Context, protected common.ProtectedAccessObject) error {
+		UpdateAccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
 			return errors.New("mock error")
 		},
 	}

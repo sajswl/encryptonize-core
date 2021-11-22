@@ -11,6 +11,7 @@ require (
 	github.com/knadh/koanf v1.2.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/sony/gobreaker v0.4.1
+	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210812204632-0ba0e8f03122
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1

@@ -130,6 +130,13 @@ func (strg *Storage) Retrieve(ctx context.Context, request *RetrieveRequest) (*R
 // Assumes that user credentials are to be found in context metadata
 // Errors if authentication, authorization, or deleting the object fails
 func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*DeleteResponse, error) {
+	authStorageTx, ok := ctx.Value(common.AuthStorageTxCtxKey).(interfaces.AuthStoreTxInterface)
+	if !ok {
+		err := status.Errorf(codes.Internal, "error encountered while deleting object")
+		log.Error(ctx, err, "CreateGroup: Could not typecast authstorage to AuthStoreTxInterface")
+		return nil, err
+	}
+
 	objectIDString := request.ObjectId
 
 	// Parse objectID from request
@@ -143,6 +150,23 @@ func (strg *Storage) Delete(ctx context.Context, request *DeleteRequest) (*Delet
 	if err != nil {
 		log.Error(ctx, err, "Delete: Failed to delete access object")
 		return nil, status.Errorf(codes.Internal, "error encountered while deleting access object")
+	}
+
+	err = strg.ObjectStore.Delete(ctx, objectIDString+AssociatedDataStoreSuffix)
+	if err != nil {
+		log.Error(ctx, err, "Delete: Failed to delete associated data")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
+	}
+
+	err = strg.ObjectStore.Delete(ctx, objectIDString+CiphertextStoreSuffix)
+	if err != nil {
+		log.Error(ctx, err, "Delete: Failed to delete object")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
+	}
+
+	if err := authStorageTx.Commit(ctx); err != nil {
+		log.Error(ctx, err, "Delete: Failed to commit auth storage transaction")
+		return nil, status.Errorf(codes.Internal, "error encountered while deleting object")
 	}
 
 	err = strg.ObjectStore.Delete(ctx, objectIDString)

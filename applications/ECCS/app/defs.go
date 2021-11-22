@@ -71,7 +71,7 @@ type UserScope struct {
 }
 
 type UserScopes struct {
-	UserScopes []string `json:"user_scopes"`
+	Scopes []string `json:"scopes"`
 }
 
 type Credentials struct {

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build authz && storage
-// +build authz,storage
+//go:build storage
+// +build storage
 
 package grpce2e
 
@@ -216,17 +216,17 @@ func TestGetPermissions(t *testing.T) {
 	failOnError("Could not get permissions", err, t)
 
 	// Check that permissions response contains the right uids
-	ok := find(getPermissionsResponse1.UserIds, uid)
+	ok := find(getPermissionsResponse1.GroupIds, uid)
 	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
-	ok = find(getPermissionsResponse1.UserIds, uid2)
+	ok = find(getPermissionsResponse1.GroupIds, uid2)
 	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
 
-	if !reflect.DeepEqual(getPermissionsResponse1.UserIds, getPermissionsResponse2.UserIds) {
-		t.Fatalf("Permissions aren't the same: %v vs %v", getPermissionsResponse1.UserIds, getPermissionsResponse2.UserIds)
+	if !reflect.DeepEqual(getPermissionsResponse1.GroupIds, getPermissionsResponse2.GroupIds) {
+		t.Fatalf("Permissions aren't the same: %v vs %v", getPermissionsResponse1.GroupIds, getPermissionsResponse2.GroupIds)
 	}
 
 	// Remove user 2
@@ -239,13 +239,13 @@ func TestGetPermissions(t *testing.T) {
 	// Check that permissions have been removed
 	getPermissionsResponse1, err = client.GetPermissions(oid)
 	failOnError("Could not get permissions", err, t)
-	ok = find(getPermissionsResponse1.UserIds, uid)
+	ok = find(getPermissionsResponse1.GroupIds, uid)
 	if !ok {
-		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Couldn't find %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
-	ok = find(getPermissionsResponse1.UserIds, uid2)
+	ok = find(getPermissionsResponse1.GroupIds, uid2)
 	if ok {
-		t.Fatalf("Found %v in %v", uid, getPermissionsResponse1.UserIds)
+		t.Fatalf("Found %v in %v", uid, getPermissionsResponse1.GroupIds)
 	}
 
 	// Check that user 2 doesn't have permissions
@@ -274,34 +274,4 @@ func TestAddPermissionNoTargetUser(t *testing.T) {
 	// Try to add permissions for a non-existing user
 	_, err = client.AddPermission(oid, nonExistingUser)
 	failOnSuccess("Shouldn't able to add user that does not exist!", err, t)
-}
-
-// Test that a deleted user can't be added to permissions
-func TestAddPermissionsRemovedUser(t *testing.T) {
-	// Create admin client for user creation
-	client, err := NewClient(endpoint, https)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
-
-	_, err = client.LoginUser(uid, pwd)
-	failOnError("Could not log in user", err, t)
-
-	// Create user 2
-	createUserResponse, err := client.CreateUser(protoUserScopes)
-	failOnError("Create user request failed", err, t)
-
-	// Store an object
-	plaintext := []byte("foo")
-	associatedData := []byte("bar")
-	storeResponse, err := client.Store(plaintext, associatedData)
-	failOnError("Store operation failed", err, t)
-	oid := storeResponse.ObjectId
-
-	// Test user removal
-	_, err = client.RemoveUser(createUserResponse.UserId)
-	failOnError("Remove user request failed", err, t)
-
-	// Grant permissions to user 2
-	_, err = client.AddPermission(oid, createUserResponse.UserId)
-	failOnSuccess("AddPermission should have failed with deleted user", err, t)
 }

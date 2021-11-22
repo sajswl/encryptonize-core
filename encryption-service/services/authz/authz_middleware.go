@@ -32,15 +32,18 @@ const baseAuthPath string = "/authn.Encryptonize/"
 const baseEncPath string = "/enc.Encryptonize/"
 
 var skippedAuthorizeMethods = map[string]bool{
-	health.HealthEndpointCheck:  true,
-	health.HealthEndpointWatch:  true,
-	health.ReflectionEndpoint:   true,
-	baseAppPath + "Version":     true,
-	baseStoragePath + "Store":   true,
-	baseEncPath + "Encrypt":     true,
-	baseAuthPath + "LoginUser":  true,
-	baseAuthPath + "CreateUser": true,
-	baseAuthPath + "RemoveUser": true,
+	health.HealthEndpointCheck:           true,
+	health.HealthEndpointWatch:           true,
+	health.ReflectionEndpoint:            true,
+	baseAppPath + "Version":              true,
+	baseStoragePath + "Store":            true,
+	baseEncPath + "Encrypt":              true,
+	baseAuthPath + "LoginUser":           true,
+	baseAuthPath + "CreateUser":          true,
+	baseAuthPath + "RemoveUser":          true,
+	baseAuthPath + "CreateGroup":         true,
+	baseAuthPath + "AddUserToGroup":      true,
+	baseAuthPath + "RemoveUserFromGroup": true,
 }
 
 // AuthorizationUnaryServerInterceptor acts as authorization middleware. It expects a UID and OID to
@@ -80,13 +83,48 @@ func (authz *Authz) AuthorizationUnaryServerInterceptor() grpc.UnaryServerInterc
 			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		authorized := accessObject.ContainsUser(userID)
-		if !authorized {
-			log.Warn(ctx, "Couldn't authorize user")
-			return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
+		userData, err := authz.UserAuthenticator.GetUserData(ctx, userID)
+		if err != nil {
+			log.Error(ctx, err, "Couldn't fetch userData")
+			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
 		}
 
-		newCtx := context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
-		return handler(newCtx, req)
+		reqScope, ok := common.MethodScopeMap[methodName]
+		if !ok {
+			err = status.Errorf(codes.InvalidArgument, "invalid endpoint")
+			log.Error(ctx, err, "AuthzMiddleware: Invalid Endpoint")
+			return nil, err
+		}
+
+		// Find the intersection of the user's groups and the object's groups
+		a := userData.GroupIDs
+		b := accessObject.GetGroups()
+		if len(a) > len(b) {
+			a, b = b, a
+		}
+
+		groupIDs := make([]uuid.UUID, 0, len(a))
+		for groupID := range a {
+			if _, ok := b[groupID]; ok {
+				groupIDs = append(groupIDs, groupID)
+			}
+		}
+
+		groupDataBatch, err := authz.UserAuthenticator.GetGroupDataBatch(ctx, groupIDs)
+		if err != nil {
+			log.Error(ctx, err, "Couldn't fetch groupData")
+			return nil, status.Errorf(codes.NotFound, "error encountered while authorizing user")
+		}
+
+		for _, groupData := range groupDataBatch {
+			// User authorized, call next handler
+			if groupData.Scopes.HasScopes(reqScope) {
+				newCtx := context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
+				return handler(newCtx, req)
+			}
+		}
+
+		log.Warn(ctx, "Couldn't authorize user")
+		return nil, status.Errorf(codes.PermissionDenied, "access not authorized")
 	}
 }

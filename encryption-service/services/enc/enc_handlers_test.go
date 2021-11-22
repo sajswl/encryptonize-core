@@ -1,3 +1,16 @@
+// Copyright 2021 CYBERCRYPT
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package enc
 
 import (
@@ -19,38 +32,47 @@ var authorizer = &authzimpl.Authorizer{
 	AccessObjectCryptor: cryptor,
 }
 
-func initMockEnc(t *testing.T) (Enc, interfaces.AuthStoreTxInterface) {
-	authStore := authstorage.NewMemoryAuthStore()
-	authStorageTx, err := authStore.NewTransaction(context.TODO())
-	if err != nil {
-		t.Fatalf("New transaction failed: %v", err)
-	}
-	cryptor, err := crypt.NewAESCryptor(make([]byte, 32))
-	if err != nil {
-		t.Fatalf("NewAESCryptor failed: %v", err)
-	}
+var enc = Enc{
+	Authorizer:  authorizer,
+	DataCryptor: cryptor,
+}
 
-	enc := Enc{
-		Authorizer:  authorizer,
-		DataCryptor: cryptor,
-	}
+var userID = uuid.Must(uuid.NewV4())
+var woek, _ = crypt.Random(32)
+var accessObject = &common.AccessObject{Woek: woek}
 
-	return enc, authStorageTx
+var accessObjectStore = make(map[uuid.UUID]common.ProtectedAccessObject)
+
+var authStorageTxMock = &authstorage.AuthStoreTxMock{
+	InsertAcccessObjectFunc: func(ctx context.Context, protected *common.ProtectedAccessObject) error {
+		accessObjectStore[protected.ObjectID] = *protected
+		return nil
+	},
+	GetAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) (*common.ProtectedAccessObject, error) {
+		protected, exists := accessObjectStore[objectID]
+		if !exists {
+			return nil, interfaces.ErrNotFound
+		}
+		return &protected, nil
+	},
+	CommitFunc: func(ctx context.Context) error {
+		return nil
+	},
+}
+
+func setCtxKeys() context.Context {
+	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
+	ctx = context.WithValue(ctx, common.AccessObjectCtxKey, accessObject)
+	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTxMock)
+	return ctx
 }
 
 func TestEncryptDecrypt(t *testing.T) {
-	enc, authStorageTx := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -98,7 +120,7 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 func TestDecryptFail(t *testing.T) {
-	enc, _ := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	fakeRequest := &DecryptRequest{
 		Ciphertext:     []byte("fakecipher"),
@@ -106,32 +128,18 @@ func TestDecryptFail(t *testing.T) {
 		ObjectId:       "fakeobjectID",
 	}
 
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-
-	_, err = enc.Decrypt(ctx, fakeRequest)
+	_, err := enc.Decrypt(ctx, fakeRequest)
 	if err == nil {
 		t.Fatalf("Decrypt should have errored")
 	}
 }
 
 func TestDecryptWrongAAD(t *testing.T) {
-	enc, authStorageTx := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -161,18 +169,11 @@ func TestDecryptWrongAAD(t *testing.T) {
 }
 
 func TestDecryptWrongOID(t *testing.T) {
-	enc, authStorageTx := initMockEnc(t)
+	ctx := setCtxKeys()
 
 	plaintext := []byte("plaintext_bytes")
 	associatedData := []byte("associated_data_bytes")
 
-	userID, err := uuid.NewV4()
-	if err != nil {
-		t.Fatalf("Could not create user ID: %v", err)
-	}
-
-	ctx := context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{
@@ -188,8 +189,6 @@ func TestDecryptWrongOID(t *testing.T) {
 	plaintext2 := []byte("plaintext_bytes2")
 	associatedData2 := []byte("associated_data_bytes2")
 
-	ctx = context.WithValue(context.Background(), common.UserIDCtxKey, userID)
-	ctx = context.WithValue(ctx, common.AuthStorageTxCtxKey, authStorageTx)
 	encryptResponse2, err := enc.Encrypt(
 		ctx,
 		&EncryptRequest{

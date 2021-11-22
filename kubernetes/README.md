@@ -174,10 +174,11 @@ kubectl -n cockroachdb get secrets cockroachdb.client.root -o jsonpath='{.data.k
 
 Create random 32 byte keys:
 ```bash
-hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/ASK
+hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/AEK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/KEK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/TEK
 hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/UEK
+hexdump -n 32 -e '1/4 "%08X"' /dev/urandom > ./encryptonize-secrets/GEK
 ```
 
 Finally, you need to define the Encryption Service configuration in `encryptonize/encryptonize-config.yaml`

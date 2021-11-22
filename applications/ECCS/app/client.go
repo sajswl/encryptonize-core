@@ -272,7 +272,7 @@ func (c *Client) AddPermission(oid, target string) error {
 func (c *Client) RemovePermission(oid, target string) error {
 	object, err := json.Marshal(ObjectPermissions{oid, target})
 	if err != nil {
-		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object"), err)
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse object permissions"), err)
 	}
 
 	_, err = c.Invoke("authz.Encryptonize.RemovePermission", string(object))
