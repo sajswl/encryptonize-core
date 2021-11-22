@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2021 CYBERCRYPT
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,11 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+set -euo pipefail
 
-resources:
-- namespace.yaml
-- cockroachdb-statefulset.yaml
-- ../logging/elastic/
-- ../logging/agents/
+BLUE_ON="\u1b[1;34m"
+COLOR_OFF="\u1b[m"
+
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && cd .. && pwd )"
+
+gcloud container clusters get-credentials $AUTH_CLUSTER --zone $ZONE --project $PROJECT
+
+echo -e "${BLUE_ON}[+] Bootstrapping auth storage cluster${COLOR_OFF}"
+kubectl apply -k "${ROOT_DIR}/auth/bootstrap"
