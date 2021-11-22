@@ -145,6 +145,44 @@ func (c *Client) Invoke(method, input string) (string, error) {
 	return response.String(), nil
 }
 
+// ParseScopes parses Scope struct and encodes to JSON encoding
+func (c *Client) ParseScopes(scope Scope) ([]byte, error) {
+	var scopes = []string{}
+
+	if scope.Read {
+		scopes = append(scopes, "READ")
+	}
+	if scope.Create {
+		scopes = append(scopes, "CREATE")
+	}
+	if scope.Update {
+		scopes = append(scopes, "UPDATE")
+	}
+	if scope.Delete {
+		scopes = append(scopes, "DELETE")
+	}
+	if scope.Index {
+		scopes = append(scopes, "INDEX")
+	}
+	if scope.ObjectPermissions {
+		scopes = append(scopes, "OBJECTPERMISSIONS")
+	}
+	if scope.UserManagement {
+		scopes = append(scopes, "USERMANAGEMENT")
+	}
+
+	if len(scopes) < 1 {
+		return nil, fmt.Errorf("%v", utils.Fail("At least a single scope is required"))
+	}
+
+	parsedScopes, err := json.Marshal(Scopes{scopes})
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", utils.Fail("Failed to parse user scopes"), err)
+	}
+
+	return parsedScopes, nil
+}
+
 // Store calls the Encryptonize Store endpoint
 func (c *Client) Store(filename, associatedData string, stdin bool) error {
 	plaintext, err := readInput(filename, stdin)
@@ -287,41 +325,12 @@ func (c *Client) RemovePermission(oid, target string) error {
 
 // CreateUser calls the Encryptonize CreateUser endpoint
 func (c *Client) CreateUser(userScope Scope) error {
-	// Encryptonize expects user type to be of type []CreateUserRequest_UserScope
-	var scopes = []string{}
-
-	if userScope.Read {
-		scopes = append(scopes, "READ")
-	}
-	if userScope.Create {
-		scopes = append(scopes, "CREATE")
-	}
-	if userScope.Update {
-		scopes = append(scopes, "UPDATE")
-	}
-	if userScope.Delete {
-		scopes = append(scopes, "DELETE")
-	}
-	if userScope.Index {
-		scopes = append(scopes, "INDEX")
-	}
-	if userScope.ObjectPermissions {
-		scopes = append(scopes, "OBJECTPERMISSIONS")
-	}
-	if userScope.UserManagement {
-		scopes = append(scopes, "USERMANAGEMENT")
-	}
-
-	if len(scopes) < 1 {
-		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateUser failed"))
-	}
-
-	userScopes, err := json.Marshal(Scopes{scopes})
+	scopes, err := c.ParseScopes(userScope)
 	if err != nil {
-		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse user scopes"), err)
+		return fmt.Errorf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
 
-	response, err := c.Invoke("authn.Encryptonize.CreateUser", string(userScopes))
+	response, err := c.Invoke("authn.Encryptonize.CreateUser", string(scopes))
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("CreateUser failed"), err)
 	}
@@ -367,40 +376,12 @@ func (c *Client) RemoveUser(uid string) error {
 
 // CreateGroup calls the Encryptonize CreateGroup endpoint
 func (c *Client) CreateGroup(groupScope Scope) error {
-	var scopes = []string{}
-
-	if groupScope.Read {
-		scopes = append(scopes, "READ")
-	}
-	if groupScope.Create {
-		scopes = append(scopes, "CREATE")
-	}
-	if groupScope.Update {
-		scopes = append(scopes, "UPDATE")
-	}
-	if groupScope.Delete {
-		scopes = append(scopes, "DELETE")
-	}
-	if groupScope.Index {
-		scopes = append(scopes, "INDEX")
-	}
-	if groupScope.ObjectPermissions {
-		scopes = append(scopes, "OBJECTPERMISSIONS")
-	}
-	if groupScope.UserManagement {
-		scopes = append(scopes, "USERMANAGEMENT")
-	}
-
-	if len(scopes) < 1 {
-		log.Fatalf("%v: At least a single scope is required", utils.Fail("CreateGroup failed"))
-	}
-
-	groupScopes, err := json.Marshal(Scopes{scopes})
+	scopes, err := c.ParseScopes(groupScope)
 	if err != nil {
-		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse group scopes"), err)
+		return fmt.Errorf("%v: %v", utils.Fail("CreateGroup failed"), err)
 	}
 
-	response, err := c.Invoke("authn.Encryptonize.CreateGroup", string(groupScopes))
+	response, err := c.Invoke("authn.Encryptonize.CreateGroup", string(scopes))
 	if err != nil {
 		return fmt.Errorf("%v: %v", utils.Fail("CreateGroup failed"), err)
 	}
