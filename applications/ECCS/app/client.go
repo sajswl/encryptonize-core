@@ -410,6 +410,40 @@ func (c *Client) CreateGroup(groupScope Scope) error {
 	return nil
 }
 
+// AddUserToGroup calls the Encryptonize AddUserToGroup endpoint
+func (c *Client) AddUserToGroup(uid, gid string) error {
+	groupMember, err := json.Marshal(GroupMember{uid, gid})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse group member"), err)
+	}
+
+	_, err = c.Invoke("authn.Encryptonize.AddUserToGroup", string(groupMember))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("AddUserToGroup failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully added user to a group!"))
+
+	return nil
+}
+
+// RemoveUserFromGroup calls the Encryptonize RemoveUserFromGroup endpoint
+func (c *Client) RemoveUserFromGroup(uid, gid string) error {
+	groupMember, err := json.Marshal(GroupMember{uid, gid})
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("Failed to parse group member"), err)
+	}
+
+	_, err = c.Invoke("authn.Encryptonize.RemoveUserFromGroup", string(groupMember))
+	if err != nil {
+		return fmt.Errorf("%v: %v", utils.Fail("RemoveUserFromGroup failed"), err)
+	}
+
+	log.Printf("%v\n", utils.Pass("Successfully removed user from a group!"))
+
+	return nil
+}
+
 // Encrypt calls the Encryptonize Encrypt endpoint
 func (c *Client) Encrypt(filename, associatedData string, stdin bool) error {
 	plaintext, err := readInput(filename, stdin)

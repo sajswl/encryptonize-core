@@ -241,8 +241,14 @@ if __name__ == "__main__":
 	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)
 	subprocess.run(["./eccs", "-a", at, "removeuser", "-t", uid2], check=True)
 
-
 	gid = create_group(at, "-rcudip")
 	print(f"[+] created group:  GroupID {gid}")
+
+	subprocess.run(["./eccs", "-a", at, "addusertogroup", "-t", uid1, "-g", gid], check=True)
+	subprocess.run(["./eccs", "-a", at, "removeuserfromgroup", "-t", uid1, "-g", gid], check=True)
+
+	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", gid], check=True)
+	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
+	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", gid], check=True)
 
 	print("[+] all tests succeeded")

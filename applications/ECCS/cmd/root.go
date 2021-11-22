@@ -36,6 +36,9 @@ var (
 	uid      string
 	password string
 
+	// Group args
+	gid string
+
 	// Store args
 	filename       string
 	stdin          bool
@@ -162,7 +165,7 @@ var loginUserCmd = &cobra.Command{
 
 var removeUserCmd = &cobra.Command{
 	Use:     "removeuser",
-	Short:   "Removes a user from the serivce",
+	Short:   "Removes a user from the server",
 	PreRunE: InitClient,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := client.RemoveUser(uid); err != nil {
@@ -177,6 +180,28 @@ var createGroupCmd = &cobra.Command{
 	PreRunE: InitClient,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := client.CreateGroup(scope); err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+var addUserToGroupCmd = &cobra.Command{
+	Use:     "addusertogroup",
+	Short:   "Adds user to a group",
+	PreRunE: InitClient,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := client.AddUserToGroup(uid, gid); err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+var removeUserFromGroupCmd = &cobra.Command{
+	Use:     "removeuserfromgroup",
+	Short:   "Removed user from a group",
+	PreRunE: InitClient,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := client.RemoveUserFromGroup(uid, gid); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -228,6 +253,8 @@ func InitCmd() error {
 	rootCmd.AddCommand(loginUserCmd)
 	rootCmd.AddCommand(removeUserCmd)
 	rootCmd.AddCommand(createGroupCmd)
+	rootCmd.AddCommand(addUserToGroupCmd)
+	rootCmd.AddCommand(removeUserFromGroupCmd)
 	rootCmd.AddCommand(encryptCmd)
 	rootCmd.AddCommand(decryptCmd)
 
@@ -270,7 +297,7 @@ func InitCmd() error {
 	}
 
 	// Set addPermission flags
-	addPermissionCmd.Flags().StringVarP(&target, "target", "t", "", "Target UID to add to permission list of object")
+	addPermissionCmd.Flags().StringVarP(&target, "target", "t", "", "Target ID to add to permission list of object")
 	if err := addPermissionCmd.MarkFlagRequired("target"); err != nil {
 		return err
 	}
@@ -280,7 +307,7 @@ func InitCmd() error {
 	}
 
 	// Set removePermission flags
-	removePermissionCmd.Flags().StringVarP(&target, "target", "t", "", "Target UID to remove from permissions list of object")
+	removePermissionCmd.Flags().StringVarP(&target, "target", "t", "", "Target ID to remove from permissions list of object")
 	if err := removePermissionCmd.MarkFlagRequired("target"); err != nil {
 		return err
 	}
@@ -313,6 +340,26 @@ func InitCmd() error {
 	createGroupCmd.Flags().BoolVarP(&scope.Index, "index", "i", false, "Grants the Index scope to the newly created group")
 	createGroupCmd.Flags().BoolVarP(&scope.ObjectPermissions, "object_permissions", "p", false, "Grants the ObjectPermissions scope to the newly created group")
 	createGroupCmd.Flags().BoolVarP(&scope.UserManagement, "user_management", "m", false, "Grants the UserManagement scope to the newly created group")
+
+	// Set addUserToGroup flags
+	addUserToGroupCmd.Flags().StringVarP(&uid, "target", "t", "", "UID of the user to be added to a group")
+	if err := addUserToGroupCmd.MarkFlagRequired("target"); err != nil {
+		return err
+	}
+	addUserToGroupCmd.Flags().StringVarP(&gid, "groupid", "g", "", "GroupID of the group to add user to")
+	if err := addUserToGroupCmd.MarkFlagRequired("groupid"); err != nil {
+		return err
+	}
+
+	// Set removeUserFromGroup flags
+	removeUserFromGroupCmd.Flags().StringVarP(&uid, "target", "t", "", "UID of the user to be removed from a group")
+	if err := removeUserFromGroupCmd.MarkFlagRequired("target"); err != nil {
+		return err
+	}
+	removeUserFromGroupCmd.Flags().StringVarP(&gid, "groupid", "g", "", "GroupID of the group to remove user from")
+	if err := removeUserFromGroupCmd.MarkFlagRequired("groupid"); err != nil {
+		return err
+	}
 
 	// Set encrypt flags
 	encryptCmd.Flags().BoolVarP(&stdin, "stdin", "s", false, "Tell ECCS to read from STDIN")

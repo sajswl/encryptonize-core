@@ -78,3 +78,8 @@ type Credentials struct {
 	UserID   string `json:"user_id"`
 	Password string `json:"password"`
 }
+
+type GroupMember struct {
+	UserID  string `json:"user_id"`
+	GroupID string `json:"group_id"`
+}
