@@ -68,13 +68,13 @@ def create_user(token, flags=None):
 
 	uid = None
 	password = None
-	for match in re.finditer(r"UID: \"([^\"]+)\"", res.stderr):
+	for match in re.finditer(r"\"userId\": \"([^\"]+)\"", res.stderr):
 		if uid is not None:
 			print(f"multiple matches for the UID, aborting")
 			sys.exit(1)
 		uid = match.group(1)
 
-	for match in re.finditer(r"Password: \"([^\"]+)", res.stderr):
+	for match in re.finditer(r"\"password\": \"([^\"]+)\"", res.stderr):
 		if password is not None:
 			print(f"multiple matches for the Password, aborting")
 			print(at)
@@ -94,7 +94,7 @@ def login_user(uid, password):
 	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
 
 	at = None
-	for match in re.finditer(r"AT: \"([^\"]+)", res.stderr):
+	for match in re.finditer(r"\"accessToken\": \"([^\"]+)\"", res.stderr):
 		if at is not None:
 			print(f"multiple matches for the AT, aborting")
 			print(at)
@@ -112,7 +112,7 @@ def create_object(token, data, associated_data):
 	res = subprocess.run(cmd, input=data, capture_output=True, check=True, text=True)
 
 	oid = None
-	for match in re.finditer(r"ObjectID:\s+([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})", res.stderr):
+	for match in re.finditer(r"\"objectId\": \"([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})\"", res.stderr):
 		if oid is not None:
 			print(f"multiple matches for the OID, aborting")
 			print(oid)
@@ -131,8 +131,8 @@ def retrieve_object(token, oid):
 
 	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
 
-	obj = re.search("m=\"(.*)\", aad=\"(.*)\"", res.stderr)
-	
+	obj = re.search(r"\"plaintext\":\"(.*)\",\"associated_data\":\"(.*)\"", res.stderr)
+
 	return obj.group(1), obj.group(2)
 
 def update_object(token, oid, new_data, new_associated_data):
@@ -159,11 +159,11 @@ def encrypt_object(token, plaintext, aad, filename):
 	with open(filename, 'r') as readfile:
 		encrypted_json = readfile.read()
 		parsed = json.loads(encrypted_json)
-		if parsed['oid'] is None:
+		if parsed['objectId'] is None:
 			print(f"unable to match oid in {res}")
 			sys.exit(1)
 		
-		return parsed['oid']
+		return parsed['objectId']
 
 def decrypt_object(token, filename):
 	cmd = ["./eccs", "-a", token, "decrypt", "-f", filename]
@@ -177,18 +177,13 @@ if __name__ == "__main__":
 	print(f"[+] created second user: UID {uid2}, Password {password2}")
 	try:
 		create_user(at) # expecting a subprocess.CalledProcessError when calling without scope
-		print(f"[-] A user without any scope was created, but an error was expected, aborting")
+		print(f"[-] a user without any scope was created, but an error was expected, aborting")
 		sys.exit(1)
 	except subprocess.CalledProcessError:
 		print("[+] did not create a third user without scopes")
 
 	at1 = login_user(uid1, password1)
 	print(f"[+] logged in as first user:  UID {uid1}, AT {at1}")
-
-	obj = {"data": "", "associated_data": "no one has the intention to store bytes here."}
-
-	oid = create_object(at1, obj["data"], obj["associated_data"])
-	print(f"[+] object created:      OID {oid}")
 
 	plaintext = "hello encryption algorithm"
 	aad = "AES"
@@ -202,17 +197,24 @@ if __name__ == "__main__":
 	delete_object(at1, oid2)
 	try:
 		retrieve_object(at1, oid2)
+		print(f"[-] retrieving an object should fail after deletion, aborting")
+		sys.exit(1)
 	except subprocess.CalledProcessError:
 		print(f"[+] object was deleted successfully")
-	
+
+	obj = {"data": "dat", "associated_data": "no one has the intention to store bytes here."}
+
+	oid = create_object(at1, obj["data"], obj["associated_data"])
+	print(f"[+] object created:      OID {oid}")
+
 	new_obj = {"data": "new data", "associated_data": "this was updated"}
 	update_object(at1, oid, new_obj["data"], new_obj["associated_data"])
 
 	d, ad = retrieve_object(at1, oid)
-	print(f"[+] object was updated successfully: {d == new_obj['data'] and ad == new_obj['associated_data']}")
+	if(d != new_obj['data'] or ad != new_obj['associated_data']):
+		print(f"[-] failed to update object")
+		sys.exit(1)
 
-	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
-	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
 	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
 	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)
