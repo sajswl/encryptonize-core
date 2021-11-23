@@ -11,37 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: selfsigned-issuer
-  namespace: rook-ceph
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: ingress-certificate
-  namespace: rook-ceph
-spec:
-  secretName: ingress-certificate
-  duration: 2160h # 90d
-  renewBefore: 360h # 15d
-  isCA: false
-  privateKey:
-    algorithm: ECDSA
-    encoding: PKCS1
-    size: 521
-  usages:
-  - server auth
-  - client auth
-  dnsNames:
-  # Set the hostname for the object store below
-  - object.example.com 
-  issuerRef:
-    name: selfsigned-issuer
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -66,13 +35,13 @@ spec:
             - name: ingress-config
               mountPath: /etc/nginx/
               readOnly: true
-            - name: ingress-certificate
-              mountPath: /etc/ssl/certs/tls.crt
-              subPath: tls.crt
+            - name: object-certs
+              mountPath: /etc/ssl/certs/object_storage.crt
+              subPath: object_storage.crt
               readOnly: true
-            - name: ingress-certificate
-              mountPath: /etc/ssl/private/tls.key
-              subPath: tls.key
+            - name: object-certs
+              mountPath: /etc/ssl/private/object_storage.key
+              subPath: object_storage.key
               readOnly: true
           readinessProbe:
             httpGet:
@@ -88,9 +57,9 @@ spec:
         - name: ingress-config
           configMap:
             name: ingress-config
-        - name: ingress-certificate
+        - name: object-certs
           secret:
-            secretName: ingress-certificate
+            secretName: object-certs
 ---
 apiVersion: v1
 kind: Service

@@ -15,36 +15,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: rook-ceph
+
 resources:
-- ../cert-manager/
+- namespace.yaml
 - crds.yaml
-- common.yaml
-- operator.yaml
-- cluster.yaml
-- object.yaml
-- ingress.yaml 
-- ../logging/agents/
 
-patches:
-- target:
-    kind: CephCluster
-    name: rook-ceph
-  patch: |-
-    - op: replace
-      path: /spec/mon/volumeClaimTemplate/spec/storageClassName
-      value: ${STORAGE_CLASS}
-    - op: replace
-      path: /spec/storage/storageClassDeviceSets/0/volumeClaimTemplates/0/spec/storageClassName 
-      value: ${STORAGE_CLASS} 
-- target:
-    kind: Certificate
-    name: ingress-certificate
-  patch: |-
-    - op: replace
-      path: /spec/dnsNames/0
-      value: ${OBJECT_STORAGE_HOSTNAME}
-
-configMapGenerator:
-- name: ingress-config
+secretGenerator:
+- name: object-certs
   files:
-  - nginx.conf
+  - config/object_storage.crt
+  - config/object_storage.key
+
+generatorOptions:
+  disableNameSuffixHash: true

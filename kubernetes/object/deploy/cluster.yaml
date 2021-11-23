@@ -15,21 +15,21 @@ spec:
   dataDirHostPath: /var/lib/rook
 
   # Cluster wide resource requests/limits
-  resources:
-    mon:
-      limits:
-        cpu: "3000m"
-        memory: "28Gi"
-      requests: # Minimum recommended
-        cpu: "2000m"
-        memory: "24Gi"
-    osd:
-      limits:
-        cpu: "1500m"
-        memory: "5Gi"
-      requests: # Minimum recommended
-        cpu: "1000m"
-        memory: "4Gi"
+  # resources:
+  #   mon:
+  #     limits:
+  #       cpu: "3000m"
+  #       memory: "28Gi"
+  #     requests: # Minimum recommended
+  #       cpu: "2000m"
+  #       memory: "24Gi"
+  #   osd:
+  #     limits:
+  #       cpu: "1500m"
+  #       memory: "5Gi"
+  #     requests: # Minimum recommended
+  #       cpu: "1000m"
+  #       memory: "4Gi"
 
   # ceph-mon settings
   mon:
@@ -38,8 +38,6 @@ spec:
     # PV claim for ceph-mons
     volumeClaimTemplate:
       spec:
-        # Set your vendor stoage class here
-        storageClassName: standard 
         resources:
           requests:
             storage: 60Gi # Mininmum recommended
@@ -98,8 +96,6 @@ spec:
           resources:
             requests:
               storage: 1Ti # Size of each disk
-          # Set your vendor stoage class here
-          storageClassName: standard 
           volumeMode: Block
           accessModes:
             - ReadWriteOnce

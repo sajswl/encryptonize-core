@@ -6,8 +6,8 @@ http {
     listen [::]:8000 ssl;
 
     # modern ssl configuration according to https://wiki.mozilla.org/Security/Server_Side_TLS
-    ssl_certificate /etc/ssl/certs/tls.crt;
-    ssl_certificate_key /etc/ssl/private/tls.key;
+    ssl_certificate /etc/ssl/certs/object_storage.crt;
+    ssl_certificate_key /etc/ssl/private/object_storage.key;
     ssl_session_timeout 1d;
     ssl_session_cache shared:SSL:10m;  # about 40000 sessions
     ssl_session_tickets off;
