@@ -53,6 +53,10 @@ spec:
               path: /nginx-health
               port: 8000
               scheme: HTTPS
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "30Mi"
       volumes:
         - name: ingress-config
           configMap:

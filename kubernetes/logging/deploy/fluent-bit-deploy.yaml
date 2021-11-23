@@ -203,6 +203,10 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 2020
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "15Mi"
         env:
         - name: FLUENT_ELASTICSEARCH_HOST
           # Set the hostname for Elasticsearch below

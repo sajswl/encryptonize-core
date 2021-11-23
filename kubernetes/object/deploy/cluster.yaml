@@ -15,21 +15,11 @@ spec:
   dataDirHostPath: /var/lib/rook
 
   # Cluster wide resource requests/limits
-  # resources:
-  #   mon:
-  #     limits:
-  #       cpu: "3000m"
-  #       memory: "28Gi"
-  #     requests: # Minimum recommended
-  #       cpu: "2000m"
-  #       memory: "24Gi"
-  #   osd:
-  #     limits:
-  #       cpu: "1500m"
-  #       memory: "5Gi"
-  #     requests: # Minimum recommended
-  #       cpu: "1000m"
-  #       memory: "4Gi"
+  resources:
+    mon:
+      requests:
+        cpu: "50m"
+        memory: "500Mi"
 
   # ceph-mon settings
   mon:
@@ -87,6 +77,10 @@ spec:
                 values:
                 - rook-ceph-osd-prepare
             topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "1500Mi"
 
       # Automatically provision disk for OSDs
       volumeClaimTemplates:

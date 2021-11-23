@@ -26,6 +26,14 @@ spec:
   nodeSets:
   - name: default
     count: 1
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "2500Mi"
     volumeClaimTemplates:
     - metadata:
         name: elasticsearch-data
@@ -60,3 +68,11 @@ spec:
   count: 1
   elasticsearchRef:
     name: elasticsearch
+  podTemplate:
+    spec:
+      containers:
+      - name: kibana
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "1200Mi"

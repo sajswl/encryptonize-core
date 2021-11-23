@@ -38,12 +38,9 @@ spec:
     port: 80
     instances: 1 # Start a single RGW instance
     resources:
-      limits:
-        cpu: "500m"
-        memory: "1024Mi"
       requests:
-        cpu: "500m"
-        memory: "1024Mi"
+        cpu: "350m"
+        memory: "300Mi"
 
   # Service endpoint healthcheck
   healthCheck:

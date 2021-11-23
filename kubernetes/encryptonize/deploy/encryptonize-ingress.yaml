@@ -85,6 +85,10 @@ spec:
               path: /health
               port: 9000
               scheme: HTTPS
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "50Mi"
       volumes:
         - name: ingress-config
           configMap:

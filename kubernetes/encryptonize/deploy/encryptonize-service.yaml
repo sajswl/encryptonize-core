@@ -55,6 +55,10 @@ spec:
           exec:
             command: ["/grpc_health_probe", "-addr=:9000"]
           initialDelaySeconds: 10
+        resources:
+          requests:
+            cpu: "800m"
+            memory: "100Mi"
         env:
         - name: ECTNZ_OBJECTSTORAGE_ID
           valueFrom:
