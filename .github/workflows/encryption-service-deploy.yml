@@ -22,9 +22,13 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
     
+    - name: Write environment
+      run: |
+        echo "${{ secrets.DEPLOY_ENV }}" >> env/deploy_env
+        echo "${{ secrets.PROVIDER_ENV }}" >> env/provider_env
+
     - name: Build new image
       run: |
-        echo "${{ secrets.DEPLOY_CONFIG }}" >> scripts/deploy_env
         make docker-build
         make gcp-login
         make docker-push
@@ -51,11 +55,18 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
 
+    - name: Write environment
+      run: |
+        echo "${{ secrets.DEPLOY_ENV }}" >> env/deploy_env
+        echo "${{ secrets.PROVIDER_ENV }}" >> env/provider_env
+
     - name: Apply kubernetes files
       run: |
-        echo "${{ secrets.DEPLOY_CONFIG }}" >> scripts/deploy_env
         make gcp-login
-        make k8s-deploy
+        make deploy-auth
+        make deploy-object
+        make deploy-encryptonize
+        make deploy-logging
         
     - name: Notify slack fail
       if: failure()
@@ -79,10 +90,14 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
 
+    - name: Write environment
+      run: |
+        echo "${{ secrets.PROVIDER_ENV }}" >> env/provider_env
+        echo "${{ secrets.TEST_ENV }}" >> env/test_env
+
     - name: Run end-to-end tests
       shell: 'script -e -c "bash {0}"' # Forces a TTY so we can do "kubectl exec.."
       run: |
-        echo "${{ secrets.DEPLOY_CONFIG }}" >> scripts/deploy_env
         make gcp-login
         make cluster-test 
 
