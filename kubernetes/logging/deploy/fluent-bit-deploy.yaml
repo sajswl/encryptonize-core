@@ -32,7 +32,7 @@ data:
     [INPUT]
         Name              tail
         Tag               encryptonize.encryption-service.*
-        Path              /var/log/containers/encryptonize-deployment*.log
+        Path              /var/log/containers/encryptonize*.log
         Parser            docker
         DB                /var/log/encryptonize.db
         Mem_Buf_Limit     5MB

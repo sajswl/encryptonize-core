@@ -25,5 +25,7 @@ gcloud container clusters get-credentials $ENC_CLUSTER --zone $ZONE --project $P
 
 echo -e "${BLUE_ON}[+] Deploying encryptonize cluster${COLOR_OFF}"
 kubectl apply -k "${ROOT_DIR}/encryptonize/deploy"
-kubectl -n encryptonize rollout restart deployment encryptonize-deployment
+kubectl -n encryptonize rollout restart deployment encryptonize
+kubectl -n encryptonize rollout status deployment encryptonize
 kubectl -n encryptonize rollout restart deployment encryptonize-ingress
+kubectl -n encryptonize rollout status deployment encryptonize-ingress

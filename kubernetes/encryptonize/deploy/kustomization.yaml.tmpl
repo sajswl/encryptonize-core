@@ -24,7 +24,7 @@ resources:
 patches:
 - target:
     kind: Deployment
-    name: encryptonize-deployment
+    name: encryptonize
   patch: |-
     - op: replace
       path: /spec/template/spec/containers/0/image

@@ -25,7 +25,7 @@ if [[ "${1}" == "local" ]]; then
 elif [[ "${1}" == "docker" ]]; then
   USER_INFO=$(docker exec encryption-service /encryption-service create-user m 2> /dev/null)
 elif [[ "${1}" == "kubernetes" ]]; then
-  USER_INFO=$(kubectl -n encryptonize exec -it deployment/encryptonize-deployment -- /encryption-service create-user m | tail -n 1)
+  USER_INFO=$(kubectl -n encryptonize exec -it deployment/encryptonize -- /encryption-service create-user m | tail -n 1)
 else
   echo "Unknown argument '${1}'"
   exit 1

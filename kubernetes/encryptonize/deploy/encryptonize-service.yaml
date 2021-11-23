@@ -22,21 +22,21 @@ imagePullSecrets:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: encryptonize-deployment
+  name: encryptonize
   namespace: encryptonize
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: encryptonize-service
+      app: encryptonize
   template:
     metadata:
       labels:
-        app: encryptonize-service
+        app: encryptonize
     spec:
       serviceAccountName: encryptonize-sa
       containers:
-      - name: encryptonize-container
+      - name: encryptonize
         securityContext:
           runAsNonRoot: true
           capabilities:
@@ -99,12 +99,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: encryptonize-service
+  name: encryptonize
   namespace: encryptonize
 spec:
   type: ClusterIP
   selector:
-    app: encryptonize-service
+    app: encryptonize
   ports:
   - name: grpc
     protocol: TCP
