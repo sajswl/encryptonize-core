@@ -15,16 +15,29 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: fluentbit 
+
 resources:
-- elastic-crds.yaml
-- elastic-search.yaml 
+- fluent-bit-rbac.yaml
+- fluent-bit-deploy.yaml 
 
 patches:
 - target:
-    kind: Elasticsearch
-    name: elasticsearch
+    kind: DaemonSet 
+    name: fluent-bit 
   patch: |-
     - op: replace
-      path: /spec/http/tls/selfSignedCertificate/subjectAltNames/0/dns
+      path: /spec/template/spec/containers/0/env/0/value 
       value: ${ELASTICSEARCH_HOSTNAME}
 
+secretGenerator:
+- name: elasticsearch-config
+  files:
+  - config/elastic-password
+- name: elasticsearch-certs
+  files:
+  - config/elastic.crt
+  - config/elastic-ca.crt
+
+generatorOptions:
+  disableNameSuffixHash: true

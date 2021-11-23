@@ -215,7 +215,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: elasticsearch-config
-              key: password
+              key: elastic-password
         volumeMounts:
         - name: varlog
           mountPath: /var/log
@@ -226,11 +226,11 @@ spec:
           mountPath: /fluent-bit/etc/
         - name: elasticsearch-certs
           mountPath: /etc/certs/tls.crt
-          subPath: es.crt
+          subPath: elastic.crt
           readOnly: true
         - name: elasticsearch-certs
           mountPath: /etc/certs/ca.crt
-          subPath: es-ca.crt
+          subPath: elastic-ca.crt
           readOnly: true
         - name: mnt
           mountPath: /mnt
