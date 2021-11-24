@@ -15,7 +15,11 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+
+	encryptonize "client"
 )
 
 // Fail wraps text using ansi escape codes to color the output RED
@@ -23,17 +27,40 @@ func Fail(text string) string {
 	return fmt.Sprintf("\x1b[31;1m%s\x1b[0m", text)
 }
 
-// Pass wraps text using ansi escape codes to color the output GREEN
-func Pass(text string) string {
-	return fmt.Sprintf("\x1b[32;1m%s\x1b[0m", text)
-}
-
 // Info wraps text using ansi escape codes to color the output BLUE
 func Info(text string) string {
 	return fmt.Sprintf("\x1b[34;1m%s\x1b[0m", text)
 }
 
-// Warning wraps text using ansi escape codes to color the output YELLOW
-func Warning(text string) string {
-	return fmt.Sprintf("\x1b[33;1m%s\x1b[0m", text)
+func PrintStruct(response interface{}) {
+	out, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(Info(string(out)))
+}
+
+func ReadScopes(scopesString string) ([]encryptonize.Scope, error) {
+	scopes := make([]encryptonize.Scope, 0, len(scopesString))
+	for _, scope := range scopesString {
+		switch string(scope) {
+		case "r":
+			scopes = append(scopes, encryptonize.ScopeRead)
+		case "c":
+			scopes = append(scopes, encryptonize.ScopeCreate)
+		case "u":
+			scopes = append(scopes, encryptonize.ScopeUpdate)
+		case "d":
+			scopes = append(scopes, encryptonize.ScopeDelete)
+		case "i":
+			scopes = append(scopes, encryptonize.ScopeIndex)
+		case "o":
+			scopes = append(scopes, encryptonize.ScopeObjectPermissions)
+		case "m":
+			scopes = append(scopes, encryptonize.ScopeUserManagement)
+		default:
+			return nil, fmt.Errorf("Invalid scope %v", string(scope))
+		}
+	}
+	return scopes, nil
 }
