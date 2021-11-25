@@ -27,17 +27,12 @@ func Fail(text string) string {
 	return fmt.Sprintf("\x1b[31;1m%s\x1b[0m", text)
 }
 
-// Info wraps text using ansi escape codes to color the output BLUE
-func Info(text string) string {
-	return fmt.Sprintf("\x1b[34;1m%s\x1b[0m", text)
-}
-
 func PrintStruct(response interface{}) {
 	out, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(Info(string(out)))
+	fmt.Println(string(out))
 }
 
 func ReadScopes(scopesString string) ([]encryptonize.Scope, error) {

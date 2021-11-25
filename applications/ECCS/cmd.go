@@ -36,7 +36,6 @@ var (
 
 	// Request args
 	scopes         string
-	userID         string
 	groupID        string
 	target         string
 	objectID       string
@@ -130,7 +129,7 @@ var addUserToGroupCmd = &cobra.Command{
 	Short:  "Adds user to a group",
 	PreRun: initClient,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := client.AddUserToGroup(userID, groupID); err != nil {
+		if err := client.AddUserToGroup(target, groupID); err != nil {
 			fmt.Println(Fail(err.Error()))
 			os.Exit(1)
 		}
@@ -142,7 +141,7 @@ var removeUserFromGroupCmd = &cobra.Command{
 	Short:  "Removed user from a group",
 	PreRun: initClient,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := client.RemoveUserFromGroup(userID, groupID); err != nil {
+		if err := client.RemoveUserFromGroup(target, groupID); err != nil {
 			fmt.Println(Fail(err.Error()))
 			os.Exit(1)
 		}
@@ -188,8 +187,8 @@ var decryptCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		PrintStruct(struct {
-			Plaintext      string
-			AssociatedData string
+			Plaintext      string `json:"plaintext"`
+			AssociatedData string `json:"associatedData"`
 		}{
 			string(response.Plaintext),
 			string(response.AssociatedData),
@@ -226,8 +225,8 @@ var retrieveCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		PrintStruct(struct {
-			Plaintext      string
-			AssociatedData string
+			Plaintext      string `json:"plaintext"`
+			AssociatedData string `json:"associatedData"`
 		}{
 			string(response.Plaintext),
 			string(response.AssociatedData),
