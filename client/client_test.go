@@ -11,8 +11,7 @@ import (
 var uid string
 var password string
 var certPath = ""
-var endpoint = "localhost"
-var port = "9000"
+var endpoint = "localhost:9000"
 
 var scopes = []Scope{
 	ScopeRead,
@@ -26,32 +25,28 @@ var scopes = []Scope{
 
 func TestMain(m *testing.M) {
 	var ok bool
-	uid, ok = os.LookupEnv("TEST_UID")
+	uid, ok = os.LookupEnv("E2E_TEST_UID")
 	if !ok {
-		log.Fatal("TEST_UID must be set")
+		log.Fatal("E2E_TEST_UID must be set")
 	}
-	password, ok = os.LookupEnv("TEST_PASS")
+	password, ok = os.LookupEnv("E2E_TEST_PASS")
 	if !ok {
-		log.Fatal("TEST_PASS must be set")
+		log.Fatal("E2E_TEST_PASS must be set")
 	}
-	value, ok := os.LookupEnv("TEST_CERT")
+	value, ok := os.LookupEnv("E2E_TEST_CERT")
 	if ok {
 		certPath = value
 	}
-	value, ok = os.LookupEnv("TEST_ENDPOINT")
+	value, ok = os.LookupEnv("E2E_TEST_URL")
 	if ok {
 		endpoint = value
-	}
-	value, ok = os.LookupEnv("TEST_PORT")
-	if ok {
-		port = value
 	}
 
 	os.Exit(m.Run())
 }
 
 func TestUtility(t *testing.T) {
-	c, err := NewClient(context.Background(), endpoint+":"+port, certPath)
+	c, err := NewClient(context.Background(), endpoint, certPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +67,7 @@ func TestUtility(t *testing.T) {
 }
 
 func TestUserManagement(t *testing.T) {
-	c, err := NewClient(context.Background(), endpoint+":"+port, certPath)
+	c, err := NewClient(context.Background(), endpoint, certPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +103,7 @@ func TestUserManagement(t *testing.T) {
 }
 
 func TestEncrypt(t *testing.T) {
-	c, err := NewClient(context.Background(), endpoint+":"+port, certPath)
+	c, err := NewClient(context.Background(), endpoint, certPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +141,7 @@ func TestEncrypt(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
-	c, err := NewClient(context.Background(), endpoint+":"+port, certPath)
+	c, err := NewClient(context.Background(), endpoint, certPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +191,7 @@ func TestStore(t *testing.T) {
 }
 
 func TestPermissions(t *testing.T) {
-	c, err := NewClient(context.Background(), endpoint+":"+port, certPath)
+	c, err := NewClient(context.Background(), endpoint, certPath)
 	if err != nil {
 		t.Fatal(err)
 	}
