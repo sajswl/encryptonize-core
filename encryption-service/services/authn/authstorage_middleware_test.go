@@ -33,7 +33,7 @@ import (
 type MockData struct {
 	methodName string
 	userID     uuid.UUID
-	authStore  *authnimpl.AuthStoreMock
+	authStore  *authstorage.AuthStoreMock
 }
 
 func SetupMocks(mockData MockData) (context.Context, *Authn) {
@@ -64,7 +64,7 @@ func TestAuthStorage(t *testing.T) {
 	mockData := MockData{
 		methodName: "/storage.Encryptonize/Store",
 		userID:     uuid.Must(uuid.NewV4()),
-		authStore: &authnimpl.AuthStoreMock{
+		authStore: &authstorage.AuthStoreMock{
 			NewTransactionFunc: func(ctx context.Context) (authStoreTx interfaces.AuthStoreTxInterface, err error) {
 				return authStoreTxMock, nil
 			},
@@ -95,7 +95,7 @@ func TestAuthStorageNoMethod(t *testing.T) {
 	mockData := MockData{
 		methodName: "",
 		userID:     uuid.Must(uuid.NewV4()),
-		authStore:  &authnimpl.AuthStoreMock{},
+		authStore:  &authstorage.AuthStoreMock{},
 	}
 
 	ctx, authn := SetupMocks(mockData)
@@ -119,7 +119,7 @@ func TestAuthStorageNoNewTransaction(t *testing.T) {
 	mockData := MockData{
 		methodName: "/storage.Encryptonize/Store",
 		userID:     uuid.Must(uuid.NewV4()),
-		authStore: &authnimpl.AuthStoreMock{
+		authStore: &authstorage.AuthStoreMock{
 			NewTransactionFunc: func(ctx context.Context) (authStoreTx interfaces.AuthStoreTxInterface, err error) {
 				newTransactionCall = true
 				return nil, errors.New("NewTransaction not implemented")
@@ -138,18 +138,22 @@ func TestAuthStorageNoNewTransaction(t *testing.T) {
 	_, err := authn.AuthStorageUnaryServerInterceptor()(ctx, nil, nil, handler)
 	failOnSuccess("AuthStorage should not have been injected to context", err, t)
 
+	if errStatus, _ := status.FromError(err); codes.Internal != errStatus.Code() {
+		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.Internal, errStatus.Code())
+	}
+
 	if !newTransactionCall {
 		t.Fatal("Failed to begin a transaction")
 	}
 }
 
-func TestAuthStorageNoRollback(t *testing.T) {
+func TestAuthStorageRollback(t *testing.T) {
 	rollbackCall := false
 
 	mockData := MockData{
 		methodName: "/storage.Encryptonize/Store",
 		userID:     uuid.Must(uuid.NewV4()),
-		authStore: &authnimpl.AuthStoreMock{
+		authStore: &authstorage.AuthStoreMock{
 			NewTransactionFunc: func(ctx context.Context) (authStoreTx interfaces.AuthStoreTxInterface, err error) {
 				authStoreTxMock := &authstorage.AuthStoreTxMock{
 					RollbackFunc: func(ctx context.Context) (err error) {

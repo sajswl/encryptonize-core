@@ -246,14 +246,13 @@ func TestCheckAccessTokenExpired(t *testing.T) {
 	uc, err := crypt.NewAESCryptor(UEK)
 	failOnError("NewAESCryptor errored", err, t)
 
-	// Create short-lived token
-	accessToken := authn.NewAccessTokenDuration(userID, userScope, time.Second)
+	// Create expired token
+	accessToken := authn.NewAccessTokenDuration(userID, userScope, 0)
 
 	token, err := accessToken.SerializeAccessToken(c)
 	failOnError("SerializeAccessToken errored", err, t)
 
 	token = "bearer " + token
-
 	var md = metadata.Pairs("authorization", token)
 	au := &Authn{
 		UserAuthenticator: &authn.UserAuthenticator{
@@ -261,16 +260,15 @@ func TestCheckAccessTokenExpired(t *testing.T) {
 			UserCryptor:  uc,
 		},
 	}
-
 	ctx := context.WithValue(context.Background(), common.MethodNameCtxKey, "/storage.Encryptonize/Store")
 	ctx = metadata.NewIncomingContext(ctx, md)
-	_, err = au.CheckAccessToken(ctx)
-	failOnError("Auth failed", err, t)
-
-	time.Sleep(time.Second)
 
 	_, err = au.CheckAccessToken(ctx)
 	failOnSuccess("Auth should fail with expired token", err, t)
+
+	if errStatus, _ := status.FromError(err); codes.Unauthenticated != errStatus.Code() {
+		t.Errorf("Auth failed, but got incorrect error code, expected %v but got %v", codes.Unauthenticated, errStatus.Code())
+	}
 }
 
 // This test tries to access each endpoint with every but the required scope
