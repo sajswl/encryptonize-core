@@ -246,8 +246,8 @@ func (c *Client) RemoveUserFromGroup(uid, gid string) error {
 //                              Encryption                             //
 /////////////////////////////////////////////////////////////////////////
 
-// Encrypt encrypts the `plaintext` and authenticates the `associatedData` returning the resulting
-// ciphertext.
+// Encrypt encrypts the `plaintext` and tags both `plaintext` and `associatedData` returning the
+// resulting ciphertext.
 func (c *Client) Encrypt(plaintext, associatedData []byte) (*EncryptResponse, error) {
 	requestJSON, err := json.Marshal(request{Plaintext: plaintext, AssociatedData: associatedData})
 	if err != nil {
@@ -262,7 +262,7 @@ func (c *Client) Encrypt(plaintext, associatedData []byte) (*EncryptResponse, er
 	return response, nil
 }
 
-// Decrypt decrypts a previousy encrypted `ciphertext` and verifies the integrity of the `ciphertet`
+// Decrypt decrypts a previousy encrypted `ciphertext` and verifies the integrity of the `ciphertext`
 // and `associatedData`.
 func (c *Client) Decrypt(objectID string, ciphertext, associatedData []byte) (*DecryptResponse, error) {
 	requestJSON, err := json.Marshal(request{ObjectID: objectID, Ciphertext: ciphertext, AssociatedData: associatedData})
@@ -282,8 +282,8 @@ func (c *Client) Decrypt(objectID string, ciphertext, associatedData []byte) (*D
 //                               Storage                               //
 /////////////////////////////////////////////////////////////////////////
 
-// Store encrypts the `plaintext` and authenticates the `associatedData` storing the resulting
-// ciphertext in the Encryptonize service.
+// Store encrypts the `plaintext` and tags both `plaintext` and `associatedData` storing the
+// resulting ciphertext in the Encryptonize service.
 func (c *Client) Store(plaintext, associatedData []byte) (*StoreResponse, error) {
 	requestJSON, err := json.Marshal(request{Plaintext: plaintext, AssociatedData: associatedData})
 	if err != nil {
@@ -331,11 +331,7 @@ func (c *Client) Delete(oid string) error {
 		return err
 	}
 
-	if err := c.invoke("storage.Encryptonize.Delete", string(requestJSON), &struct{}{}); err != nil {
-		return err
-	}
-
-	return nil
+	return c.invoke("storage.Encryptonize.Delete", string(requestJSON), &struct{}{})
 }
 
 /////////////////////////////////////////////////////////////////////////

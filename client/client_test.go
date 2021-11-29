@@ -50,18 +50,14 @@ func TestUtility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.LoginUser(uid, password)
-	if err != nil {
+	if err := c.LoginUser(uid, password); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = c.Health()
-	if err != nil {
+	if _, err := c.Health(); err != nil {
 		t.Fatal(err)
 	}
-
-	_, err = c.Version()
-	if err != nil {
+	if _, err := c.Version(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -71,8 +67,7 @@ func TestUserManagement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.LoginUser(uid, password)
-	if err != nil {
+	if err := c.LoginUser(uid, password); err != nil {
 		t.Fatal(err)
 	}
 
@@ -107,8 +102,7 @@ func TestEncrypt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.LoginUser(uid, password)
-	if err != nil {
+	if err := c.LoginUser(uid, password); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,8 +139,7 @@ func TestStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.LoginUser(uid, password)
-	if err != nil {
+	if err := c.LoginUser(uid, password); err != nil {
 		t.Fatal(err)
 	}
 
@@ -195,8 +188,7 @@ func TestPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.LoginUser(uid, password)
-	if err != nil {
+	if err := c.LoginUser(uid, password); err != nil {
 		t.Fatal(err)
 	}
 

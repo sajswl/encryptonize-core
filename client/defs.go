@@ -92,6 +92,8 @@ type GetPermissionsResponse struct {
 //                               Internal                              //
 /////////////////////////////////////////////////////////////////////////
 
+// request is a catch-all for request structs. By using `omitempty` we can marshal to the correct
+// JSON structure by only setting the necessary fields.
 type request struct {
 	Scopes         []string `json:"scopes,omitempty"`
 	UserID         string   `json:"user_id,omitempty"`

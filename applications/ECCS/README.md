@@ -66,4 +66,3 @@ The following flag applies to all commands. In particular you will need to set `
 | `--password` | `-p`      | User password                                                   |
 | `--endpoint` | `-e`      | Endpoint of the Encryptonize service (default `localhost:9000`) |
 | `--certpath` | `-c`      | Path to a TLS certificate for the service. Enables TLS if set   |
-
