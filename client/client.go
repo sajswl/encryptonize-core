@@ -262,7 +262,7 @@ func (c *Client) Encrypt(plaintext, associatedData []byte) (*EncryptResponse, er
 	return response, nil
 }
 
-// Decrypt decrypts a previousy encrypted `ciphertext` and verifies the integrity of the `ciphertext`
+// Decrypt decrypts a previously encrypted `ciphertext` and verifies the integrity of the `ciphertext`
 // and `associatedData`.
 func (c *Client) Decrypt(objectID string, ciphertext, associatedData []byte) (*DecryptResponse, error) {
 	requestJSON, err := json.Marshal(request{ObjectID: objectID, Ciphertext: ciphertext, AssociatedData: associatedData})
@@ -298,7 +298,7 @@ func (c *Client) Store(plaintext, associatedData []byte) (*StoreResponse, error)
 	return response, nil
 }
 
-// Retrieve decrypts a previousy stored object returning the ciphertext.
+// Retrieve decrypts a previously stored object returning the ciphertext.
 func (c *Client) Retrieve(oid string) (*RetrieveResponse, error) {
 	requestJSON, err := json.Marshal(request{ObjectID: oid})
 	if err != nil {
