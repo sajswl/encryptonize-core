@@ -75,7 +75,7 @@ lint: $(protobufs)  ## Lint the codebase
 
 ##### Test targets #####
 .PHONY: tests
-tests: unit-tests service-tests eccs-tests ## Run all tests
+tests: unit-tests service-tests client-tests eccs-tests ## Run all tests
 
 .PHONY: coverage
 coverage: build  ## Generate coverage report
@@ -122,6 +122,12 @@ eccs-tests:  ## Run tests of the ECCS application
 	$(MAKE) -C ../applications/ECCS tests
 	$(MAKE) docker-down
 
+.PHONY: client-tests
+client-tests:  ## Run tests of the client library
+	$(MAKE) docker-up
+	source <(./scripts/get-e2e-user.sh docker) && \
+	$(MAKE) -C ../client tests
+	$(MAKE) docker-down
 
 ##### Run targets #####
 .PHONY: run

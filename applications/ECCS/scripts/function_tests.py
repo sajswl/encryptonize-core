@@ -22,10 +22,7 @@
 #
 # - E2E_TEST_UID:       UID of a user with USERMANAGMENT scope
 # - E2E_TEST_PASS:      Password of the above mentioned user
-# - ECCS_ENDPOINT:      Address of the server (e.g.: 127.0.0.1:9000)
-# - ECCS_CRT:           Certification used by the Encryption server
-#                         leave unset for HTTP
-#                         "insecure" for HTTPS ignoring certificate errors
+# - E2E_TEST_URL:       Endpoint of Encryptonize (defaults to localhost:9000)
 
 import os
 import subprocess
@@ -34,14 +31,12 @@ import re
 import uuid
 import json
 
+endpoint = "localhost:9000"
+
 # Initializes the server
 # Sets the endpoint if it is unset
 # Logs in the admin user
 def init():
-	ENDPOINT_ENV = "ECCS_ENDPOINT"
-	if ENDPOINT_ENV not in os.environ:
-		os.environ[ENDPOINT_ENV] = "127.0.0.1:9000"
-	
 	ADMIN_UID_ENV = "E2E_TEST_UID"
 	if ADMIN_UID_ENV in os.environ:
 		admin_uid = os.environ[ADMIN_UID_ENV]
@@ -56,165 +51,243 @@ def init():
 		print(f"{ADMIN_PASS_ENV} must be set")
 		sys.exit(1)
 
-	return login_user(admin_uid, admin_pass)
+	global endpoint
+	ENDPOINT_ENV = "E2E_TEST_URL"
+	if ENDPOINT_ENV in os.environ:
+		endpoint = os.environ[ENDPOINT_ENV]
 
-def create_user(token, flags=None):
-	cmd = ["./eccs", "-a", token, "createuser"]
-	if flags is not None:
-		cmd.append(flags)
+	return admin_uid, admin_pass
 
-	# uid and password are returned on stderr so we need to get that
+#########################################################################
+##                           User Management                           ##
+#########################################################################
+def create_user(uid, password, scopes):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "createuser", "-s", scopes]
 	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
 
-	uid = None
-	password = None
-	for match in re.finditer(r"UID: \"([^\"]+)\"", res.stderr):
-		if uid is not None:
-			print(f"multiple matches for the UID, aborting")
-			sys.exit(1)
-		uid = match.group(1)
+	uid = parsed.get("userId")
+	password = parsed.get("password")
 
-	for match in re.finditer(r"Password: \"([^\"]+)", res.stderr):
-		if password is not None:
-			print(f"multiple matches for the Password, aborting")
-			print(at)
-			print(match.group(0))
-			sys.exit(1)
-		password = match.group(1)
-
-	if uid is None or at is None:
+	if uid is None or password is None:
 		print(f"unable to match UID or Password in {res}")
 		sys.exit(1)
 
 	return uid, password
 
-def login_user(uid, password):
-	cmd = ["./eccs", "-u", uid, "-p", password, "--token", "\"\"", "loginuser"]
+def remove_user(uid, password, target):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "removeuser", "-t", target]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
 
-	res = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, text=True)
+def create_group(uid, password, scopes):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "creategroup", "-s", scopes]
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
 
-	at = None
-	for match in re.finditer(r"AT: \"([^\"]+)", res.stderr):
-		if at is not None:
-			print(f"multiple matches for the AT, aborting")
-			print(at)
-			print(match.group(0))
-			sys.exit(1)
-		at = match.group(1)
+	gid = parsed.get("groupId")
 
-	return at
+	if gid is None:
+		print(f"unable to match groupID in {res}")
+		sys.exit(1)
 
-def create_object(token, data, associated_data):
-	cmd = ["./eccs", "-a", token, "store", "-s"]
-	if associated_data is not None:
-		cmd += ["-d", associated_data]
+	return gid
 
+def add_user_to_group(uid, password, target, gid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "addusertogroup", "-t", target, "-g", gid]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
+
+def remove_user_from_group(uid, password, target, gid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "removeuserfromgroup", "-t", target, "-g", gid]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
+
+#########################################################################
+##                              Encryption                             ##
+#########################################################################
+def encrypt(uid, password, data, associated_data):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "encrypt", "-d", data, "-a", associated_data]
 	res = subprocess.run(cmd, input=data, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
 
-	oid = None
-	for match in re.finditer(r"ObjectID:\s+([0-9a-zA-Z]{8}(?:-[0-9a-zA-Z]{4}){3}-[0-9a-zA-Z]{12})", res.stderr):
-		if oid is not None:
-			print(f"multiple matches for the OID, aborting")
-			print(oid)
-			print(match.group(0))
-			sys.exit(1)
-		oid = match.group(1)
+	oid = parsed.get("objectId")
+	ciphertext = parsed.get("ciphertext")
+	associated_data= parsed.get("associatedData")
+	if oid is None or ciphertext is None or associated_data is None:
+		print(f"unable to match oid, ciphertext, or associated data in {res}")
+		sys.exit(1)
 
+	return oid, ciphertext, associated_data
+
+def decrypt(uid, password, data, associated_data, oid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "decrypt", "-d", data, "-a", associated_data, "-o", oid]
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
+
+	plaintext = parsed.get("plaintext")
+	associated_data = parsed.get("associatedData")
+	if plaintext is None or associated_data is None:
+		print(f"unable to match plaintext or associated data in {res}")
+		sys.exit(1)
+
+	return plaintext, associated_data
+
+#########################################################################
+##                               Storage                               ##
+#########################################################################
+def store(uid, password, data, associated_data):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "store", "-d", data, "-a", associated_data]
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
+
+	oid = parsed.get("objectId")
 	if oid is None:
 		print(f"unable to match oid in {res}")
 		sys.exit(1)
 
 	return oid
 
-def retrieve_object(token, oid):
-	cmd = ["./eccs", "-a", token, "retrieve", "-o", oid]
-
+def retrieve(uid, password, oid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "retrieve", "-o", oid]
 	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
 
-	obj = re.search("m=\"(.*)\", aad=\"(.*)\"", res.stderr)
-	
-	return obj.group(1), obj.group(2)
+	plaintext = parsed.get("plaintext")
+	associated_data = parsed.get("associatedData")
+	if plaintext is None or associated_data is None:
+		print(f"unable to match plaintext or associated data in {res}")
+		sys.exit(1)
 
-def update_object(token, oid, new_data, new_associated_data):
-	cmd = ["./eccs", "-a", token, "update", "-o", oid, "-s"]
+	return plaintext, associated_data
 
-	if new_associated_data is not None:
-		cmd += ["-d", new_associated_data]
+def update(uid, password, oid, data, associated_data):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "update", "-o", oid, "-d", data, "-a", associated_data]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
 
-	subprocess.run(cmd, input=new_data, check=True, text=True)
+def delete(uid, password, oid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "delete", "-o", oid]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
 
-def delete_object(token, oid):
-	cmd = ["./eccs", "-a", token, "delete", "-o", oid]
+#########################################################################
+##                             Permissions                             ##
+#########################################################################
 
-	res = subprocess.run(cmd, check=True, text=True)
+def get_permissions(uid, password, oid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "getpermissions", "-o", oid]
+	res = subprocess.run(cmd, capture_output=True, check=True, text=True)
+	parsed = json.loads(res.stdout)
 
-def encrypt_object(token, plaintext, aad, filename):
-	cmd = ["./eccs", "-a", token, "encrypt", "-s"]
-	if aad is not None:
-		cmd += ["-d", aad]
-	
-	with open(filename, 'w') as outfile:
-		res = subprocess.run(cmd, input=plaintext, stdout=outfile, check=True, text=True)
-	
-	with open(filename, 'r') as readfile:
-		encrypted_json = readfile.read()
-		parsed = json.loads(encrypted_json)
-		if parsed['oid'] is None:
-			print(f"unable to match oid in {res}")
-			sys.exit(1)
-		
-		return parsed['oid']
+	gids = parsed.get("groupIds")
+	if gids is None:
+		print(f"unable to match group IDs in {res}")
+		sys.exit(1)
 
-def decrypt_object(token, filename):
-	cmd = ["./eccs", "-a", token, "decrypt", "-f", filename]
-	res = subprocess.run(cmd, check=True, text=True)
+	return gids
+
+def add_permission(uid, password, target, oid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "addpermission", "-t", target, "-o", oid]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
+
+def remove_permission(uid, password, target, oid):
+	cmd = ["./eccs", "-e", endpoint, "-u", uid, "-p", password, "removepermission", "-t", target, "-o", oid]
+	subprocess.run(cmd, capture_output=True, check=True, text=True)
+
+#########################################################################
+##                                Tests                                ##
+#########################################################################
 
 if __name__ == "__main__":
-	at = init()
-	uid1, password1 = create_user(at, "-rcudip")
+	admin_uid, admin_pass = init()
+
+	# User management
+	uid1, password1 = create_user(admin_uid, admin_pass, "rcudiom")
 	print(f"[+] created first user:  UID {uid1}, Password {password1}")
-	uid2, password2 = create_user(at, "-r")
+
+	uid2, password2 = create_user(admin_uid, admin_pass, "r")
 	print(f"[+] created second user: UID {uid2}, Password {password2}")
+
+	gid = create_group(admin_uid, admin_pass, "rcudiom")
+	print(f"[+] created group: GID {gid}")
+
+	add_user_to_group(admin_uid, admin_pass, uid2, gid)
+	print(f"[+] added user {uid2} to group {gid}")
+
+	remove_user_from_group(admin_uid, admin_pass, uid2, gid)
+	print(f"[+] removed user {uid2} from group {gid}")
+
+	remove_user(admin_uid, admin_pass, uid2)
+	print(f"[+] removed user {uid2}")
+
+	# Encrypt
+	data = "hello encryption algorithm"
+	associated_data = "AES"
+
+	oid, ciphertext, aad = encrypt(uid1, password1, data, associated_data)
+	print(f"[+] encrypted object {oid}")
+
+	plaintext, aad = decrypt(uid1, password1, ciphertext, aad, oid)
+	print(f"[+] decrypted object {oid}")
+
+	if plaintext != data:
+		print(f"[-] decryption failed: {plaintext} != {data}")
+		sys.exit(1)
+
+	if aad != associated_data:
+		print(f"[-] decryption failed: {aad} != {associated_data}")
+		sys.exit(1)
+
+	# Storage
+	oid = store(uid1, password1, data, associated_data)
+	print(f"[+] stored object {oid}")
+
+	plaintext, aad = retrieve(uid1, password1, oid)
+	print(f"[+] retrieved object {oid}")
+
+	if plaintext != data:
+		print(f"[-] decryption failed: {plaintext} != {data}")
+		sys.exit(1)
+
+	if aad != associated_data:
+		print(f"[-] decryption failed: {aad} != {associated_data}")
+		sys.exit(1)
+
+	update(uid1, password1, oid, "new data", "new associated data")
+	print(f"[+] updated object {oid}")
+
+	plaintext, aad = retrieve(uid1, password1, oid)
+	if(plaintext != "new data" or aad != "new associated data"):
+		print(f"[-] failed to update object")
+		sys.exit(1)
+
+	delete(uid1, password1, oid)
 	try:
-		create_user(at) # expecting a subprocess.CalledProcessError when calling without scope
-		print(f"[-] A user without any scope was created, but an error was expected, aborting")
+		retrieve(uid1, password1, oid)
+		print(f"[-] retrieving an object should fail after deletion, aborting")
 		sys.exit(1)
 	except subprocess.CalledProcessError:
-		print("[+] did not create a third user without scopes")
+		print(f"[+] object {oid} was deleted successfully")
 
-	at1 = login_user(uid1, password1)
-	print(f"[+] logged in as first user:  UID {uid1}, AT {at1}")
+	# Permissions
+	uid3, password3 = create_user(admin_uid, admin_pass, "r")
+	print(f"[+] created third user: UID {uid3}, Password {password3}")
 
-	obj = {"data": "", "associated_data": "no one has the intention to store bytes here."}
+	oid = store(uid1, password1, data, associated_data)
+	print(f"[+] stored object {oid}")
 
-	oid = create_object(at1, obj["data"], obj["associated_data"])
-	print(f"[+] object created:      OID {oid}")
+	add_permission(uid1, password1, uid3, oid)
+	print(f"[+] added permissions for user {uid3} on object {oid}")
 
-	plaintext = "hello encryption algorithm"
-	aad = "AES"
-	filename = "encrypted-object"
-	oid2 = encrypt_object(at1, plaintext, aad, filename)
-	print(f"[+] object encrypted:      OID {oid2}")
+	gids = get_permissions(uid1, password1, oid)
+	if uid1 not in gids or uid3 not in gids:
+		print(f"[-] wrong IDs in permission list")
+		sys.exit(1)
+	else:
+		print(f"[+] got correct permissions {gids}")
 
-	decrypt_object(at1, filename)
-	print(f"[+] object decrypted:      OID {oid2}")
+	remove_permission(uid1, password1, uid3, oid)
+	gids = get_permissions(uid1, password1, oid)
+	if uid3 in gids:
+		print(f"[-] user not removed from permission list")
+		sys.exit(1)
+	else:
+		print(f"[+] removed permissions for user {uid3} on object {oid}")
 
-	delete_object(at1, oid2)
-	try:
-		retrieve_object(at1, oid2)
-	except subprocess.CalledProcessError:
-		print(f"[+] object was deleted successfully")
-	
-	new_obj = {"data": "new data", "associated_data": "this was updated"}
-	update_object(at1, oid, new_obj["data"], new_obj["associated_data"])
-
-	d, ad = retrieve_object(at1, oid)
-	print(f"[+] object was updated successfully: {d == new_obj['data'] and ad == new_obj['associated_data']}")
-
-	subprocess.run(["./eccs", "-a", at1, "store", "-f", "README.md", "-d", "asdf"], check=True)
-	subprocess.run(["./eccs", "-a", at1, "retrieve", "-o", oid], check=True)
-	subprocess.run(["./eccs", "-a", at1, "addpermission", "-o", oid, "-t", uid2], check=True)
-	subprocess.run(["./eccs", "-a", at1, "getpermissions", "-o", oid], check=True)
-	subprocess.run(["./eccs", "-a", at1, "removepermission", "-o", oid, "-t", uid2], check=True)
-	subprocess.run(["./eccs", "-a", at, "removeuser", "-t", uid2], check=True)
 	print("[+] all tests succeeded")

@@ -19,9 +19,23 @@ import (
 	"github.com/gofrs/uuid"
 
 	"encryption-service/common"
+	"encryption-service/interfaces"
 )
 
 // TODO: we haven't found a better way to export testing structs yet
+
+type AuthStoreMock struct {
+	NewTransactionFunc func(ctx context.Context) (authStoreTx interfaces.AuthStoreTxInterface, err error)
+	CloseFunc          func()
+}
+
+func (as *AuthStoreMock) NewTransaction(ctx context.Context) (interfaces.AuthStoreTxInterface, error) {
+	return as.NewTransactionFunc(ctx)
+}
+
+func (as *AuthStoreMock) Close() {
+	as.CloseFunc()
+}
 
 // AuthStoreTxMock allows to mock Auth Storage for testing
 type AuthStoreTxMock struct {
