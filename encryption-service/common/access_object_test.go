@@ -100,7 +100,7 @@ func TestRemoveGroup(t *testing.T) {
 		accessObject.RemoveGroup(groupID)
 		exists := accessObject.ContainsGroup(groupID)
 		if exists {
-			t.Error("RemoveUser failed")
+			t.Error("RemoveGroup failed")
 		}
 	}
 }
