@@ -1,4 +1,4 @@
-module client
+module github.com/cyber-crypt-com/encryptonize-core/client
 
 go 1.16
 
