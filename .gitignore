@@ -55,6 +55,7 @@ kubernetes/encryptonize/deploy/config.toml
 kubernetes/encryptonize/deploy/kustomization.yaml
 kubernetes/logging/bootstrap/kustomization.yaml
 kubernetes/logging/deploy/kustomization.yaml
+kubernetes/logging/deploy/config
 kubernetes/object/bootstrap/config
 kubernetes/object/deploy/kustomization.yaml
 kubernetes/object/deploy/nginx.conf
