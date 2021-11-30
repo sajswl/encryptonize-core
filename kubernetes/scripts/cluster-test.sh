@@ -17,6 +17,4 @@
 set -euo pipefail
 
 gcloud container clusters get-credentials $ENC_CLUSTER --zone $ZONE --project $PROJECT
-
-make -C ../encryption-service credentials
 make -C ../encryption-service e2e-tests-kubernetes

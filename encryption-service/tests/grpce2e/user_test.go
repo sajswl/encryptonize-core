@@ -23,7 +23,7 @@ import (
 
 // Tests that we can create and use a user
 func TestCreateUser(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -44,7 +44,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestRemoveUser(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -74,7 +74,7 @@ func TestRemoveUser(t *testing.T) {
 func TestRemoveUserNonExisting(t *testing.T) {
 	nonExistingUser := "00000000-0000-0000-0000-000000000000"
 
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

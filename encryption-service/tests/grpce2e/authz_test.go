@@ -25,7 +25,7 @@ import (
 
 // Test that unauthorized users cannot perform actions on objects
 func TestUnauthorizedAccessToObject(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -79,7 +79,7 @@ func TestUnauthorizedAccessToObject(t *testing.T) {
 }
 
 func TestUnauthorizedToRead(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -118,7 +118,7 @@ func TestUnauthorizedToRead(t *testing.T) {
 }
 
 func TestUnauthorizedToCreate(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -151,7 +151,7 @@ func TestUnauthorizedToCreate(t *testing.T) {
 }
 
 func TestUnauthorizedToGetPermissions(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -182,7 +182,7 @@ func TestUnauthorizedToGetPermissions(t *testing.T) {
 }
 
 func TestUnauthorizedToManagePermissions(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -216,7 +216,7 @@ func TestUnauthorizedToManagePermissions(t *testing.T) {
 }
 
 func TestUnauthorizedToManageUsers(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -243,7 +243,7 @@ func TestUnauthorizedToManageUsers(t *testing.T) {
 }
 
 func TestUnauthorizedToUpdateAndDelete(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

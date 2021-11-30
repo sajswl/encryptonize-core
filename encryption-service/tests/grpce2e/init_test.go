@@ -35,7 +35,7 @@ var protoUserScopes = []common.Scope{
 	common.Scope_UPDATE,
 	common.Scope_DELETE,
 }
-var https = false
+var certPath = ""
 
 /**************************/
 /*       Test setup       */
@@ -47,9 +47,9 @@ func TestMain(m *testing.M) {
 	if ok {
 		endpoint = v
 	}
-	v, ok = os.LookupEnv("E2E_TEST_HTTPS")
-	if ok && v == "true" {
-		https = true
+	v, ok = os.LookupEnv("E2E_TEST_CERT")
+	if ok {
+		certPath = v
 	}
 	bootstrapUID, ok := os.LookupEnv("E2E_TEST_UID")
 	if !ok {
@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// Create user for tests
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	if err != nil {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
