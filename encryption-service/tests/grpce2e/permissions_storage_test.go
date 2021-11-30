@@ -24,7 +24,7 @@ import (
 
 // Test that a user can remove themselves from the object ACL and cannot access the object afterwards
 func TestRetrieveSameUserWithoutPermissions(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -47,7 +47,7 @@ func TestRetrieveSameUserWithoutPermissions(t *testing.T) {
 // Test that a stored object can be retrieved by another user with permissions
 func TestShareObjectWithUser(t *testing.T) {
 	// Create another user to share the object with
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -89,7 +89,7 @@ func TestShareObjectWithUser(t *testing.T) {
 // Test that a stored object cannot be retrieved by another user without permissions
 func TestRetrieveWithoutPermissions(t *testing.T) {
 	// Create another user to share the object with
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -121,7 +121,7 @@ func TestRetrieveWithoutPermissions(t *testing.T) {
 // If user A grants access to user B, then user B should be able to grant access to user C
 func TestPermissionTransitivity(t *testing.T) {
 	// Create admin client for user creation
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -171,7 +171,7 @@ func TestPermissionTransitivity(t *testing.T) {
 // and that add/remove permission inflicts the outcome of get permissions
 func TestGetPermissions(t *testing.T) {
 	// Create admin client for user creation
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -260,7 +260,7 @@ func TestGetPermissions(t *testing.T) {
 func TestAddPermissionNoTargetUser(t *testing.T) {
 	nonExistingUser := "00000000-0000-0000-0000-000000000000"
 
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

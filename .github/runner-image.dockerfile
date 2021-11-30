@@ -20,7 +20,7 @@ RUN curl https://sdk.cloud.google.com > install.sh && \
 ENV PATH=$PATH:/root/google-cloud-sdk/bin
 ENV CLOUDSDK_CONTAINER_USE_APPLICATION_DEFAULT_CREDENTIALS=true
 RUN mkdir /root/.gcp
-COPY deployer-staging.json /root/.gcp/deployer-staging.json
+COPY k8s-deploy-key.json /root/.gcp/k8s-deploy-key.json
 
 # go
 RUN wget https://golang.org/dl/go1.17.linux-amd64.tar.gz && \

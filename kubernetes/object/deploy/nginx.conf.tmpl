@@ -1,0 +1,28 @@
+events {}
+
+http {
+  server {
+    listen 8000 ssl;
+    listen [::]:8000 ssl;
+
+    # modern ssl configuration according to https://wiki.mozilla.org/Security/Server_Side_TLS
+    ssl_certificate /etc/ssl/certs/object_storage.crt;
+    ssl_certificate_key /etc/ssl/private/object_storage.key;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;  # about 40000 sessions
+    ssl_session_tickets off;
+    ssl_protocols TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    location /nginx-health {
+      proxy_http_version 1.1;
+      return 200 "healthy\n";
+    }
+    location / {
+      proxy_http_version 1.1;
+      proxy_set_header Host '${OBJECT_STORAGE_HOSTNAME}';
+      proxy_pass http://rook-ceph-rgw-encryptonize-store.rook-ceph.svc.cluster.local:80;
+    }
+    client_max_body_size 100M;
+  }
+}

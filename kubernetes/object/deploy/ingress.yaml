@@ -1,0 +1,81 @@
+# Copyright 2021 CYBERCRYPT
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ceph-ingress
+  namespace: rook-ceph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ceph-ingress
+  template:
+    metadata:
+      labels:
+        app: ceph-ingress
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: ingress-config
+              mountPath: /etc/nginx/
+              readOnly: true
+            - name: object-certs
+              mountPath: /etc/ssl/certs/object_storage.crt
+              subPath: object_storage.crt
+              readOnly: true
+            - name: object-certs
+              mountPath: /etc/ssl/private/object_storage.key
+              subPath: object_storage.key
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /nginx-health
+              port: 8000
+              scheme: HTTPS
+          livenessProbe:
+            httpGet:
+              path: /nginx-health
+              port: 8000
+              scheme: HTTPS
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "30Mi"
+      volumes:
+        - name: ingress-config
+          configMap:
+            name: ingress-config
+        - name: object-certs
+          secret:
+            secretName: object-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ceph-ingress
+  namespace: rook-ceph
+spec:
+  type: LoadBalancer
+  selector:
+    app: ceph-ingress
+  ports:
+    - name: http443
+      protocol: TCP
+      port: 443
+      targetPort: 8000

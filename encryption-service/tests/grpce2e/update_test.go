@@ -24,7 +24,7 @@ import (
 
 // Test the we can store an object, update and retrieve it later
 func TestStoreAndUpdate(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -56,7 +56,7 @@ func TestStoreAndUpdate(t *testing.T) {
 }
 
 func TestStoreAndUpdateWrongOid(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -76,7 +76,7 @@ func TestStoreAndUpdateWrongOid(t *testing.T) {
 }
 
 func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

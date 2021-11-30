@@ -1,0 +1,18 @@
+[authstorage]
+username = "encryptonize"
+host = "${AUTH_STORAGE_HOSTNAME}"
+port = "26257"
+database = "auth"
+sslmode = "verify-ca"
+sslrootcert = "/auth-certs/ca.crt"
+sslcert = "/auth-certs/client.encryptonize.crt"
+sslkey = "/auth-certs/client.encryptonize.key"
+schema = "./data/auth_storage_basic.sql"
+
+[objectstorage]
+url = "${OBJECT_STORAGE_HOSTNAME}"
+certpath = "/object-certs/object_storage.crt"
+
+[features]
+storageservice = true
+encryptionservice = true

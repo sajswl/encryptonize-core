@@ -27,7 +27,7 @@ import (
 
 // Test that we can share an object by adding a group to the access object
 func TestShareWithGroup(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -71,7 +71,7 @@ func TestShareWithGroup(t *testing.T) {
 // Test that a user with the READ scope in one group cannot access an object if the group that gives
 // them access to the object does not have that scope.
 func TestGroupScopes(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -115,7 +115,7 @@ func TestGroupScopes(t *testing.T) {
 
 // Test creation of a group wth invalid scopes
 func TestCreateGroupInvalidScopes(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -129,7 +129,7 @@ func TestCreateGroupInvalidScopes(t *testing.T) {
 
 // Test adding a user to an invalid group
 func TestAddUserToGroupInvalidGroup(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -143,7 +143,7 @@ func TestAddUserToGroupInvalidGroup(t *testing.T) {
 
 // Test adding an invalid user to a group
 func TestAddUserToGroupInvalidUser(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -162,7 +162,7 @@ func TestAddUserToGroupInvalidUser(t *testing.T) {
 
 // Test that we can remove a user from a group, stopping them from accessing an object
 func TestRemoveUserFromGroup(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -212,7 +212,7 @@ func TestRemoveUserFromGroup(t *testing.T) {
 
 // Test removing an invalid user from a group
 func TestRemoveUserFromGroupInvalidUser(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -231,7 +231,7 @@ func TestRemoveUserFromGroupInvalidUser(t *testing.T) {
 
 // Test that removing a user from a group twice does not fail
 func TestRemoveUserFromGroupTwice(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -256,7 +256,7 @@ func TestRemoveUserFromGroupTwice(t *testing.T) {
 
 // Test that we can remove a user from their default group
 func TestRemoveUserFromDefaultGroup(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

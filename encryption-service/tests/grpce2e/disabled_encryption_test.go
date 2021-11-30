@@ -23,7 +23,7 @@ import (
 
 // Test that we can't store an object
 func TestEncDisabled(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 

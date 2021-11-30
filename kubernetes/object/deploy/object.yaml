@@ -1,0 +1,73 @@
+# Minimal setup for a ceph object store. Data is replicated across three disks.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rook-config-override
+  namespace: rook-ceph
+data:
+  config: |
+    [client]
+    rgw_enable_ops_log = true
+    rgw_ops_log_socket_path = /tmp/opslog
+    rgw_log_http_headers = "http_request_id"
+---
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStore
+metadata:
+  name: encryptonize-store
+  namespace: rook-ceph
+spec:
+  # Preserve pools if the object store is deleted to prevent accidental data loss
+  preservePoolsOnDelete: true
+
+  # Metadata pool settings
+  metadataPool:
+    failureDomain: host
+    replicated:
+      size: 3
+
+  # Data pool settings
+  dataPool:
+    failureDomain: host
+    replicated: # Use replication for data redundancy
+      size: 3
+
+  # RADOS Gateway settings
+  gateway:
+    type: s3
+    port: 80
+    instances: 1 # Start a single RGW instance
+    resources:
+      requests:
+        cpu: "350m"
+        memory: "300Mi"
+
+  # Service endpoint healthcheck
+  healthCheck:
+    bucket:
+      disabled: false
+      interval: 60s
+    livenessProbe:
+      disabled: false
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+   name: bucket-storage-class
+   namespace: rook-ceph
+provisioner: rook-ceph.ceph.rook.io/bucket
+# Retain the buck if the claim is deleted
+reclaimPolicy: Retain
+parameters:
+  objectStoreName: encryptonize-store
+  objectStoreNamespace: rook-ceph
+  region: europe-west-4
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: bucket-claim
+  namespace: rook-ceph
+spec:
+  bucketName: objects # Bucket name
+  storageClassName: bucket-storage-class

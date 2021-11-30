@@ -23,7 +23,7 @@ import (
 
 // Test the we can store an object and delete it later
 func TestStoreDeleteRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
@@ -44,7 +44,7 @@ func TestStoreDeleteRetrieve(t *testing.T) {
 }
 
 func TestStoreDeleteTwice(t *testing.T) {
-	client, err := NewClient(endpoint, https)
+	client, err := NewClient(endpoint, certPath)
 	failOnError("Could not create client", err, t)
 	defer closeClient(client, t)
 
