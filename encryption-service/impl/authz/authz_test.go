@@ -197,3 +197,17 @@ func TestUpdateStoreFailed(t *testing.T) {
 		t.Fatalf("updatePermissions should have errored")
 	}
 }
+
+func TestDeleteObjectFailed(t *testing.T) {
+	authStoreTx := &authstorage.AuthStoreTxMock{
+		DeleteAccessObjectFunc: func(ctx context.Context, objectID uuid.UUID) error {
+			return errors.New("mock error")
+		},
+	}
+	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
+
+	err := authorizer.DeleteAccessObject(ctx, objectID)
+	if err == nil {
+		t.Fatalf("Delete Access Object should have errored")
+	}
+}

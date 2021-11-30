@@ -26,6 +26,27 @@ jobs:
     - name: Build
       run: make build
 
+  esb-client-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyber-crypt-com/github-runner:1.7
+      credentials:
+        username: USERNAME
+        password: ${{ secrets.GHCR_PULL_TOKEN }}
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Lint
+      run: make lint
+
+    - name: Build
+      run: make build
+
   esb-eccs-build:
     runs-on: ubuntu-latest
     container:
@@ -48,7 +69,7 @@ jobs:
       run: make build
 
   esb-all-tests:
-    needs: [esb-build, esb-eccs-build]
+    needs: [esb-build, esb-client-build, esb-eccs-build]
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cyber-crypt-com/github-runner:1.7
@@ -65,7 +86,6 @@ jobs:
       # network due to the way the workflow container is started, so we fetch the ip of the docker0
       # interface instead. See https://stackoverflow.com/a/31328031 for more information.
       run: |
-        export ECCS_ENDPOINT=$(ip route show | awk '/default/ {print $3}'):9000
         export E2E_TEST_URL=$(ip route show | awk '/default/ {print $3}'):9000
         make tests
 
