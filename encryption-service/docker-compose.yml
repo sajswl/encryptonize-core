@@ -53,34 +53,55 @@ services:
     ports:
       - 9000:9000
     depends_on:
-      - cockroachdb-init
-      - minio-init
+      cockroachdb-1:
+        condition: service_healthy
+      cockroachdb-2:
+        condition: service_healthy
+      cockroachdb-3:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     tty: true
 
   # CockroachDB
   cockroachdb-1:
-    image: cockroachdb/cockroach:v20.2.0
+    image: cockroachdb/cockroach:v21.2.1
     volumes:
       - /cockroach/cockroach-data
     command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
     ports:
       - 26257:26257
       - 7001:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "localhost:8080/health?ready=1"]
+      timeout: 30s
+      interval: 5s
+      retries: 5
 
   cockroachdb-2:
-    image: cockroachdb/cockroach:v20.2.0
+    image: cockroachdb/cockroach:v21.2.1
     volumes:
       - /cockroach/cockroach-data
     command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "localhost:8080/health?ready=1"]
+      timeout: 30s
+      interval: 5s
+      retries: 5
 
   cockroachdb-3:
-    image: cockroachdb/cockroach:v20.2.0
+    image: cockroachdb/cockroach:v21.2.1
     volumes:
       - /cockroach/cockroach-data
     command: start --insecure --join=cockroachdb-1,cockroachdb-2,cockroachdb-3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "localhost:8080/health?ready=1"]
+      timeout: 30s
+      interval: 5s
+      retries: 5
 
   cockroachdb-init:
-    image: cockroachdb/cockroach:v20.2.0
+    image: cockroachdb/cockroach:v21.2.1
     environment:
       CRDB: "/cockroach/cockroach --host cockroachdb-1"
     entrypoint: |
@@ -95,7 +116,7 @@ services:
 
   # Object storage
   minio:
-    image: minio/minio:RELEASE.2020-11-13T20-10-18Z
+    image: minio/minio:RELEASE.2021-04-22T15-44-28Z.hotfix.1b6e227e4
     volumes:
       - /data
     ports:
@@ -105,9 +126,14 @@ services:
       MINIO_SECRET_KEY: *storage_key
       MINIO_DEFAULT_BUCKETS: objects
     command: server /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "localhost:9000/minio/health/live"]
+      timeout: 30s
+      interval: 5s
+      retries: 5
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2021-11-16T20-37-36Z
     environment:
       MINIO_ACCESS_KEY: *storage_id
       MINIO_SECRET_KEY: *storage_key
