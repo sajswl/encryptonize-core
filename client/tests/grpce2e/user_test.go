@@ -19,15 +19,19 @@ package grpce2e
 
 import (
 	"testing"
+
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // Tests that we can create and use a user
 func TestCreateUser(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	// Test user creation
@@ -35,7 +39,7 @@ func TestCreateUser(t *testing.T) {
 	failOnError("Create user request failed", err, t)
 
 	// Test user login
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
 
 	// Test that users can do stuff
@@ -44,11 +48,11 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestRemoveUser(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	// Test user creation
@@ -56,32 +60,32 @@ func TestRemoveUser(t *testing.T) {
 	failOnError("Create user request failed", err, t)
 
 	// Test user login
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Login user request failed", err, t)
 
 	// Test user removal
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	_, err = client.RemoveUser(createUserResponse.UserId)
+	err = client.RemoveUser(createUserResponse.UserID)
 	failOnError("Remove user request failed", err, t)
 
 	// Test user login again
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnSuccess("Login user request succeeded on a deleted user", err, t)
 }
 
 func TestRemoveUserNonExisting(t *testing.T) {
 	nonExistingUser := "00000000-0000-0000-0000-000000000000"
 
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	// Test user removal
-	_, err = client.RemoveUser(nonExistingUser)
+	err = client.RemoveUser(nonExistingUser)
 	failOnSuccess("Remove user request succeeded on a non existing user", err, t)
 }

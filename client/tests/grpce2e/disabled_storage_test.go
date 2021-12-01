@@ -19,15 +19,19 @@ package grpce2e
 
 import (
 	"testing"
+
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // Test endpoint is disabled
 func TestStoreDisabled(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")

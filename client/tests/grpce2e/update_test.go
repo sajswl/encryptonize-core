@@ -18,17 +18,21 @@
 package grpce2e
 
 import (
-	"bytes"
 	"testing"
+
+	"bytes"
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // Test the we can store an object, update and retrieve it later
 func TestStoreAndUpdate(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -36,11 +40,11 @@ func TestStoreAndUpdate(t *testing.T) {
 
 	storeResponse, err := client.Store(plaintext, associatedData)
 	failOnError("Store operation failed", err, t)
-	oid := storeResponse.ObjectId
+	oid := storeResponse.ObjectID
 
 	newplaintext := []byte("bar")
 	newAssociatedData := []byte("ChunkNotID")
-	_, err = client.Update(oid, newplaintext, newAssociatedData)
+	err = client.Update(oid, newplaintext, newAssociatedData)
 	failOnError("Update operation failed", err, t)
 
 	retrieveResponse, err := client.Retrieve(oid)
@@ -56,11 +60,11 @@ func TestStoreAndUpdate(t *testing.T) {
 }
 
 func TestStoreAndUpdateWrongOid(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -71,16 +75,16 @@ func TestStoreAndUpdateWrongOid(t *testing.T) {
 	oid := "hello"
 
 	newplaintext := []byte("bar")
-	_, err = client.Update(oid, newplaintext, associatedData)
+	err = client.Update(oid, newplaintext, associatedData)
 	failOnSuccess("Should not be able to update with a bad oid", err, t)
 }
 
 func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -89,26 +93,26 @@ func TestStoreUpdateOtherUserRetrieve(t *testing.T) {
 	storeResponse, err := client.Store(plaintext, associatedData)
 	failOnError("Store operation failed", err, t)
 
-	oid := storeResponse.ObjectId
+	oid := storeResponse.ObjectID
 
 	// Create another user to share the object with
 	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 
-	uid2 := createUserResponse.UserId
+	uid2 := createUserResponse.UserID
 	pwd2 := createUserResponse.Password
 
 	// Add the new user to object permission list
-	_, err = client.AddPermission(oid, uid2)
+	err = client.AddPermission(oid, uid2)
 	failOnError("Add permission request failed", err, t)
 
 	plaintext2 := []byte("foo2")
 
 	// Update the object from the new user
-	_, err = client.LoginUser(uid2, pwd2)
+	err = client.LoginUser(uid2, pwd2)
 	failOnError("Could not log in user", err, t)
 
-	_, err = client.Update(oid, plaintext2, associatedData)
+	err = client.Update(oid, plaintext2, associatedData)
 	failOnError("Store operation failed", err, t)
 
 	// Check that the original user can still retrieve the object
