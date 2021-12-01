@@ -110,8 +110,10 @@ func TestUpdateUser(t *testing.T) {
 		t.Fatalf("UpdateUser errored: %s", err)
 	}
 
+	updateUserCall := false
 	authStoreTx := &authstorage.AuthStoreTxMock{
 		UpdateUserFunc: func(ctx context.Context, protected *common.ProtectedUserData) error {
+			updateUserCall = true
 			return nil
 		},
 	}
@@ -119,6 +121,9 @@ func TestUpdateUser(t *testing.T) {
 
 	err = userAuthenticator.UpdateUser(ctx, userID, userData)
 	failOnError("Expected UpdateUser to succeed", err, t)
+	if !updateUserCall {
+		t.Fatal("Failed to update user")
+	}
 }
 
 func TestGetUserData(t *testing.T) {
@@ -209,8 +214,19 @@ func TestLoginUser(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	_, err = userAuthenticator.LoginUser(ctx, userID, password)
+	accessToken, err := userAuthenticator.LoginUser(ctx, userID, password)
 	failOnError("Expected LoginUser to succeed", err, t)
+
+	parsedAccessToken, err := ParseAccessToken(userAuthenticator.TokenCryptor, accessToken)
+	if err != nil {
+		t.Fatalf("ParseAccessToken errored: %v", err)
+	}
+	if parsedAccessToken.UserID != userID {
+		t.Fatalf("Token is issued for wrong user ID")
+	}
+	if parsedAccessToken.Scopes != common.ScopeRead {
+		t.Fatalf("Token has incorrect scopes")
+	}
 }
 
 func TestLoginUserWrongPassword(t *testing.T) {
@@ -247,8 +263,10 @@ func TestRemoveUserFromGroup(t *testing.T) {
 		t.Fatalf("RemoveUser errored: %s", err)
 	}
 
+	removeUserCall := false
 	authStoreTx := &authstorage.AuthStoreTxMock{
 		RemoveUserFunc: func(ctx context.Context, userID uuid.UUID) error {
+			removeUserCall = true
 			return nil
 		},
 	}
@@ -256,6 +274,9 @@ func TestRemoveUserFromGroup(t *testing.T) {
 
 	err = userAuthenticator.RemoveUser(ctx, userID)
 	failOnError("Expected RemoveUser to succeed", err, t)
+	if !removeUserCall {
+		t.Fatal("Failed to remove user from a group")
+	}
 }
 
 func TestNewGroupWithID(t *testing.T) {
@@ -264,17 +285,25 @@ func TestNewGroupWithID(t *testing.T) {
 		t.Fatalf("NewGroupWithID errored: %s", err)
 	}
 
+	groupID := uuid.Must(uuid.NewV4())
+	insertGroupCall := false
 	authStoreTx := &authstorage.AuthStoreTxMock{
 		InsertGroupFunc: func(ctx context.Context, protected *common.ProtectedGroupData) error {
+			insertGroupCall = true
+			if protected.GroupID != groupID {
+				return errors.New("Group ID is incorrect")
+			}
 			return nil
 		},
 	}
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	groupID := uuid.Must(uuid.NewV4())
 	scopes := common.ScopeCreate
 	err = userAuthenticator.NewGroupWithID(ctx, groupID, scopes)
 	failOnError("Expected NewGroupWithID to succeed", err, t)
+	if !insertGroupCall {
+		t.Fatal("Failed to create a new group")
+	}
 }
 
 func TestNewGroup(t *testing.T) {
@@ -283,8 +312,10 @@ func TestNewGroup(t *testing.T) {
 		t.Fatalf("NewGroup errored: %s", err)
 	}
 
+	insertGroupCall := false
 	authStoreTx := &authstorage.AuthStoreTxMock{
 		InsertGroupFunc: func(ctx context.Context, protected *common.ProtectedGroupData) error {
+			insertGroupCall = true
 			return nil
 		},
 	}
@@ -293,6 +324,9 @@ func TestNewGroup(t *testing.T) {
 	scopes := common.ScopeCreate
 	_, err = userAuthenticator.NewGroup(ctx, scopes)
 	failOnError("Expected NewGroup to succeed", err, t)
+	if !insertGroupCall {
+		t.Fatal("Failed to create a new group")
+	}
 }
 
 func TestGetGroupDataBatch(t *testing.T) {
@@ -301,10 +335,13 @@ func TestGetGroupDataBatch(t *testing.T) {
 		t.Fatalf("GetGroupDataBatch errored: %s", err)
 	}
 
+	groupID1 := uuid.Must(uuid.NewV4())
+	groupID2 := uuid.Must(uuid.NewV4())
+	groupIDs := []uuid.UUID{groupID1, groupID2}
 	groupData := &common.GroupData{
 		Scopes: common.ScopeRead,
 	}
-	groupDataBatch := []common.GroupData{*groupData}
+	groupDataBatch := []common.GroupData{*groupData, *groupData}
 
 	authStoreTx := &authstorage.AuthStoreTxMock{
 		GetGroupDataBatchFunc: func(ctx context.Context, groupIDs []uuid.UUID) ([]common.ProtectedGroupData, error) {
@@ -327,13 +364,10 @@ func TestGetGroupDataBatch(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	groupID := uuid.Must(uuid.NewV4())
-	groupIDs := []uuid.UUID{groupID}
-
 	fetchedGroupDataBatch, err := userAuthenticator.GetGroupDataBatch(ctx, groupIDs)
 	failOnError("Expected GetGroupDataBatch to succeed", err, t)
 
 	if !reflect.DeepEqual(groupDataBatch, fetchedGroupDataBatch) {
-		t.Fatalf("Fetched group data batch is different from original")
+		t.Fatalf("Fetched group data batch is different from original %v %v", groupDataBatch, fetchedGroupDataBatch)
 	}
 }

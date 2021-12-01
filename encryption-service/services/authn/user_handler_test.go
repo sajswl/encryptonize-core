@@ -30,7 +30,7 @@ import (
 	"encryption-service/interfaces"
 )
 
-var userData = &common.UserData{
+var outputUserData = &common.UserData{
 	HashedPassword: []byte("HashedPassword"),
 	Salt:           []byte("Salt"),
 	GroupIDs: map[uuid.UUID]bool{
@@ -41,18 +41,40 @@ var userData = &common.UserData{
 func TestCreateUser(t *testing.T) {
 	outputUserID := uuid.Must(uuid.NewV4())
 	password := "Password"
+	readScope := []common.Scope{common.Scope_READ}
+	updateUserCall := false
+	getUserDataCall := false
+	newGroupWithIDCall := false
 
 	userAuthenticator := &authnimpl.UserAuthenticatorMock{
 		NewUserFunc: func(ctx context.Context) (*uuid.UUID, string, error) {
 			return &outputUserID, password, nil
 		},
 		UpdateUserFunc: func(ctx context.Context, userID uuid.UUID, userData *common.UserData) error {
+			updateUserCall = true
+			if userID != outputUserID {
+				return errors.New("User ID is incorrect")
+			}
+			if userData != outputUserData {
+				return errors.New("User data is incorrect")
+			}
 			return nil
 		},
 		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
-			return userData, nil
+			getUserDataCall = true
+			if userID != outputUserID {
+				return nil, errors.New("User ID is incorrect")
+			}
+			return outputUserData, nil
 		},
 		NewGroupWithIDFunc: func(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error {
+			newGroupWithIDCall = true
+			if groupID != outputUserID {
+				return errors.New("Group ID is incorrect")
+			}
+			if !scopes.HasScopes(common.ScopeType(common.Scope_READ)) {
+				return errors.New("Scope is incorrect")
+			}
 			return nil
 		},
 	}
@@ -66,7 +88,7 @@ func TestCreateUser(t *testing.T) {
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
 	request := CreateUserRequest{
-		Scopes: []common.Scope{common.Scope_READ},
+		Scopes: readScope,
 	}
 
 	response, err := authn.CreateUser(ctx, &request)
@@ -75,6 +97,16 @@ func TestCreateUser(t *testing.T) {
 	}
 	if response.UserId != outputUserID.String() {
 		t.Fatalf("Expected user ID %s but got %s", outputUserID.String(), response.UserId)
+	}
+
+	if !updateUserCall {
+		t.Fatal("Failed to update user")
+	}
+	if !getUserDataCall {
+		t.Fatal("Failed to get user data")
+	}
+	if !newGroupWithIDCall {
+		t.Fatal("Failed to create a group correspondent to the user")
 	}
 }
 
@@ -98,7 +130,7 @@ func TestFailCreateUser(t *testing.T) {
 					return err[1]
 				},
 				GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
-					return userData, err[2]
+					return outputUserData, err[2]
 				},
 				NewGroupWithIDFunc: func(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error {
 					return err[3]
@@ -141,7 +173,7 @@ func TestCreateUserFailToCommit(t *testing.T) {
 			return nil
 		},
 		GetUserDataFunc: func(ctx context.Context, userID uuid.UUID) (*common.UserData, error) {
-			return userData, nil
+			return outputUserData, nil
 		},
 		NewGroupWithIDFunc: func(ctx context.Context, groupID uuid.UUID, scopes common.ScopeType) error {
 			return nil
@@ -170,10 +202,20 @@ func TestCreateUserFailToCommit(t *testing.T) {
 }
 
 func TestLoginUser(t *testing.T) {
+	loginUserID := uuid.Must(uuid.NewV4())
+	loginPassword := "password"
 	outputToken := "token"
+	loginUserCall := false
 
 	userAuthenticator := &authnimpl.UserAuthenticatorMock{
 		LoginUserFunc: func(ctx context.Context, userID uuid.UUID, password string) (string, error) {
+			loginUserCall = true
+			if userID != loginUserID {
+				return "", errors.New("User ID is incorrect")
+			}
+			if password != loginPassword {
+				return "", errors.New("Password is incorrect")
+			}
 			return outputToken, nil
 		},
 	}
@@ -181,10 +223,9 @@ func TestLoginUser(t *testing.T) {
 		UserAuthenticator: userAuthenticator,
 	}
 
-	userID := uuid.Must(uuid.NewV4())
 	request := LoginUserRequest{
-		UserId:   userID.String(),
-		Password: "password",
+		UserId:   loginUserID.String(),
+		Password: loginPassword,
 	}
 
 	response, err := authn.LoginUser(context.Background(), &request)
@@ -193,6 +234,9 @@ func TestLoginUser(t *testing.T) {
 	}
 	if response.AccessToken != outputToken {
 		t.Fatalf("Expected token %s but got %s", outputToken, response.AccessToken)
+	}
+	if !loginUserCall {
+		t.Fatal("Failed to log in user")
 	}
 }
 
@@ -222,8 +266,15 @@ func TestFailLoginUser(t *testing.T) {
 }
 
 func TestRemoveUser(t *testing.T) {
+	target := uuid.Must(uuid.NewV4())
+	removeUserCall := false
+
 	userAuthenticator := &authnimpl.UserAuthenticatorMock{
 		RemoveUserFunc: func(ctx context.Context, userID uuid.UUID) error {
+			removeUserCall = true
+			if userID != target {
+				return errors.New("User ID does not match with the target")
+			}
 			return nil
 		},
 	}
@@ -236,7 +287,6 @@ func TestRemoveUser(t *testing.T) {
 	}
 	ctx := context.WithValue(context.Background(), common.AuthStorageTxCtxKey, authStoreTx)
 
-	target := uuid.Must(uuid.NewV4())
 	request := RemoveUserRequest{
 		UserId: target.String(),
 	}
@@ -244,6 +294,9 @@ func TestRemoveUser(t *testing.T) {
 	_, err := authn.RemoveUser(ctx, &request)
 	if err != nil {
 		t.Fatalf("RemoveUser failed: %s", err)
+	}
+	if !removeUserCall {
+		t.Fatal("Failed to remove user")
 	}
 }
 
