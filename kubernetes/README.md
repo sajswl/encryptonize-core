@@ -83,9 +83,9 @@ sufficient to run the setup we recommend monitoring resource usage and adjust th
 to your use case.
 
 In order to use the provided makefile you will need to fill out the configuration in the two
-environment files [env/deploy_env](./env/deplo_env) and [env/provider_env](./env/provider_env). Note
+environment files [env/deploy_env](./env/deploy_env) and [env/provider_env](./env/provider_env). Note
 in particular that you will need to create a hostname for each cluster as defined in
-[env/deploy_env](./env/deplo_env).
+[env/deploy_env](./env/deploy_env).
 
 Each deployment is split into two parts: bootstrap and deploy. The bootstrap step will create
 namespaces, CRDs, ConfigMaps and Secrets. The deploy step will create everything else. The secrets
@@ -110,7 +110,7 @@ You can check the status with
 ```bash
 kubectl -n cockroachdb get service/cockroachdb-public
 ```
-Assign the hostname you set in [env/deploy_env](./env/deplo_env) (e.g. `auth.example.com`) to the
+Assign the hostname you set in [env/deploy_env](./env/deploy_env) (e.g. `auth.example.com`) to the
 provisioned IP.
 
 ### Object Storage Deployment
@@ -130,7 +130,7 @@ check the status with
 ```bash
 kubectl -n rook-ceph get service/ceph-ingress
 ```
-Assign the hostname you set in [env/deploy_env](./env/deplo_env) (e.g. `object.example.com`) to the
+Assign the hostname you set in [env/deploy_env](./env/deploy_env) (e.g. `object.example.com`) to the
 provisioned IP.
 
 ### Encryption Service Deployment
@@ -149,7 +149,7 @@ You can check the status with
 ```bash
 kubectl -n encryptonize get service/encryptonize-ingress
 ```
-Assign the hostname you set in [env/deploy_env](./env/deplo_env) (e.g. `api.example.com`) to the
+Assign the hostname you set in [env/deploy_env](./env/deploy_env) (e.g. `api.example.com`) to the
 provisioned IP.
 
 ### Log Aggregation (Optional)
@@ -168,7 +168,7 @@ service. You can check the status with
 ```bash
 kubectl -n elasticsearch get service/elasticsearch-es-http
 ```
-Assign the hostname you set in [env/deploy_env](./env/deplo_env) (e.g. `logging.example.com`) to the
+Assign the hostname you set in [env/deploy_env](./env/deploy_env) (e.g. `logging.example.com`) to the
 provisioned IP.
 
 To deploy Fluentbit agents to all three clusters run
