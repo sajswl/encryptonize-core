@@ -25,6 +25,8 @@ import (
 	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
+var invalidUID = "6025ea7f-2038-41e0-bc17-aeb2557ded90"
+
 // Test that we can share an object by adding a group to the access object
 func TestShareWithGroup(t *testing.T) {
 	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
@@ -122,8 +124,8 @@ func TestCreateGroupInvalidScopes(t *testing.T) {
 	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	// Create a group with invalid scopes
-	_, err = client.CreateGroup([]coreclient.Scope{42})
+	invalidScope := []coreclient.Scope{42}
+	_, err = client.CreateGroup(invalidScope)
 	failOnSuccess("Expected group creation to fail", err, t)
 }
 
@@ -136,8 +138,7 @@ func TestAddUserToGroupInvalidGroup(t *testing.T) {
 	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	// Try to add use to an invalid group
-	err = client.AddUserToGroup(uid, "6025ea7f-2038-41e0-bc17-aeb2557ded90")
+	err = client.AddUserToGroup(uid, invalidUID)
 	failOnSuccess("Expected adding user to group to fail", err, t)
 }
 
@@ -155,8 +156,7 @@ func TestAddUserToGroupInvalidUser(t *testing.T) {
 	failOnError("Group creation failed", err, t)
 	gid := createGroupResponse.GroupID
 
-	// Try to add invalid user to the group
-	err = client.AddUserToGroup("6025ea7f-2038-41e0-bc17-aeb2557ded90", gid)
+	err = client.AddUserToGroup(invalidUID, gid)
 	failOnSuccess("Expected adding user to group to fail", err, t)
 }
 
@@ -224,8 +224,7 @@ func TestRemoveUserFromGroupInvalidUser(t *testing.T) {
 	failOnError("Group creation failed", err, t)
 	gid := createGroupResponse.GroupID
 
-	// Try to remove an invalid user from the group
-	err = client.RemoveUserFromGroup("6025ea7f-2038-41e0-bc17-aeb2557ded90", gid)
+	err = client.RemoveUserFromGroup(invalidUID, gid)
 	failOnSuccess("Expected removing user from group to fail", err, t)
 }
 
