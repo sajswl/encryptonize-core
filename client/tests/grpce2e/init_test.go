@@ -17,23 +17,24 @@ package grpce2e
 import (
 	"testing"
 
+	"context"
 	"log"
 	"os"
 
-	"encryption-service/common"
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 var endpoint = "127.0.0.1:9000"
 var uid string
 var pwd string
-var protoUserScopes = []common.Scope{
-	common.Scope_READ,
-	common.Scope_CREATE,
-	common.Scope_INDEX,
-	common.Scope_OBJECTPERMISSIONS,
-	common.Scope_USERMANAGEMENT,
-	common.Scope_UPDATE,
-	common.Scope_DELETE,
+var protoUserScopes = []coreclient.Scope{
+	coreclient.ScopeRead,
+	coreclient.ScopeCreate,
+	coreclient.ScopeIndex,
+	coreclient.ScopeObjectPermissions,
+	coreclient.ScopeUserManagement,
+	coreclient.ScopeUpdate,
+	coreclient.ScopeDelete,
 }
 var certPath = ""
 
@@ -61,19 +62,19 @@ func TestMain(m *testing.M) {
 	}
 
 	// Create user for tests
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	if err != nil {
 		log.Fatalf("Couldn't create client: %v", err)
 	}
 	defer client.Close()
 
 	// Check if the server is alive
-	if err := client.HealthCheck(); err != nil {
+	if _, err := client.Health(); err != nil {
 		log.Fatalf("Couldn't ping test server: %v", err)
 	}
 
 	// Login boostrap user
-	_, err = client.LoginUser(bootstrapUID, bootstrapPassword)
+	err = client.LoginUser(bootstrapUID, bootstrapPassword)
 	if err != nil {
 		log.Fatalf("Couldn't login with test bootstrap user: %v", err)
 	}
@@ -84,7 +85,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Couldn't create test user: %v", err)
 	}
 
-	uid = createUserResponse.UserId
+	uid = createUserResponse.UserID
 	pwd = createUserResponse.Password
 
 	os.Exit(m.Run())
@@ -93,12 +94,6 @@ func TestMain(m *testing.M) {
 /*************************************/
 /*    End-to-end helper functions    */
 /*************************************/
-
-func closeClient(client *Client, t *testing.T) {
-	if err := client.Close(); err != nil {
-		t.Fatalf("Failed to close client connection")
-	}
-}
 
 func failOnError(message string, err error, t *testing.T) {
 	if err != nil {
@@ -110,13 +105,4 @@ func failOnSuccess(message string, err error, t *testing.T) {
 	if err == nil {
 		t.Fatalf("Test expected to fail: %v", message)
 	}
-}
-
-func find(slice []string, val string) bool {
-	for _, item := range slice {
-		if item == val {
-			return true
-		}
-	}
-	return false
 }

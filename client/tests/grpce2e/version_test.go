@@ -13,18 +13,24 @@
 // limitations under the License.
 package grpce2e
 
-import "testing"
+import (
+	"testing"
+
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
+)
 
 // Test that the version endpoints works and returns a non-empty git commit hash
 func TestGetVersion(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	versionResponse, err := client.GetVersion()
+	versionResponse, err := client.Version()
 	failOnError("Getting version failed", err, t)
 
 	// Fail on no commit

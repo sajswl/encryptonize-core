@@ -16,6 +16,10 @@ package grpce2e
 
 import (
 	"testing"
+
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 type LoginDetails struct {
@@ -23,26 +27,26 @@ type LoginDetails struct {
 }
 
 func TestAuthenticated(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	newUser, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(newUser.UserId, newUser.Password)
+	err = client.LoginUser(newUser.UserID, newUser.Password)
 	failOnError("Could not log in user", err, t)
 }
 
 func TestWrongCredentials(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	newUser, err := client.CreateUser(protoUserScopes)
@@ -53,20 +57,20 @@ func TestWrongCredentials(t *testing.T) {
 		LoginDetails{userid: "", password: pwd},
 		LoginDetails{userid: uid, password: ""},
 		LoginDetails{userid: uid, password: "wrong password"},
-		LoginDetails{userid: newUser.UserId, password: pwd},
-		LoginDetails{userid: newUser.UserId, password: "wrong password"},
+		LoginDetails{userid: newUser.UserID, password: pwd},
+		LoginDetails{userid: newUser.UserID, password: "wrong password"},
 	}
 
 	for _, cred := range wrongCredentials {
-		_, err = client.LoginUser(cred.userid, cred.password)
+		err = client.LoginUser(cred.userid, cred.password)
 		failOnSuccess("Should not be able to log in with wrong credentials", err, t)
 	}
 }
 
 func TestWrongToken(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
 	badTokens := []string{
 		"bad__bad__token!",
@@ -84,7 +88,7 @@ func TestWrongToken(t *testing.T) {
 	for _, token := range badTokens {
 		client.SetToken(token)
 
-		_, err = client.GetVersion()
+		_, err = client.Version()
 		failOnSuccess("Should not be able to get version with a wrong token", err, t)
 	}
 }

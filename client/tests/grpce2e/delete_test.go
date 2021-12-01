@@ -19,15 +19,19 @@ package grpce2e
 
 import (
 	"testing"
+
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // Test the we can store an object and delete it later
 func TestStoreDeleteRetrieve(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -35,8 +39,8 @@ func TestStoreDeleteRetrieve(t *testing.T) {
 
 	storeResponse, err := client.Store(plaintext, associatedData)
 	failOnError("Store operation failed", err, t)
-	oid := storeResponse.ObjectId
-	_, err = client.Delete(oid)
+	oid := storeResponse.ObjectID
+	err = client.Delete(oid)
 	failOnError("Delete operation failed", err, t)
 
 	_, err = client.Retrieve(oid)
@@ -44,11 +48,11 @@ func TestStoreDeleteRetrieve(t *testing.T) {
 }
 
 func TestStoreDeleteTwice(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -56,11 +60,11 @@ func TestStoreDeleteTwice(t *testing.T) {
 
 	storeResponse, err := client.Store(plaintext, associatedData)
 	failOnError("Store operation failed", err, t)
-	oid := storeResponse.ObjectId
-	_, err = client.Delete(oid)
+	oid := storeResponse.ObjectID
+	err = client.Delete(oid)
 	failOnError("Delete operation failed", err, t)
 
 	// The endpoint should return an error if the OID does not exist
-	_, err = client.Delete(oid)
+	err = client.Delete(oid)
 	failOnSuccess("Object is deletable twice", err, t)
 }
