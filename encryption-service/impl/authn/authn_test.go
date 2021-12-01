@@ -93,8 +93,10 @@ func TestNewUser(t *testing.T) {
 		t.Fatalf("NewUser errored: %s", err)
 	}
 
+	insertUserCall := false
 	authStoreTx := &authstorage.AuthStoreTxMock{
 		InsertUserFunc: func(ctx context.Context, protected *common.ProtectedUserData) error {
+			insertUserCall = true
 			return nil
 		},
 	}
@@ -102,6 +104,9 @@ func TestNewUser(t *testing.T) {
 
 	_, _, err = userAuthenticator.NewUser(ctx)
 	failOnError("Expected NewUser to succeed", err, t)
+	if !insertUserCall {
+		t.Fatal("Failed to insert a new user")
+	}
 }
 
 func TestUpdateUser(t *testing.T) {
