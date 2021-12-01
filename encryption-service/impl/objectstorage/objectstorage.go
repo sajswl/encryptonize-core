@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"net/http"
+	"os"
 
 	"encryption-service/common"
 
@@ -40,11 +41,17 @@ type ObjectStore struct {
 // Create a new object store defined by an endpoint and a bucket, authenticating with an access ID
 // and key.
 // Errors if the S3 session cannot be created.
-func NewObjectStore(endpoint, bucket, accessID, accessKey string, cert []byte) (*ObjectStore, error) {
+func NewObjectStore(endpoint, bucket, accessID, accessKey, certPath string) (*ObjectStore, error) {
 	rootCAs := x509.NewCertPool()
 
-	if ok := rootCAs.AppendCertsFromPEM(cert); !ok {
-		return nil, errors.New("could not add object storage certificate to cert pool")
+	if certPath != "" {
+		cert, err := os.ReadFile(certPath)
+		if err != nil {
+			return nil, err
+		}
+		if ok := rootCAs.AppendCertsFromPEM(cert); !ok {
+			return nil, errors.New("could not add object storage certificate to cert pool")
+		}
 	}
 
 	client := &http.Client{

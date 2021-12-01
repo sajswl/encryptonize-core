@@ -16,5 +16,5 @@
 
 set -euo pipefail
 
-docker push "${ENCRYPTION_SERVICE_IMAGE}:${VERSION:-v3.1.0}"
+docker push "${ENCRYPTION_SERVICE_IMAGE}:v3.1.0"
 

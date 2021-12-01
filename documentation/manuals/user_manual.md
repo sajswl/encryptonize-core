@@ -134,7 +134,7 @@ docker exec <CONTAINER ID> ./encryption-service create-user <scopes>
 #### Kubernetes example
 If using kubernetes with kubectl run:
 ```
-kubectl -n encryptonize exec deployment/encryptonize-deployment -- /encryption-service create-user <scopes>
+kubectl -n encryptonize exec deployment/encryptonize -- /encryption-service create-user <scopes>
 ```
 For more info on user management in Kubernetes, see the (Encryptonize Kubernetes README)[../../kubernetes/README].
 
