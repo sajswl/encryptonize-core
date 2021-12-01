@@ -29,4 +29,4 @@ echo "[*] tidying up"
 go mod tidy
 
 echo "[*] running linter"
-golangci-lint run -E gosec,asciicheck,bodyclose,gocyclo,unconvert,gocognit,misspell,revive,whitespace -D unused --timeout 5m
+golangci-lint run -E gosec,asciicheck,bodyclose,gocyclo,unconvert,gocognit,misspell,revive,whitespace -D unused --timeout 5m --build-tags "encryption storage"

@@ -106,3 +106,12 @@ func failOnSuccess(message string, err error, t *testing.T) {
 		t.Fatalf("Test expected to fail: %v", message)
 	}
 }
+
+func find(slice []string, val string) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
+}
