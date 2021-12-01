@@ -18,18 +18,20 @@
 package grpce2e
 
 import (
-	"encryption-service/common"
-
 	"testing"
+
+	"context"
+
+	coreclient "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // Test that unauthorized users cannot perform actions on objects
 func TestUnauthorizedAccessToObject(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -38,67 +40,67 @@ func TestUnauthorizedAccessToObject(t *testing.T) {
 	// Store an object
 	storeResponse, err := client.Store(plaintext, associatedData)
 	failOnError("Store operation failed", err, t)
-	oidStored := storeResponse.ObjectId
+	oidStored := storeResponse.ObjectID
 
 	// Encrypt an object
 	encResponse, err := client.Encrypt(plaintext, associatedData)
 	failOnError("Encrypt operation failed", err, t)
-	oidEncrypted := encResponse.ObjectId
+	oidEncrypted := encResponse.ObjectID
 
 	// Create an unauthorized user
 	createUserResponse, err := client.CreateUser(protoUserScopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	// Try to use endpoints that require authorization
 	_, err = client.Retrieve(oidStored)
 	failOnSuccess("Unauthorized user retrieved object", err, t)
 
-	_, err = client.Update(oidStored, plaintext, associatedData)
+	err = client.Update(oidStored, plaintext, associatedData)
 	failOnSuccess("Unauthorized user updated object", err, t)
 
-	_, err = client.Delete(oidStored)
+	err = client.Delete(oidStored)
 	failOnSuccess("Unauthorized user deleted object", err, t)
 
-	_, err = client.Update(oidStored, plaintext, associatedData)
+	err = client.Update(oidStored, plaintext, associatedData)
 	failOnSuccess("Unauthorized user updated object", err, t)
 
-	_, err = client.Decrypt(encResponse.Ciphertext, encResponse.AssociatedData, oidEncrypted)
+	_, err = client.Decrypt(oidEncrypted, encResponse.Ciphertext, encResponse.AssociatedData)
 	failOnSuccess("Unauthorized user decrypted object", err, t)
 
 	_, err = client.GetPermissions(oidStored)
 	failOnSuccess("Unauthorized user got permissions", err, t)
 
-	_, err = client.AddPermission(oidStored, uid)
+	err = client.AddPermission(oidStored, uid)
 	failOnSuccess("Unauthorized user added permission", err, t)
 
-	_, err = client.RemovePermission(oidStored, uid)
+	err = client.RemovePermission(oidStored, uid)
 	failOnSuccess("Unauthorized user removed permission", err, t)
 }
 
 func TestUnauthorizedToRead(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.Scope{
-		common.Scope_CREATE,
-		common.Scope_INDEX,
-		common.Scope_OBJECTPERMISSIONS,
-		common.Scope_USERMANAGEMENT,
-		common.Scope_UPDATE,
-		common.Scope_DELETE,
+	var scopes = []coreclient.Scope{
+		coreclient.ScopeCreate,
+		coreclient.ScopeIndex,
+		coreclient.ScopeObjectPermissions,
+		coreclient.ScopeUserManagement,
+		coreclient.ScopeUpdate,
+		coreclient.ScopeDelete,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -107,37 +109,37 @@ func TestUnauthorizedToRead(t *testing.T) {
 	storeResponse, err := client.Store(plaintext, associatedData)
 	failOnError("Store operation failed", err, t)
 
-	_, err = client.Retrieve(storeResponse.ObjectId)
+	_, err = client.Retrieve(storeResponse.ObjectID)
 	failOnSuccess("User should not be able to retrieve object without READ scope", err, t)
 
 	encResponse, err := client.Encrypt(plaintext, associatedData)
 	failOnError("Encrypt operation failed", err, t)
 
-	_, err = client.Decrypt(encResponse.Ciphertext, associatedData, encResponse.ObjectId)
+	_, err = client.Decrypt(encResponse.ObjectID, encResponse.Ciphertext, associatedData)
 	failOnSuccess("User should not be able to decrypt object without READ scope", err, t)
 }
 
 func TestUnauthorizedToCreate(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.Scope{
-		common.Scope_READ,
-		common.Scope_INDEX,
-		common.Scope_OBJECTPERMISSIONS,
-		common.Scope_USERMANAGEMENT,
-		common.Scope_UPDATE,
-		common.Scope_DELETE,
+	var scopes = []coreclient.Scope{
+		coreclient.ScopeRead,
+		coreclient.ScopeIndex,
+		coreclient.ScopeObjectPermissions,
+		coreclient.ScopeUserManagement,
+		coreclient.ScopeUpdate,
+		coreclient.ScopeDelete,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	plaintext := []byte("foo")
@@ -151,91 +153,91 @@ func TestUnauthorizedToCreate(t *testing.T) {
 }
 
 func TestUnauthorizedToGetPermissions(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.Scope{
-		common.Scope_READ,
-		common.Scope_CREATE,
-		common.Scope_OBJECTPERMISSIONS,
-		common.Scope_USERMANAGEMENT,
-		common.Scope_UPDATE,
-		common.Scope_DELETE,
+	var scopes = []coreclient.Scope{
+		coreclient.ScopeRead,
+		coreclient.ScopeCreate,
+		coreclient.ScopeObjectPermissions,
+		coreclient.ScopeUserManagement,
+		coreclient.ScopeUpdate,
+		coreclient.ScopeDelete,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	storeResponse, err := client.Store([]byte("foo"), []byte("bar"))
 	failOnError("Store operation failed", err, t)
-	oidStored := storeResponse.ObjectId
+	oidStored := storeResponse.ObjectID
 
 	_, err = client.GetPermissions(oidStored)
 	failOnSuccess("User should not be able to get permission without INDEX scope", err, t)
 }
 
 func TestUnauthorizedToManagePermissions(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.Scope{
-		common.Scope_READ,
-		common.Scope_CREATE,
-		common.Scope_INDEX,
-		common.Scope_USERMANAGEMENT,
-		common.Scope_UPDATE,
-		common.Scope_DELETE,
+	var scopes = []coreclient.Scope{
+		coreclient.ScopeRead,
+		coreclient.ScopeCreate,
+		coreclient.ScopeIndex,
+		coreclient.ScopeUserManagement,
+		coreclient.ScopeUpdate,
+		coreclient.ScopeDelete,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	storeResponse, err := client.Store([]byte("foo"), []byte("bar"))
 	failOnError("Store operation failed", err, t)
-	oidStored := storeResponse.ObjectId
+	oidStored := storeResponse.ObjectID
 
-	_, err = client.AddPermission(oidStored, uid)
+	err = client.AddPermission(oidStored, uid)
 	failOnSuccess("User should not be able to add permission without OBJECTPERMISSIONS scope", err, t)
 
-	_, err = client.RemovePermission(oidStored, uid)
+	err = client.RemovePermission(oidStored, uid)
 	failOnSuccess("User should not be able to remove permission without OBJECTPERMISSIONS scope", err, t)
 }
 
 func TestUnauthorizedToManageUsers(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.Scope{
-		common.Scope_READ,
-		common.Scope_CREATE,
-		common.Scope_INDEX,
-		common.Scope_OBJECTPERMISSIONS,
-		common.Scope_UPDATE,
-		common.Scope_DELETE,
+	var scopes = []coreclient.Scope{
+		coreclient.ScopeRead,
+		coreclient.ScopeCreate,
+		coreclient.ScopeIndex,
+		coreclient.ScopeObjectPermissions,
+		coreclient.ScopeUpdate,
+		coreclient.ScopeDelete,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	_, err = client.CreateUser(protoUserScopes)
@@ -243,34 +245,34 @@ func TestUnauthorizedToManageUsers(t *testing.T) {
 }
 
 func TestUnauthorizedToUpdateAndDelete(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
+	client, err := coreclient.NewClient(context.Background(), endpoint, certPath)
 	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	defer client.Close()
 
-	_, err = client.LoginUser(uid, pwd)
+	err = client.LoginUser(uid, pwd)
 	failOnError("Could not log in user", err, t)
 
-	var scopes = []common.Scope{
-		common.Scope_READ,
-		common.Scope_CREATE,
-		common.Scope_INDEX,
-		common.Scope_OBJECTPERMISSIONS,
-		common.Scope_USERMANAGEMENT,
+	var scopes = []coreclient.Scope{
+		coreclient.ScopeRead,
+		coreclient.ScopeCreate,
+		coreclient.ScopeIndex,
+		coreclient.ScopeObjectPermissions,
+		coreclient.ScopeUserManagement,
 	}
 
 	createUserResponse, err := client.CreateUser(scopes)
 	failOnError("Create user request failed", err, t)
 
-	_, err = client.LoginUser(createUserResponse.UserId, createUserResponse.Password)
+	err = client.LoginUser(createUserResponse.UserID, createUserResponse.Password)
 	failOnError("Could not log in user", err, t)
 
 	storeResponse, err := client.Store([]byte("foo"), []byte("bar"))
 	failOnError("Store operation failed", err, t)
-	oidStored := storeResponse.ObjectId
+	oidStored := storeResponse.ObjectID
 
-	_, err = client.Update(oidStored, []byte("new_foo"), []byte("new_bar"))
+	err = client.Update(oidStored, []byte("new_foo"), []byte("new_bar"))
 	failOnSuccess("User should not be able to delete object without UPDATE scope", err, t)
 
-	_, err = client.Delete(oidStored)
+	err = client.Delete(oidStored)
 	failOnSuccess("User should not be able to delete object without DELETE scope", err, t)
 }
