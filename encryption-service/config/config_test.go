@@ -29,7 +29,7 @@ sslkey = "authstorage.sslkey"
 url = "objectstorage.url"
 id = "objectstorage.id"
 key = "objectstorage.key"
-cert = "objectstorage.cert"
+certpath = "objectstorage.certpath"
 `
 
 var testConfigYAML = `
@@ -54,7 +54,7 @@ objectstorage:
   url: "objectstorage.url"
   id: "objectstorage.id"
   key: "objectstorage.key"
-  cert: "objectstorage.cert"
+  certpath: "objectstorage.certpath"
 `
 
 var testConfigJSON = `
@@ -80,7 +80,7 @@ var testConfigJSON = `
 		"url": "objectstorage.url",
 		"id": "objectstorage.id",
 		"key": "objectstorage.key",
-		"cert": "objectstorage.cert"
+		"certpath": "objectstorage.certpath"
 	}
 }
 `
@@ -104,10 +104,10 @@ var testConfig = Config{
 		SSLKey:      "authstorage.sslkey",
 	},
 	ObjectStorage: ObjectStorage{
-		URL:  "objectstorage.url",
-		ID:   "objectstorage.id",
-		Key:  "objectstorage.key",
-		Cert: []byte("objectstorage.cert"),
+		URL:      "objectstorage.url",
+		ID:       "objectstorage.id",
+		Key:      "objectstorage.key",
+		CertPath: "objectstorage.certpath",
 	},
 }
 

@@ -82,9 +82,10 @@ Unit tests can be run with
 make unit-tests
 ```
 
-After starting a standalone instance or a Docker Compose instance, end-to-end tests can be run using
+End-to-end tests can be run using one of the following targets
 ```bash
-make e2e-tests
+make e2e-tests-mem
+make e2e-tests-docker
 ```
 
 A coverage report for all tests can be generated using

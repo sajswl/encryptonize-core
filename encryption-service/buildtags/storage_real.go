@@ -46,5 +46,5 @@ func SetupAuthStore(ctx context.Context, config config.AuthStorage) (*authstorag
 
 func SetupObjectStore(bucket string, config config.ObjectStorage) (*objectstorage.ObjectStore, error) {
 	log.Info(context.TODO(), "Setup ObjectStore")
-	return objectstorage.NewObjectStore(config.URL, bucket, config.ID, config.Key, config.Cert)
+	return objectstorage.NewObjectStore(config.URL, bucket, config.ID, config.Key, config.CertPath)
 }

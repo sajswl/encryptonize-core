@@ -30,3 +30,7 @@ lint: ## Lint the codebase
 .PHONY: tests
 tests: build ## Run tests against Encryptonize server
 	go test -v
+
+.PHONY: e2e-tests
+e2e-tests: build  ## Run end-to-end tests
+	./scripts/e2e_tests.sh
