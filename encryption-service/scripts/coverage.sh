@@ -24,7 +24,7 @@ source ./scripts/build-env
 source ./scripts/dev-env
 
 # Start storage servers
-docker-compose up --detach cockroachdb-1 cockroachdb-2 cockroachdb-3 cockroachdb-init minio minio-init
+docker-compose up --detach cockroachdb-init minio-init
 
 # Run unit tests
 ./scripts/unit_tests.sh coverage
@@ -36,7 +36,7 @@ go test -ldflags "-X 'encryption-service/services/app.GitCommit=$COMMIT' -X 'enc
 
 echo '[*] running end-to-end tests'
 source <(./scripts/get-e2e-user.sh local)
-./scripts/e2e_tests.sh
+make e2e-tests
 
 while pkill -f -SIGINT encryption-service.test; do
   echo '[*] waiting for the server to shut down'

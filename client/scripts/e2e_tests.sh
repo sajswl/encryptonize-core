@@ -27,9 +27,6 @@
 
 set -euo pipefail
 
-source ./scripts/build-env
-source ./scripts/dev-env
-
 storage=${STORAGE_ENABLED:-true}
 encryption=${ENCRYPTION_ENABLED:-true}
 tags=${TAGS:-""}

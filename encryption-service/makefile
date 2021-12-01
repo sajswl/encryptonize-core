@@ -87,27 +87,27 @@ unit-tests: build  ## Run unit tests
 
 .PHONY: e2e-tests
 e2e-tests: build  ## Run end-to-end tests
-	./scripts/e2e_tests.sh
+	$(MAKE) -C ../client e2e-tests
 
 .PHONY: e2e-tests-mem
 e2e-tests-mem: tags += storage_mocked
 e2e-tests-mem: build  ## Run end-to-end tests against a local instance
 	source <(./scripts/get-e2e-user.sh local) && \
 	(./scripts/run.sh &>/dev/null &) && \
-	./scripts/e2e_tests.sh && \
+	$(MAKE) e2e-tests && \
 	./scripts/kill_server.sh
 
 .PHONY: e2e-tests-docker
 e2e-tests-docker: build  ## Run end-to-end tests against docker
 	$(MAKE) docker-up
 	source <(./scripts/get-e2e-user.sh docker) && \
-	./scripts/e2e_tests.sh
+	$(MAKE) e2e-tests
 	$(MAKE) docker-down
 
 .PHONY: e2e-tests-kubernetes
 e2e-tests-kubernetes: build  ## Run end-to-end tests against kubernetes
 	source <(./scripts/get-e2e-user.sh kubernetes) && \
-	./scripts/e2e_tests.sh
+	$(MAKE) e2e-tests
 
 .PHONY: service-tests
 service-tests: build  ## Run end-to-end tests while enabling/disabling services

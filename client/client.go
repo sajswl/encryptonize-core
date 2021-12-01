@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/fullstorydev/grpcurl"
@@ -70,6 +71,16 @@ func NewClient(ctx context.Context, endpoint, certPath string) (*Client, error) 
 	}, nil
 }
 
+// Close closes all connections to the Encryptonize server.
+func (c *Client) Close() error {
+	return c.connection.Close()
+}
+
+// SetToken sets the provided token as the authentication header.
+func (c *Client) SetToken(token string) {
+	c.authHeader = []string{"authorization: bearer " + token}
+}
+
 // invoke calls `method` with the requested `input` and unmarshals the response into `output`.
 func (c *Client) invoke(method, input string, output interface{}) error {
 	options := grpcurl.FormatOptions{
@@ -112,7 +123,7 @@ func (c *Client) invoke(method, input string, output interface{}) error {
 }
 
 // parseScopes converts an array of `Scope`s to an array of strings.
-func (c *Client) parseScopes(scopes []Scope) []string {
+func (c *Client) parseScopes(scopes []Scope) ([]string, error) {
 	scopeStrings := make([]string, 0, len(scopes))
 
 	for _, scope := range scopes {
@@ -131,10 +142,12 @@ func (c *Client) parseScopes(scopes []Scope) []string {
 			scopeStrings = append(scopeStrings, "OBJECTPERMISSIONS")
 		case ScopeUserManagement:
 			scopeStrings = append(scopeStrings, "USERMANAGEMENT")
+		default:
+			return nil, errors.New("invalid scope")
 		}
 	}
 
-	return scopeStrings
+	return scopeStrings, nil
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -178,13 +191,17 @@ func (c *Client) LoginUser(uid, password string) error {
 		return err
 	}
 
-	c.authHeader = []string{"authorization: bearer " + response.Token}
+	c.SetToken(response.Token)
 	return nil
 }
 
 // CreateUser creates a new Encryptonize user with the requested scopes.
 func (c *Client) CreateUser(scopes []Scope) (*CreateUserResponse, error) {
-	requestJSON, err := json.Marshal(request{Scopes: c.parseScopes(scopes)})
+	parsedScopes, err := c.parseScopes(scopes)
+	if err != nil {
+		return nil, err
+	}
+	requestJSON, err := json.Marshal(request{Scopes: parsedScopes})
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +226,11 @@ func (c *Client) RemoveUser(uid string) error {
 
 // CreateGroup creates a new Encryptonize group with the requested scopes.
 func (c *Client) CreateGroup(scopes []Scope) (*CreateGroupResponse, error) {
-	requestJSON, err := json.Marshal(request{Scopes: c.parseScopes(scopes)})
+	parsedScopes, err := c.parseScopes(scopes)
+	if err != nil {
+		return nil, err
+	}
+	requestJSON, err := json.Marshal(request{Scopes: parsedScopes})
 	if err != nil {
 		return nil, err
 	}

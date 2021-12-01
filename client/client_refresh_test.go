@@ -25,6 +25,7 @@ func TestUtilityWR(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.Close()
 
 	if _, err := c.Health(); err != nil {
 		t.Fatal(err)
@@ -39,6 +40,7 @@ func TestUserManagementWR(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.Close()
 
 	createUserResponse, err := c.CreateUser(scopes)
 	if err != nil {
@@ -71,6 +73,7 @@ func TestEncryptWR(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.Close()
 
 	createUserResponse, err := c.CreateUser(scopes)
 	if err != nil {
@@ -105,6 +108,7 @@ func TestStoreWR(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.Close()
 
 	createUserResponse, err := c.CreateUser(scopes)
 	if err != nil {
@@ -151,6 +155,7 @@ func TestPermissionsWR(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer c.Close()
 
 	createUserResponse, err := c.CreateUser(scopes)
 	if err != nil {
