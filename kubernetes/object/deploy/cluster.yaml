@@ -10,7 +10,7 @@ metadata:
 spec:
   # General settings
   cephVersion:
-    image: ceph/ceph:v15.2.5
+    image: ceph/ceph:v16.2.5@sha256:eb5600add17bccbe73ff1ee92faae1fce95007dcc51123f8c8a6258a090d2b03
     allowUnsupported: false
   dataDirHostPath: /var/lib/rook
 

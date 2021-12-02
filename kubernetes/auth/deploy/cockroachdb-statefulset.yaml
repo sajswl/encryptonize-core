@@ -85,7 +85,7 @@ spec:
   selector:
     app: cockroachdb
 ---
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: cockroachdb-budget
@@ -144,7 +144,7 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-        image: alpine:3.14@sha256:1775bebec23e1f3ce486989bfc9ff3c4e951690df84aa9f926497d82f2ffca9d
+        image: alpine:3.15.0@sha256:e7d88de73db3d3fd9b2d63aa7f447a10fd0220b7cbf39803c803f2af9ba256b3
         command:
           - sh
           - -c
@@ -161,7 +161,7 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-        image: cockroachdb/cockroach:v20.1.7
+        image: cockroachdb/cockroach:v21.2.1@sha256:a7627c9bac7fb1667a8dcd58733d89d8fd1c729c05b7f4ac255bb3f12e1b263a
         imagePullPolicy: IfNotPresent
         # TODO: Change these to appropriate values for the hardware that you're running. You can see
         # the resources that can be allocated on each of your Kubernetes nodes by running:
