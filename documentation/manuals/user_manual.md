@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 # Overview
-This user manual is updated to correspond to version 3.1.0 of the API.
+This user manual is updated to correspond to version 3.2.0 of the API.
 
 This document will provide a quick introduction on how to use the Encryptonize service and introduce
 essential concepts and terminology. For a detailed description of the gRPC API, see [the
-specification](../api/api-v3.1.0.md).
+specification](../api/api-v3.2.0.md).
 
 1. [Terminology](#terminology)
 1. [Encryptonize configs](#encryptonize-configs)
@@ -103,7 +103,7 @@ ID. The group ID is used to identify one or more users who are members of the gr
 automatically a member of a group with the same group ID as the user's user ID. A group has a set of
 **scopes** which determine what endpoints its users are authorized to access. A user has to be a
 member of at least one group with the required scope to access an endpoint. For a description of the
-scopes, see the [API documentation](../api/api-v3.1.0.md).
+scopes, see the [API documentation](../api/api-v3.2.0.md).
 
 An **object** is a cryptographically signed package containing the stored ciphertext and the
 associated data. A user can share stored data with other users/groups by modifying the permissions
@@ -121,7 +121,7 @@ All IDs are of the format version 4 UUID ([RFC 4122](https://tools.ietf.org/html
 To bootstrap the Encryptonize service with an initial user, once the service has been started,
 execute `./encryption-service create-user <scopes>`.  Here, `<scopes>` is a string describing the
 scopes the user's group should have. Each scope is mapped to a character as described in the table
-below. The scopes are described in further detail in the [API documentation](../api/api-v3.1.0.md).
+below. The scopes are described in further detail in the [API documentation](../api/api-v3.2.0.md).
 E.g., to create a user with `READ` and `CREATE` scopes, call `./encryption-service create-user rc`.
 
 | Scope               | Character |
