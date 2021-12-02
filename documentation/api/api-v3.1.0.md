@@ -300,7 +300,7 @@ defining which endpoints the group has access to. Possible scopes are `READ`, `C
 
 ### `authn.CreateGroupResponse`
 The structure returned by a `authn.CreateGroup` request. It contains the Group ID of the newly
-created user.
+created group.
 
 | Name       | Type   | Description            |
 |------------|--------|------------------------|
@@ -347,9 +347,9 @@ groups with access to the Object specified in the request.
 | `group_ids` | []string | An array of group IDs |
 
 ### `authz.AddPermissionRequest`
-The structure used as an argument for an `authz.AddPermission` request. It contains the ID of the
-Object the client wishes to add permissions to and the Group ID of the group to be added to the access
-list. Requires the scope `OBJECTPERMISSIONS`.
+The structure used as an argument for an `authz.AddPermission` request. It contains the ID of an
+Object and a target group ID. The specified group ID will be added to the access list of the
+specified object. Requires the scope `OBJECTPERMISSIONS`.
 
 | Name        | Type   | Description                       |
 |-------------|--------|-----------------------------------|
@@ -360,9 +360,9 @@ list. Requires the scope `OBJECTPERMISSIONS`.
 The structure returned by a `authz.AddPermission` request. The structure is empty.
 
 ### `authz.RemovePermissionRequest`
-The structure used as an argument for a `authz.RemovePermission` request. It contains the ID of
-the Object the client wishes to remove permissions from and the Group ID of the group to be removed
-from the access list. Requires the scope `OBJECTPERMISSIONS`.
+The structure used as an argument for a `authz.RemovePermission` request. It contains the ID of an
+Object and a target group ID. The specified group ID will be removed from the access list of the
+specified object. Requires the scope `OBJECTPERMISSIONS`.
 
 | Name        | Type   | Description                           |
 |-------------|--------|---------------------------------------|
@@ -464,8 +464,8 @@ rpc CreateUser (CreateUserRequest) returns (CreateUserResponse)
 ### `authn.LoginUser`
 
 Logs in an existing user, returning a User Access Token. Note that this token is valid for 1 hour.
-This call can fail if the caller the wrong credentials or if the Auth Service cannot reach the auth
-storage, in which case an error is returned.
+This call can fail if the caller provides the wrong credentials or if the Auth Service cannot reach
+the auth storage, in which case an error is returned.
 
 ```
 rpc LoginUser (LoginUserRequest) returns (LoginUserResponse)
@@ -509,9 +509,9 @@ rpc RemoveUserFromGroup (RemoveUserFromGroupRequest) returns (RemoveUserFromGrou
 
 ### `authz.GetPermissions`
 
-Returns a list of users with access to the specified object. This call can fail if the
-Storage Service cannot reach the auth storage, in which case an error is returned. The user has to
-be authenticated and authorized in order to get the object permissions.
+Returns a list of groups with access to the specified object. This call can fail if the Storage
+Service cannot reach the auth storage, in which case an error is returned. The calling user has to
+be authenticated and authorized to access the object in order to get the object permissions.
 
 ```
 rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse)
@@ -519,9 +519,9 @@ rpc GetPermissions (GetPermissionsRequest) returns (GetPermissionsResponse)
 
 ### `authz.AddPermission`
 
-Adds a User to the access list of the specified object. This call can fail if the caller
-does not have access to the object, if the target user does not exist, or if the Storage
-Service cannot reach the auth storage. In these cases, an error is returned.
+Adds a group to the access list of the specified object. This call can fail if the caller does not
+have access to the object, if the target group does not exist, or if the Storage Service cannot
+reach the auth storage. In these cases, an error is returned.
 
 ```
 rpc AddPermission (AddPermissionRequest) returns (ReturnCode)
@@ -529,9 +529,9 @@ rpc AddPermission (AddPermissionRequest) returns (ReturnCode)
 
 ### `authz.RemovePermission`
 
-Removes a User from the access list of the specified object. This call can fail if the
-caller does not have access to the object or if the Storage Service cannot reach the auth
-storage. In these cases, an error is returned.
+Removes a group from the access list of the specified object. This call can fail if the caller does
+not have access to the object or if the Storage Service cannot reach the auth storage. In these
+cases, an error is returned.
 
 ```
 rpc RemovePermission (RemovePermissionRequest) returns (ReturnCode)
