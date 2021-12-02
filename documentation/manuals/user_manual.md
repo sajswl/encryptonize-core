@@ -149,7 +149,7 @@ If using kubernetes with kubectl run:
 ```
 kubectl -n encryptonize exec deployment/encryptonize -- /encryption-service create-user <scopes>
 ```
-For more info on user management in Kubernetes, see the (Encryptonize Kubernetes README)[../../kubernetes/README].
+For more info on user management in Kubernetes, see the [Encryptonize Kubernetes README](../../kubernetes/README.md).
 
 ### Creating users through the API
 To create a user through the API, you need to call the `authn.Encryptonize.CreateUser` endpoint. The
