@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: ./encryption-service.dockerfile
-    image: cybercryptcom/encryptonize-core:v3.1.0
+    image: cybercryptcom/encryptonize-core:v3.2.0
     container_name: encryption-service
     environment:
       <<: *service-variables

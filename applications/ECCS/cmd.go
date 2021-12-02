@@ -50,7 +50,7 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:     "eccs",
-	Version: "v3.1.0",
+	Version: "v3.2.0",
 	Short:   "ECCS is a simple example client for the Encryptonize encrypted storage solution",
 	Args:    cobra.MinimumNArgs(1),
 }

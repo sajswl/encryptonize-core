@@ -43,7 +43,7 @@ spec:
             drop:
               - all
         # Insert Encryption Service image name here
-        image: cybercryptcom/encryptonize-core:v3.1.0 
+        image: cybercryptcom/encryptonize-core:v3.2.0
         imagePullPolicy: Always
         ports:
         - containerPort: 9000
