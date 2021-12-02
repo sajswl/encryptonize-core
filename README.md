@@ -73,19 +73,20 @@ see the [deployment README](kubernetes/README.md)
 # Repository overview
 
 ```
-├── applications                # Contains a sample applications
+├── applications                # Contains sample applications
+├── client                      # An Encryptonize client library
 ├── documentation               # User documentation
-│   ├── licenses                    # Third party licenses
+│   ├── api                         # API specifications
 │   ├── manuals                     # User manuals
-│   └── api                         # API specifications
+│   └── licenses                    # Third party licenses
 ├── encryption-service          # Source files for the encryption service
 ├── .github
 │   └── workflows                   # CI/CD files
 ├── kubernetes                  # Files for kubernetes deployment
-│   ├── cockroachdb                 # Deployment files for the auth storage
 │   ├── encryptonize                # Deployment files for the Encryption Service
-│   ├── cert-manager                # Deployment files for cert-manager 
+│   ├── auth                        # Deployment files for the auth storage
+│   ├── object                      # Deployment files for the object store
 │   ├── logging                     # Deployment files for logging
-│   └── rook-ceph                   # Deployment files for the object store
+│   └── cert-manager                # Deployment files for cert-manager
 └── README.md                   # This file
 ```

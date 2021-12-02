@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	encryptonize "client"
+	encryptonize "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // A client instance

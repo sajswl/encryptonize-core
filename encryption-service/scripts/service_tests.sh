@@ -18,20 +18,20 @@ set -euo pipefail
 
 # Testing with Storage and Encryption API
 STORAGE_ENABLED=true ENCRYPTION_ENABLED=true make docker-up
-./scripts/e2e_tests.sh
+make e2e-tests
 docker-compose stop encryption-service
 
 # Testing with Storage API
 STORAGE_ENABLED=true ENCRYPTION_ENABLED=false make docker-up
-ENCRYPTION_ENABLED=false ./scripts/e2e_tests.sh
+ENCRYPTION_ENABLED=false make e2e-tests
 docker-compose stop encryption-service
 
 # Testing with Encryption API
 STORAGE_ENABLED=false ENCRYPTION_ENABLED=true make docker-up
-STORAGE_ENABLED=false ./scripts/e2e_tests.sh
+STORAGE_ENABLED=false make e2e-tests
 docker-compose stop encryption-service
 
 # Testing with both API disabled
 STORAGE_ENABLED=false ENCRYPTION_ENABLED=false make docker-up
-STORAGE_ENABLED=false ENCRYPTION_ENABLED=false ./scripts/e2e_tests.sh
+STORAGE_ENABLED=false ENCRYPTION_ENABLED=false make e2e-tests
 docker-compose down -v

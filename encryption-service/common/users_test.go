@@ -11,24 +11,33 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package grpce2e
+package common
 
-import "testing"
+import (
+	"testing"
 
-// Test that the version endpoints works and returns a non-empty git commit hash
-func TestGetVersion(t *testing.T) {
-	client, err := NewClient(endpoint, certPath)
-	failOnError("Could not create client", err, t)
-	defer closeClient(client, t)
+	"github.com/gofrs/uuid"
+)
 
-	_, err = client.LoginUser(uid, pwd)
-	failOnError("Could not log in user", err, t)
+func TestGetGroupIDs(t *testing.T) {
+	groupID := uuid.Must(uuid.NewV4())
+	userData := &UserData{
+		GroupIDs: map[uuid.UUID]bool{
+			groupID: true,
+		},
+	}
 
-	versionResponse, err := client.GetVersion()
-	failOnError("Getting version failed", err, t)
+	uuids := userData.GetGroupIDs()
+	if len(uuids) == 0 || groupID != uuids[0] {
+		t.Error("Expected GetGroupIDs to return a group ID")
+	}
+}
 
-	// Fail on no commit
-	if versionResponse.Commit == "" {
-		t.Fatal("Git commit is empty")
+func TestGetZeroGroupIDs(t *testing.T) {
+	userData := &UserData{}
+
+	uuids := userData.GetGroupIDs()
+	if len(uuids) != 0 {
+		t.Error("GetGroupIDs should have returned empty array")
 	}
 }

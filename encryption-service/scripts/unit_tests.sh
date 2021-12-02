@@ -27,8 +27,8 @@ if [[ ${1-} == "coverage" ]]; then
   COVERAGE="-coverprofile coverage-unit.out"
 fi
 
-export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$|tests')
+export TEST_FOLDERS=$(go list ./... | grep -vE 'encryption-service$')
 echo '[*] testfolders: '
 echo $TEST_FOLDERS
 echo '[*] running unit tests'
-go test -count=1 ${COVERAGE} -v $TEST_FOLDERS
+go test -count=1 ${COVERAGE} $TEST_FOLDERS

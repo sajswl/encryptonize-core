@@ -65,7 +65,7 @@ func (s ScopeType) IsValid() error {
 	return errors.New("invalid combination of scopes")
 }
 
-// HasScopes returns true of `target` is in the set of scopes
+// HasScopes returns true if `target` is in the set of scopes
 func (s ScopeType) HasScopes(target ScopeType) bool {
 	return (s & target) == target
 }
