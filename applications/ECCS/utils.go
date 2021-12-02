@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	encryptonize "client"
+	encryptonize "github.com/cyber-crypt-com/encryptonize-core/client"
 )
 
 // Fail wraps text using ansi escape codes to color the output RED
