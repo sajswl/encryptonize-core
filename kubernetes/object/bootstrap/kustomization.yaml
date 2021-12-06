@@ -19,7 +19,7 @@ namespace: rook-ceph
 
 resources:
 - namespace.yaml
-- crds.yaml
+- crds.yaml        # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/crds.yaml
 
 secretGenerator:
 - name: object-certs

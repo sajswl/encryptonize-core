@@ -24,6 +24,35 @@ metadata:
   labels:
     app: cockroachdb
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cockroachdb
+  labels:
+    app: cockroachdb
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cockroachdb
+  labels:
+    app: cockroachdb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cockroachdb
+subjects:
+- kind: ServiceAccount
+  name: cockroachdb
+  namespace: default
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -85,7 +114,7 @@ spec:
   selector:
     app: cockroachdb
 ---
-apiVersion: policy/v1
+apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name: cockroachdb-budget
@@ -111,9 +140,6 @@ spec:
       app: cockroachdb
   template:
     metadata:
-      annotations:
-        container.apparmor.security.beta.kubernetes.io/cockroachdb: runtime/default
-        container.apparmor.security.beta.kubernetes.io/chmod-certs: runtime/default
       labels:
         app: cockroachdb
     spec:
@@ -161,7 +187,7 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-        image: cockroachdb/cockroach:v21.2.1@sha256:a7627c9bac7fb1667a8dcd58733d89d8fd1c729c05b7f4ac255bb3f12e1b263a
+        image: cockroachdb/cockroach:v21.2.2@sha256:795bacc6b672dae64fd488533bf12ae774944be3537e954673adec95ef85ae0a
         imagePullPolicy: IfNotPresent
         # TODO: Change these to appropriate values for the hardware that you're running. You can see
         # the resources that can be allocated on each of your Kubernetes nodes by running:
