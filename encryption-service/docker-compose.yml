@@ -24,7 +24,7 @@ x-service-variables: &service-variables
   ECTNZ_KEYS_GEK: "0000000000000000000000000000000000000000000000000000000000000004"
 
   # Auth storage
-  ECTNZ_AUTHSTORAGE_USERNAME: "root"
+  ECTNZ_AUTHSTORAGE_USERNAME: "encryptonize"
   ECTNZ_AUTHSTORAGE_HOST: "cockroachdb-1"
   ECTNZ_AUTHSTORAGE_PORT: "26257"
   ECTNZ_AUTHSTORAGE_DATABASE: "auth"
@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: ./encryption-service.dockerfile
-    image: cybercryptcom/encryptonize-core:v3.1.0
+    image: cybercryptcom/encryptonize-core:v3.2.0
     container_name: encryption-service
     environment:
       <<: *service-variables
@@ -108,6 +108,8 @@ services:
       /bin/sh -c "
       $${CRDB} init --insecure || true;
       echo 'CREATE DATABASE IF NOT EXISTS auth;' | $${CRDB} sql --insecure;
+      echo 'CREATE USER IF NOT EXISTS encryptonize;' | $${CRDB} sql --insecure;
+      echo 'GRANT ALL ON DATABASE auth TO encryptonize;' | $${CRDB} sql --insecure;
       "
     depends_on:
       - cockroachdb-1

@@ -9,7 +9,7 @@ gek = "0000000000000000000000000000000000000000000000000000000000000004"
 # Auth storage configuration
 [authstorage]
 # The SQL user that will own the client session.
-username = "root"
+username = "encryptonize"
 # The host name or address of an SQL database.
 host = "localhost"
 # The port number of the SQL interface

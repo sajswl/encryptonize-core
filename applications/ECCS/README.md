@@ -1,4 +1,4 @@
-# Encryptonize Core Cloud Storage 3.1.0
+# Encryptonize Core Cloud Storage v3.2.0
 
 Encryptonize Core Cloud Storage is an example of an easy to use CLI tool for storing secrets with
 the Encryptonize solution. It is essentially a thin CLI wrapper of the Encryptonize client library.

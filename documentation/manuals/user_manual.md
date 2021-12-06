@@ -14,21 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 # Overview
-This user manual is updated to correspond to version 3.1.0 of the API.
+This user manual is updated to correspond to version 3.2.0 of the API.
 
 This document will provide a quick introduction on how to use the Encryptonize service and introduce
 essential concepts and terminology. For a detailed description of the gRPC API, see [the
-specification](../api/api-v3.1.0.md).
+specification](../api/api-v3.2.0.md).
 
 1. [Terminology](#terminology)
 1. [Encryptonize configs](#encryptonize-configs)
 1. [Authentication](#authentication)
-1. [Users](#users)
+1. [Users and Groups](#users-and-groups)
     1. [Managing Users](#managing-users)
         1. [Bootstrapping users](#bootstrapping-users)
-        1. [Generating users through API](#generating-users-through-api)
+        1. [Generating users through the API](#generating-users-through-the-api)
         1. [User Login](#user-login)
         1. [Remove User](#remove-user)
+    1. [Managing Groups](#managing-groups)
+        1. [Creating groups](#creating-groups)
+        1. [Adding and removing users](#adding-and-removing-users)
 1. [Storage](#storage)
     1. [Storing data](#storing-data)
     1. [Retrieving data](#retrieving-data)
@@ -90,27 +93,36 @@ A correct authentication metadata query could look like this:
 This token is obtained upon user login as described in the [User Login section](#user-login). 
 Note that the access token is short lived (1 hour).
 
-# Users
-A **user** is an authorization entity on the encryption server, and is only represented by a user ID.
-The user ID is used to identify a single user. Each user has a password which can be used to obtain an
-access token for authentication and authorization. An **object** is a cryptographically signed package 
-containing the stored ciphertext and the associated data. A user can share stored data with other users
-by modifying the permissions on an object. Instructions on how to share data between users can be found 
-in the section on [*Permissions*](#permissions). The user that creates an object automatically has 
-permission to acccess that object, and any user that can access an object can modify the permissions.
+# Users and Groups
+A **user** is an authentication entity in the encryption server, and is only represented by a user
+ID. The user ID is used to identify a single user. Each user has a password which can be used to
+obtain an access token for authentication and authorization.
 
-It should be noted that while the access tokens and passwords should be kept secret, user IDs can be considered
-public information and safely shared between parties.
+A **group** is an authorization entity on the encryption server, and is only represented by a group
+ID. The group ID is used to identify one or more users who are members of the group. A user is
+automatically a member of a group with the same group ID as the user's user ID. A group has a set of
+**scopes** which determine what endpoints its users are authorized to access. A user has to be a
+member of at least one group with the required scope to access an endpoint. For a description of the
+scopes, see the [API documentation](../api/api-v3.2.0.md).
+
+An **object** is a cryptographically signed package containing the stored ciphertext and the
+associated data. A user can share stored data with other users/groups by modifying the permissions
+on an object. Instructions on how to share data between users/groups can be found in the section on
+[*Permissions*](#permissions). The user that creates an object automatically has permission to
+acccess that object, and any user/group that can access an object can modify the permissions.
+
+It should be noted that while the access tokens and passwords should be kept secret, user IDs can be
+considered public information and safely shared between parties.
 
 All IDs are of the format version 4 UUID ([RFC 4122](https://tools.ietf.org/html/rfc4122) section 4.4).
 
 ## Managing Users
 ### Bootstrapping users
-To bootstrap the Encryptonize service with a user, once the service has been started, execute 
-`./encryption-service create-user <scopes>`.  Here, `<scopes>` is a string describing the
-scopes the users should have. Each scope is mapped to a character as described in the table below. 
-The scopes are described in further detail in the [api doc](../api/api-v3.1.0.md). E.g., to create 
-a user with `READ` and `CREATE` scopes, call `./encryption-service create-user rc`.
+To bootstrap the Encryptonize service with an initial user, once the service has been started,
+execute `./encryption-service create-user <scopes>`.  Here, `<scopes>` is a string describing the
+scopes the user's group should have. Each scope is mapped to a character as described in the table
+below. The scopes are described in further detail in the [API documentation](../api/api-v3.2.0.md).
+E.g., to create a user with `READ` and `CREATE` scopes, call `./encryption-service create-user rc`.
 
 | Scope               | Character |
 | ---                 | ---       |
@@ -122,8 +134,9 @@ a user with `READ` and `CREATE` scopes, call `./encryption-service create-user r
 | `OBJECTPERMISSIONS` | `o`       |
 | `USERMANAGEMENT`    | `m`       |
 
-Note that users created this way are only valid for other Encryption Services that use the same key material.
-Information on bootstrapping in Docker and Kubernetes environments is provided in the following sections.
+Note that users are only valid for other Encryption Services that use the same key material.
+Information on bootstrapping in Docker and Kubernetes environments is provided in the following
+sections.
 
 #### Docker example
 If using docker run:
@@ -136,103 +149,117 @@ If using kubernetes with kubectl run:
 ```
 kubectl -n encryptonize exec deployment/encryptonize -- /encryption-service create-user <scopes>
 ```
-For more info on user management in Kubernetes, see the (Encryptonize Kubernetes README)[../../kubernetes/README].
+For more info on user management in Kubernetes, see the [Encryptonize Kubernetes README](../../kubernetes/README.md).
 
-### Generating users through API
-To create a user through the API, you need to call the `authn.Encryptonize.CreateUser` endpoint. 
-The request should contain an attribute named `userScopes` which enumerates all the scopes of the user
-as described in the [API doc](../api/api-v3.1.0.md). 
+### Creating users through the API
+To create a user through the API, you need to call the `authn.Encryptonize.CreateUser` endpoint. The
+request should contain an attribute named `scopes` which enumerates all the scopes the user's
+initial group should have. Users can only be created by a user with the `USERMANAGEMENT` scope.
 
-Once a user has been created, a new `userID` and `password` will be returned from the call. 
-Note that it is not possible to modify the scopes of a user after creation.
+Once a user has been created, a new `user_id` and `password` will be returned from the call. Note
+that a group with the requested scopes and an ID equal to the `user_id` is automatically created.
 
 ### User login
-When a user is created, you get the User ID and the password. You can use this information to obtain the short-lived
-access token, which is necessary for authentication towards the API. You can login by calling the 
-`authn.Encryptonize.LoginUser` endpoint. Provide the User ID and the password in your request object.
-
-Users can only be created by a user with the `USERMANAGEMENT` scope. For code examples on how to do this see
-[`/applications/ECCS`](/applications/ECCS).
+When a user is created, you get the User ID and the password. You can use this information to obtain
+the short-lived access token, which is necessary for authentication towards the API. You can login
+by calling the `authn.Encryptonize.LoginUser` endpoint. Provide the User ID and the password in your
+request object.
 
 ### Remove user
-To remove a user, you need to call the `authn.Encryptonize.RemoveUser` endpoint. This endpoint requires the 
-`USERMANAGEMENT` scope. The request must contain the `userId` of the user to be removed. If the request 
-was succesful, you will receive an empty response.
+To remove a user, you need to call the `authn.Encryptonize.RemoveUser` endpoint. This endpoint
+requires the `USERMANAGEMENT` scope. The request must contain the `user_id` of the user to be
+removed. If the request was successful, you will receive an empty response.
+
+## Managing Groups
+
+### Creating groups
+To create a group through the API, you need to call the `authn.Encryptonize.CreateGroup` endpoint.
+The request should contain an attribute named `scopes` which enumerates all the scopes the user's
+initial group should have. Groups can only be created by a user with the `USERMANAGEMENT` scope.
+Once a group has been created, a new `group_id` will be returned from the call.
+
+### Adding and removing users
+In order to modify the members of a group, you need to call the `authn.Encryptonize.AddUserToGroup`
+and `authn.Encryptonize.RemoveUserFromGroup` endpoints. In both cases the request should contain the
+`group_id` of the group in question and the `user_id` of the user to be added/removed.
 
 # Storage
-You can let Encryptonize store your encrypted data through the `storage.Encryptonize` API. In the following,
-we provide a short description of the exposed endpoints.
+You can let Encryptonize store your encrypted data through the `storage.Encryptonize` API. In the
+following, we provide a short description of the exposed endpoints.
 
 ## Storing data
-To store data through the API, you need to call the `storage.Encryptonize.Store` endpoint. To access this 
-endpoint the user must have the `CREATE` scope. The request should contain two attributes named `plaintext` 
-and `associatedData`.
+To store data through the API, you need to call the `storage.Encryptonize.Store` endpoint. To access
+this endpoint the user must have the `CREATE` scope. The request should contain two attributes named
+`plaintext` and `associated_data`.
 
-The `plaintext` is the data to be encrypted and stored. The `associatedData` is metadata attached
-to the plaintext. The `associatedData` will not be encrypted, but it will be cryptographically
-bound to the ciphertext, ensuring integrity and authenticity.
-The `associatedData` can be used for indexing or other purposes.
+The `plaintext` is the data to be encrypted and stored. The `associated_data` is metadata attached
+to the plaintext. The `associated_data` will not be encrypted, but it will be cryptographically
+bound to the ciphertext, ensuring integrity and authenticity. The `associated_data` can be used for
+indexing or other purposes.
 
-The `objectId` will be returned from the operation. This value should be kept safe as it will be used to 
-retrieve the object again from the service.
+The `object_id` will be returned from the operation. This value should be kept safe as it will be
+used to retrieve the object again from the service.
 
 ## Retrieving data
-To retrieve data through the API, you need to call the `storage.Encryptonize.Retrieve` endpoint. 
-To access this endpoint the user must have the `READ` scope. The operations takes the `objectId` of 
-the object to be retrieved. If the operation is successful, the object is returned in decrypted 
+To retrieve data through the API, you need to call the `storage.Encryptonize.Retrieve` endpoint. To
+access this endpoint the user must have the `READ` scope. The operations takes the `object_id` of
+the object to be retrieved. If the operation is successful, the object is returned in decrypted
 format along with any associated data.
 
 ## Updating data
-To update an existing object, you need to call the `storage.EncryptonizeUpdate` endpoint. To access this 
-endpoint, the user must have the `UPDATE` scope. The request must contain the updated `plaintext`, 
-the updated `associatedData` and the `objectId` of the object that needs to be updated. On a succesful 
-request, the response will be empty. Note that concurrent updates/deletes of the same objects might lead to 
-race conditions and is not safe.
+To update an existing object, you need to call the `storage.EncryptonizeUpdate` endpoint. To access
+this endpoint, the user must have the `UPDATE` scope. The request must contain the updated
+`plaintext`, the updated `associated_data` and the `object_id` of the object that needs to be
+updated. On a succesful request, the response will be empty. Note that concurrent updates/deletes of
+the same objects might lead to race conditions and is not safe.
 
 ## Deleting data
-To delete an existing object, you need to call the `storage.Encryptonize.Delete` endpoint. To access 
-this endopoint, the user must have the `DELETE` scope. The request must contain the `objectId` of 
-the object which should be deleted. Note that concurrent updates/deletes of the same objects might lead to 
-race conditions and is not safe.
-
+To delete an existing object, you need to call the `storage.Encryptonize.Delete` endpoint. To access
+this endopoint, the user must have the `DELETE` scope. The request must contain the `object_id` of
+the object which should be deleted. Note that concurrent updates/deletes of the same objects might
+lead to race conditions and is not safe.
 
 # Storage-less encryption
-The Encryptonize API allows to bypass the storage and instead return the encrypted packages back to the user.
-This might be useful if you wish to manage the encrypted data yourself.
+The Encryptonize API allows to bypass the storage and instead return the encrypted packages back to
+the user. This might be useful if you wish to manage the encrypted data yourself.
 
 ## Encryption
-You can encrypt an object and get the encrypted package back using the `enc.Encryptonize.Encrypt endpoint`.
-The callees need the `CREATE` scope in order to use this endpoint. Similar to the `Store` endpoint, you 
-need to provide the `plaintext` and the `associatedData`. The response of this call will contain the 
-`ciphertext`, the `associatedData` and the `objectId`. Note that the `associatedData` is not encrypted.
+You can encrypt an object and get the encrypted package back using the `enc.Encryptonize.Encrypt
+endpoint`. The caller needs the `CREATE` scope in order to use this endpoint. Similar to the `Store`
+endpoint, you need to provide the `plaintext` and the `associated_data`. The response of this call
+will contain the `ciphertext`, the `associated_data` and the `object_id`. Note that the
+`associated_data` is not encrypted.
 
 ## Decryption
-To decrypt an object, you need to call the `enc.Encryptonize.Decrypt` endpoint and provide the `ciphertext`,
-`associatedData` and the `objectId` in the request. This endpoint requires the `READ` scope. 
-If you are authenticated towards the API and authorized to read the object, the response will contain 
-the `plaintext` and the `associatedData`.
+To decrypt an object, you need to call the `enc.Encryptonize.Decrypt` endpoint and provide the
+`ciphertext`, `associated_data` and the `object_id` in the request. This endpoint requires the
+`READ` scope. If you are authenticated towards the API and authorized to read the object, the
+response will contain the `plaintext` and the `associated_data`.
 
 # Permissions
 Access to an object is shared through the concept of object permissions.
 
-Every object has a list associated with it with the user IDs of the users who are able to access and 
-modify the object. In order to modify the permission list, the user must have access to the object 
-(i.e. be on the permission list of the object).
+Every object has a list associated with it with the group IDs of the groups who are able to access
+and modify the object. In order to modify the permission list, the user must be in a group that has
+access to the object (i.e. is in the permission list of the object).
 
 ## Get permissions of an object
-To get the permission list of an object, you need to call the `authz.Encryptonize.GetPermissions` endpoint. 
-To access this endpoint the `INDEX` scope is required. The operation will return a list of `userID`s 
-that have access to the object.
+To get the permission list of an object, you need to call the `authz.Encryptonize.GetPermissions`
+endpoint. To access this endpoint the `INDEX` scope is required. The operation will return a list of
+`group_id`s that have access to the object.
 
 ## Add permissions to an object
-To add a user to the permission list of an object, you need to call the `authz.Encryptonize.AddPermission` 
-endpoint. To access this endpoint the `OBJECTPERMISSIONS` scope is required.
+To add a group to the permission list of an object, you need to call the
+`authz.Encryptonize.AddPermission` endpoint. To access this endpoint the `OBJECTPERMISSIONS` scope
+is required.
 
 ## Remove permissions from an object
-To remove a user's permission from an object, you need to call the `authz.Encryptonize.RemovePermission` endpoint. 
-To access this endpoint the `OBJECTPERMISSIONS` scope is required.
+To remove a group's permission from an object, you need to call the
+`authz.Encryptonize.RemovePermission` endpoint. To access this endpoint the `OBJECTPERMISSIONS`
+scope is required.
 
 # Version
-To get version information about the running encryption service, you need to call the `app.Encryptonize.Version` 
-endpoint. Currently, the endpoint returns the git commit hash and an optional git tag. This endpoint 
-does not need any scopes but requires the user to be authenticated by presenting a valid access token. 
+To get version information about the running encryption service, you need to call the
+`app.Encryptonize.Version` endpoint. Currently, the endpoint returns the git commit hash and an
+optional git tag. This endpoint does not need any scopes but requires the user to be authenticated
+by presenting a valid access token.
