@@ -199,7 +199,7 @@ spec:
     spec:
       containers:
       - name: fluent-bit
-        image: fluent/fluent-bit:1.5.7
+        image: fluent/fluent-bit:1.8.10@sha256:ac6dfd5612d84c89f2514ebefd5fa05ac8bd5bbd1c265597ab4938622a335647
         imagePullPolicy: Always
         ports:
         - containerPort: 2020

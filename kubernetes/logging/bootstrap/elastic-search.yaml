@@ -22,7 +22,7 @@ metadata:
   name: elasticsearch
   namespace: elasticsearch
 spec:
-  version: 7.9.2
+  version: 7.15.2
   nodeSets:
   - name: default
     count: 1
@@ -64,7 +64,7 @@ metadata:
   name: kibana
   namespace: elasticsearch
 spec:
-  version: 7.9.2
+  version: 7.15.2
   count: 1
   elasticsearchRef:
     name: elasticsearch

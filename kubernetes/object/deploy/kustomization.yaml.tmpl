@@ -18,11 +18,13 @@ kind: Kustomization
 namespace: rook-ceph
 
 resources:
-- common.yaml
-- operator.yaml
-- cluster.yaml
-- object.yaml
-- ingress.yaml 
+- common.yaml                       # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/common.yaml
+- operator.yaml                     # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/operator.yaml
+- cluster-on-pvc.yaml               # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/cluster-on-pvc.yaml
+- object.yaml                       # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/object.yaml
+- storageclass-bucket-retain.yaml   # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/storageclass-bucket-retain.yaml
+- object-bucket-claim-retain.yaml   # https://github.com/rook/rook/blob/v1.7.8/cluster/examples/kubernetes/ceph/object-bucket-claim-retain.yaml
+- ingress.yaml
 
 patches:
 - target:
