@@ -13,4 +13,4 @@ parameters:
    # of in the ObjectBucketClaim (OBC). In this case the provisioner will grant
    # access to the bucket by creating a new user, attaching it to the bucket, and
    # providing the credentials via a Secret in the namespace of the requesting OBC.
-   # bucketName: objects # Bucket name
+   # bucketName:

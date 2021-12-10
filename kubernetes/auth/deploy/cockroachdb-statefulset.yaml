@@ -140,6 +140,9 @@ spec:
       app: cockroachdb
   template:
     metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/cockroachdb: runtime/default
+        container.apparmor.security.beta.kubernetes.io/chmod-certs: runtime/default
       labels:
         app: cockroachdb
     spec:
