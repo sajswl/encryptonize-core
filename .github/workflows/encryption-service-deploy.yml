@@ -3,7 +3,7 @@ name: Encryption service deploy
 on:
   push:
     branches:
-      - deploy-k8s-updates
+      - master
 
 defaults:
   run:
