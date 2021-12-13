@@ -61,6 +61,7 @@ jobs:
         echo "${{ secrets.PROVIDER_ENV }}" >> env/provider_env
 
     - name: Apply kubernetes files
+      shell: 'script -e -c "bash {0}"' # Forces a TTY so we can do "kubectl exec.."
       run: |
         make gcp-login
         make deploy-auth
