@@ -58,7 +58,7 @@ behaviour can be modified by setting the environment variable `ECTNZ_CONFIGFILE`
 formats are TOML, YAML, and JSON.
 
 All configuration options are documented in the example configuration
-[`encryption-service/scripts/dev-config.toml`](../../encryption-service/sripts/dev-config.toml). 
+[`encryption-service/scripts/dev-config.toml`](../../encryption-service/scripts/dev-config.toml). 
 All configuration options can be overwritten by a corresponding environment variable. For example, 
 the URL for the object storage can be overwritten by setting `ECTNZ_OBJECTSTORAGE_URL`.
 
